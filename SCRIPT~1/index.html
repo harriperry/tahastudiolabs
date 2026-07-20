@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TAHA STUDIO AI ScriptForge</title>
+<link rel="stylesheet" href="/assets/app.css">
+<script src="/assets/jspdf.umd.min.js" defer></script>
+</head>
+<body>
+
+<nav class="sitenav"><a href="/" class="brand">TAHA <b>Studio Labs</b></a><span class="navlinks"><a href="/">Home</a><a href="/products.html">Products</a><a href="/scriptforge/" class="active">ScriptForge</a></span></nav>
+<header style="position:relative">
+  <h1>TAHA STUDIO <span>AI ScriptForge</span></h1>
+  <p>Turn One Idea Into a Production-Ready Video in Minutes</p>
+  <button class="btn-copy" id="btnAccount" style="position:absolute;top:22px;right:26px">Sign in</button>
+</header>
+
+<main>
+<!-- ══════════ LEFT: CONFIG ══════════ -->
+<div>
+  <div class="card">
+    <h2>1 · API Configuration</h2>
+    <label>Anthropic API Key</label>
+    <input type="password" id="apiKey" placeholder="sk-ant-YOUR_KEY_HERE" autocomplete="off">
+    <div class="row" style="margin-top:8px;align-items:center">
+      <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer">
+        <input type="checkbox" id="rememberKey" style="width:auto"> Remember key on this device
+      </label>
+    </div>
+    <label>Model</label>
+    <select id="model">
+      <option value="claude-sonnet-5">claude-sonnet-5 (recommended)</option>
+      <option value="claude-haiku-4-5-20251001">claude-haiku-4-5 (fast/cheap)</option>
+      <option value="claude-opus-4-8">claude-opus-4-8 (max quality)</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <h2>2 · Output Length</h2>
+    <label>Number of 10-second segments</label>
+    <select id="segCount">
+      <option value="1">1 segment × 10s — 10 s (10s total)</option>
+      <option value="2">2 segments × 10s — 20 s (20s total)</option>
+      <option value="3" selected>3 segments × 10s — 30 s (30s total)</option>
+      <option value="6">6 segments × 10s — 1 min (60s total)</option>
+      <option value="9">9 segments × 10s — 1 min 30 s (90s total)</option>
+      <option value="12">12 segments × 10s — 2 min (120s total)</option>
+      <option value="15">15 segments × 10s — 2 min 30 s (150s total)</option>
+      <option value="18">18 segments × 10s — 3 min (180s total)</option>
+      <option value="21">21 segments × 10s — 3 min 30 s (210s total)</option>
+      <option value="24">24 segments × 10s — 4 min (240s total)</option>
+      <option value="27">27 segments × 10s — 4 min 30 s (270s total)</option>
+      <option value="30">30 segments × 10s — 5 min (300s total)</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <h2>3 · Script Type, Ratio &amp; Technical Specs</h2>
+    <label>Script type</label>
+    <select id="scriptType">
+      <option value="">— None / generic —</option>
+      <option value="Short Movie Script">Short Movie Script</option>
+      <option value="Short Documentary">Short Documentary</option>
+      <option value="Short Advert">Short Advert</option>
+    </select>
+    <label>Ratio (video aspect ratio — included at top of output)</label>
+    <select id="ratio">
+      <option value="16:9" selected>16:9 — widescreen / YouTube / TV</option>
+      <option value="9:16">9:16 — vertical / Shorts / Reels / TikTok</option>
+      <option value="1:1">1:1 — square / social feed</option>
+      <option value="4:5">4:5 — portrait / Instagram feed</option>
+      <option value="21:9">21:9 — cinematic widescreen</option>
+    </select>
+    <label>Additional technical specs (optional — resolution, ratio, captions…)</label>
+    <textarea id="techSpecs" rows="2">1080p · SRT captions · flux-realism for B-roll</textarea>
+  </div>
+
+  <div class="card">
+    <h2>4 · Paste Full Script</h2>
+    <textarea id="script" rows="12" placeholder="[PASTE YOUR FULL SCRIPT HERE]"></textarea>
+    <div class="wordmeter" id="wordMeter">0 words · target ≈ 70–80 words for 30s</div>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button class="btn-primary" id="btnFormat" style="flex:2">⚡ Format into 3 × 10s Segments</button>
+      <button class="btn-ghost" id="btnClear" style="flex:1">Clear</button>
+    </div>
+    <button class="btn-ghost" id="btnMock" style="width:100%;margin-top:10px;border-color:var(--ok);color:var(--ok)">🧪 Run Mock Test — instant free demo, no API key</button>
+    <div class="status" id="status"></div>
+  </div>
+</div>
+
+<!-- ══════════ RIGHT: OUTPUT ══════════ -->
+<div>
+  <div class="out-toolbar">
+    <span class="badge" id="lenBadge">00:00 – 00:30 · 3 segments · 10s each</span>
+    <span class="spacer"></span>
+    <button class="btn-copy" id="btnToggleRaw" style="display:none">View raw markdown</button>
+    <button class="btn-copy" id="btnCopyAll" style="display:none">📋 Copy full output</button>
+    <button class="btn-copy" id="btnSaveLib" style="display:none">💾 Save to Library</button>
+    <button class="btn-copy" id="btnPdf" style="display:none">⬇ Download PDF</button>
+    <button class="btn-copy" id="btnLibrary">📚 Library</button>
+  </div>
+  <div id="output"><div class="empty">Formatted segments will appear here.<br><br>Paste your script, pick your settings, and hit <b>Format</b>.</div></div>
+  <textarea id="rawOut" readonly></textarea>
+</div>
+</main>
+
+<div class="lib-overlay" id="libOverlay">
+  <div class="lib-panel">
+    <h2>Script Library <span style="display:flex;gap:8px"><button class="btn-copy" id="btnLibExport">⬇ Export JSON</button><button class="btn-copy" id="btnLibImport">⬆ Import JSON</button><button class="btn-copy" id="btnLibClose">✕ Close</button></span></h2>
+    <div class="lib-note">⚠ Your saved scripts live only in this browser, on this device — clearing browser data erases them, and we keep no copy on any server. Use Export JSON for backups or to move scripts to another device.</div>
+    <input type="file" id="libFile" accept="application/json" style="display:none">
+    <div id="libList"></div>
+  </div>
+</div>
+
+<div class="lib-overlay" id="authOverlay">
+  <div class="lib-panel" style="max-width:440px">
+    <h2><span id="authTitle">Account</span> <button class="btn-copy" id="btnAuthClose">✕ Close</button></h2>
+    <div id="upsell" class="lib-note" style="display:none"></div>
+    <div id="viewSignedOut">
+      <label>Email</label>
+      <input type="email" id="authEmail" autocomplete="email" placeholder="you@example.com">
+      <label>Password</label>
+      <input type="password" id="authPass" autocomplete="current-password" placeholder="••••••••">
+      <div class="row" style="margin-top:12px">
+        <button class="btn-primary" id="btnLogin">Sign in</button>
+        <button class="btn-ghost" id="btnSignup">Create account</button>
+      </div>
+      <button class="btn-ghost" id="btnMagic" style="width:100%;margin-top:10px">✉ Email me a sign-in link instead</button>
+      <div class="status" id="authStatus"></div>
+      <p style="color:var(--muted);font-size:.72rem;margin-top:12px">By creating an account you agree to the <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> and <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a>. We store only your email, login credential, and subscription status — never your scripts or API key.</p>
+    </div>
+    <div id="viewSignedIn" style="display:none">
+      <div class="avatar-info" id="acctInfo" style="display:block"></div>
+      <div id="upgradeBox">
+        <button class="btn-primary" id="btnCheckout" style="margin-top:12px">⚡ Upgrade to Pro — open checkout</button>
+        <label>Already have a license key?</label>
+        <div class="row">
+          <input type="text" id="licKey" placeholder="XXXX-XXXX-XXXX-XXXX" style="flex:2">
+          <button class="btn-ghost" id="btnRedeem" style="flex:1">Redeem</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn-ghost" id="btnSignOut">Sign out</button>
+        <button class="btn-ghost" id="btnDeleteAcct" style="color:var(--err);border-color:var(--err)">Delete account</button>
+      </div>
+      <div id="deleteConfirm" style="display:none;margin-top:10px">
+        <label>Confirm your password to permanently delete your account</label>
+        <input type="password" id="delPass" autocomplete="current-password">
+        <button class="btn-ghost" id="btnDeleteFinal" style="width:100%;margin-top:8px;color:var(--err);border-color:var(--err)">Permanently delete my account and data</button>
+      </div>
+      <div class="status" id="acctStatus"></div>
+    </div>
+  </div>
+</div>
+
+<footer style="max-width:1200px;margin:0 auto;padding:18px 24px;color:var(--muted);font-size:.78rem;border-top:1px solid var(--border)">
+  © 2026 TAHA Production Studio · <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a> · <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> · Your scripts and API key never leave your browser.
+</footer>
+
+<script src="/assets/app.js" defer></script>
+</body>
+</html>
