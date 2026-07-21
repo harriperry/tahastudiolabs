@@ -134,7 +134,24 @@
     <div id="viewSignedIn" style="display:none">
       <div class="avatar-info" id="acctInfo" style="display:block"></div>
       <div id="upgradeBox">
-        <button class="btn-primary" id="btnCheckout" style="margin-top:12px">⚡ Upgrade to Pro — open checkout</button>
+        <div class="row" style="margin-top:12px;gap:10px;align-items:stretch">
+          <div style="flex:1;border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+            <div style="font-weight:600;margin-bottom:4px">Pro Monthly</div>
+            <div style="color:var(--muted);font-size:.85rem;margin-bottom:10px">$9.99 / month</div>
+            <button class="btn-primary" id="btnCheckoutMonthly" style="width:100%">⚡ Choose Monthly</button>
+          </div>
+          <div style="flex:1;border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+            <div style="font-weight:600;margin-bottom:4px">Pro Annual</div>
+            <div style="color:var(--muted);font-size:.85rem;margin-bottom:10px">$90 / year</div>
+            <button class="btn-primary" id="btnCheckoutAnnual" style="width:100%">⚡ Choose Annual</button>
+          </div>
+          <div style="flex:1;border:1px solid var(--accent2);border-radius:10px;padding:12px;text-align:center">
+            <div style="font-weight:600;margin-bottom:4px">Lifetime</div>
+            <div style="color:var(--muted);font-size:.85rem;margin-bottom:10px">$29 once</div>
+            <button class="btn-primary" id="btnCheckoutLifetime" style="width:100%">⚡ Choose Lifetime</button>
+          </div>
+        </div>
+        <p style="color:var(--muted);font-size:.72rem;margin-top:10px">All plans unlock the full Pro feature set for as long as your chosen period lasts. Lifetime is a one-time purchase — pay once, keep Pro forever.</p>
         <label>Already have a license key?</label>
         <div class="row">
           <input type="text" id="licKey" placeholder="XXXX-XXXX-XXXX-XXXX" style="flex:2">
