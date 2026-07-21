@@ -381,7 +381,7 @@ updateLengthUI();
    license redemption record. Scripts + API key NEVER leave this browser.               */
 
 const FREE_MAX_SEGS = 3, FREE_LIB_CAP = 5;
-const CHECKOUT_URL = "https://buy.polar.sh/YOUR_CHECKOUT_LINK_ID"; // TODO: paste Polar checkout link
+const CHECKOUT_URL = "https://buy.polar.sh/polar_cl_Wt5DoGAYG0ewAMyDzs5vJ2CqdyR8Y8c7zYewT2a5TtN";
 let user = null, tier = "free";
 
 const els2 = {};
