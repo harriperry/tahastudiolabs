@@ -381,12 +381,15 @@ updateLengthUI();
    license redemption record. Scripts + API key NEVER leave this browser.               */
 
 const FREE_MAX_SEGS = 3, FREE_LIB_CAP = 5;
-const CHECKOUT_URL = "https://buy.polar.sh/polar_cl_Wt5DoGAYG0ewAMyDzs5vJ2CqdyR8Y8c7zYewT2a5TtN";
+const PRO_MONTHLY_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_A6Vc4BjSfy6csnvzYQdje8tq3QX85U2MI9HHw2iegnR";
+const PRO_ANNUAL_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_IocSZNT4jxQRqeijsaOd8zj7q31p2s09HmVQT42pvCr";
+const LIFETIME_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_Wt5DoGAYG0ewAMyDzs5vJ2CqdyR8Y8c7zYewT2a5TtN";
 let user = null, tier = "free";
 
 const els2 = {};
 ["btnAccount","authOverlay","btnAuthClose","authTitle","upsell","viewSignedOut","viewSignedIn",
- "authEmail","authPass","btnLogin","btnSignup","btnMagic","authStatus","acctInfo","btnCheckout",
+ "authEmail","authPass","btnLogin","btnSignup","btnMagic","authStatus","acctInfo",
+ "btnCheckoutMonthly","btnCheckoutAnnual","btnCheckoutLifetime",
  "licKey","btnRedeem","btnSignOut","btnDeleteAcct","deleteConfirm","delPass","btnDeleteFinal",
  "acctStatus","btnLibExport","btnLibImport","libFile","upgradeBox"].forEach(id => els2[id] = $(id));
 
@@ -462,7 +465,9 @@ els2.btnMagic.addEventListener("click", async () => {
 });
 els2.btnSignOut.addEventListener("click", async () => { await api("logout", {}); await refreshMe(); });
 
-els2.btnCheckout.addEventListener("click", () => window.open(CHECKOUT_URL, "_blank", "noopener"));
+els2.btnCheckoutMonthly.addEventListener("click", () => window.open(PRO_MONTHLY_CHECKOUT_URL, "_blank", "noopener"));
+els2.btnCheckoutAnnual.addEventListener("click", () => window.open(PRO_ANNUAL_CHECKOUT_URL, "_blank", "noopener"));
+els2.btnCheckoutLifetime.addEventListener("click", () => window.open(LIFETIME_CHECKOUT_URL, "_blank", "noopener"));
 els2.btnRedeem.addEventListener("click", async () => {
   setAuthStatus(els2.acctStatus, "info", '<span class="spin"></span>Redeeming license…');
   const r = await api("redeem", { license_key: els2.licKey.value.trim() });
