@@ -10,15 +10,15 @@
 <nav class="sitenav"><a href="/" class="brand">TAHA <b>Studio Labs</b></a><span class="navlinks"><a href="/">Home</a><a href="/products.html">Products</a><a href="/scriptforge/">ScriptForge</a></span></nav>
 <header><h1>TAHA STUDIO <span>AI ScriptForge</span></h1><p><a href="/" style="color:var(--accent2)">&larr; Back to the app</a></p></header>
 <div class="legal"><h1>Privacy Policy — TAHA STUDIO AI ScriptForge</h1>
-<p><strong>Last updated:</strong> July 20, 2026
+<p><strong>Last updated:</strong> July 22, 2026
 <strong>Website:</strong> tahastudiolabs.com</p>
 <p>This Privacy Policy explains what information TAHA STUDIO AI ScriptForge ("ScriptForge," "we," "us") collects, how it is used, and the choices available to you.</p>
 <hr />
 <h2>1. Our Data Minimization Commitment</h2>
-<p>ScriptForge is built to collect as little personal data as possible. In particular:</p>
+<p>ScriptForge is built to collect and retain as little personal data as possible. In particular:</p>
 <ul>
-<li><strong>We do not see, receive, or store your scripts, generated segments, or any content you create in the tool.</strong> All saved content ("Save to Library") is stored only in your own browser, on your own device, and is never transmitted to us.</li>
-<li><strong>We do not see or store your Anthropic API key.</strong> You provide your own API key, and it is used only by your browser to communicate directly with Anthropic's API. It never passes through or is logged by our servers.</li>
+<li><strong>We do not store your scripts, generated segments, or any content you create in the tool.</strong> All saved content ("Save to Library") is stored only in your own browser, on your own device, and is never transmitted to us for storage. Your script text is relayed through our server for the single moment it takes to call Anthropic's API on your behalf (see below) — it is never written to a database, file, or log.</li>
+<li><strong>We do not store your Anthropic API key.</strong> You provide your own API key, and to make the "Format" feature work reliably for every visitor — including those whose browser, antivirus, or network would otherwise block a direct browser-to-Anthropic request — your key is relayed through our server to Anthropic's API for that single request only. It is held in server memory just long enough to make that one call, is never written to a database, file, or log, and is discarded immediately after the response is returned.</li>
 </ul>
 <hr />
 <h2>2. Information We Do Collect</h2>
@@ -51,10 +51,10 @@
 </table>
 <p>We do not collect payment card details directly — these are handled by our payment processor under their own security and compliance standards (see §5).</p>
 <hr />
-<h2>3. Information We Do Not Collect</h2>
+<h2>3. Information We Do Not Store</h2>
 <ul>
-<li>Script content, prompts, or generated video segments</li>
-<li>Your Anthropic API key</li>
+<li>Script content, prompts, or generated video segments — not written to any database, file, or log</li>
+<li>Your Anthropic API key — not written to any database, file, or log; held in server memory only for the moment it takes to relay a single "Format" request to Anthropic (§1)</li>
 <li>Browsing behavior or content-based analytics</li>
 <li>Any data beyond what's listed in §2, unless you separately provide it (e.g. contacting support)</li>
 </ul>
@@ -92,7 +92,7 @@
 <p>We retain your account, authentication, and subscription data for as long as your account is active. If you request account deletion, we will remove your email, credentials, and subscription records within [30] days, except where our payment provider is required to retain transaction records for tax or legal purposes independently of us.</p>
 <hr />
 <h2>9. Security</h2>
-<p>We use industry-standard practices to protect the limited data we hold, including encrypted connections (HTTPS), secure credential storage, and restricted internal access. No system is perfectly secure, but our architecture is deliberately designed so that even in the event of a breach, no script content or API keys could be exposed, since we never store them.</p>
+<p>We use industry-standard practices to protect the limited data we hold, including encrypted connections (HTTPS), secure credential storage, and restricted internal access. No system is perfectly secure, but our architecture is deliberately designed so that even in the event of a breach, no script content or API keys could be exposed from storage, since we never write them to a database, file, or log — the only point at which either value exists on our servers is in memory, in transit, for the single "Format" request that uses it.</p>
 <hr />
 <h2>10. Changes to This Policy</h2>
 <p>We may update this policy from time to time. Material changes will be reflected with an updated "Last updated" date at the top of this page.</p>
