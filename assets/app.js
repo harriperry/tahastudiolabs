@@ -89,7 +89,10 @@ function setStatus(cls, html){
   els.status.innerHTML = html;
 }
 
-/* ─────────────────────────  FORMAT (Anthropic browser API)  ───────────────────────── */
+/* ─────────────────────────  FORMAT (via our own server — avoids browser CORS/
+   extension interference; see functions/api/format.js for the relay + the
+   data-handling note on why this changed from a direct browser→Anthropic call)
+   ───────────────────────── */
 els.btnFormat.addEventListener("click", async () => {
   const key = els.apiKey.value.trim();
   const script = els.script.value.trim();
@@ -112,16 +115,12 @@ els.btnFormat.addEventListener("click", async () => {
   els.btnFormat.disabled = true;
   setStatus("info", `<span class="spin"></span>Calling Anthropic API… splitting into ${n} × 10s segments`);
 
-  async function callAnthropic() {
-    return fetch("https://api.anthropic.com/v1/messages", {
+  async function callFormat() {
+    return fetch("/api/format", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": key,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        apiKey: key,
         model: els.model.value,
         max_tokens: Math.min(1500 + n*800, 16000),
         system: buildSystemPrompt(n, ratio),
@@ -133,13 +132,13 @@ els.btnFormat.addEventListener("click", async () => {
   try {
     let res;
     try {
-      res = await callAnthropic();
+      res = await callFormat();
     } catch (networkErr) {
-      // Transient network/CORS-layer failure (browser extension, VPN, corporate
-      // proxy, or a brief hiccup) — the request never reached Anthropic at all,
-      // so it's always safe to retry once before giving up.
+      // Same-origin call to our own server — a thrown TypeError here means a
+      // brief network hiccup reaching tahastudiolabs.com itself, not anything
+      // Anthropic- or extension-related. Safe to retry once.
       await new Promise(r => setTimeout(r, 900));
-      res = await callAnthropic();
+      res = await callFormat();
     }
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
@@ -151,21 +150,7 @@ els.btnFormat.addEventListener("click", async () => {
     els.btnSaveLib.textContent = "💾 Save to Library";
     setStatus("ok", `✓ Done — ${n} segments generated. Copy blocks are ready below.`);
   } catch (err) {
-    if (err instanceof TypeError) {
-      // fetch() throws a plain TypeError only when the request never completed —
-      // it never reached Anthropic's server, so this is not a bad-key or
-      // rate-limit error. It's almost always something local intercepting the
-      // request before it leaves the browser.
-      setStatus("err",
-        "Couldn't reach Anthropic's API from this browser.<br>" +
-        "This usually means something on this device is blocking the request — not your key or our servers. Try:<br>" +
-        "• An incognito/private window (rules out browser extensions like ad blockers or privacy tools)<br>" +
-        "• A different network if you're on a work VPN or corporate firewall<br>" +
-        "• <a href=\"https://status.claude.com\" target=\"_blank\" rel=\"noopener\">status.claude.com</a> to rule out an Anthropic-side outage"
-      );
-    } else {
-      setStatus("err", "API error: " + err.message + "<br>Check that your key is valid at console.anthropic.com/settings/keys.");
-    }
+    setStatus("err", "API error: " + err.message + "<br>Check that your key is valid at console.anthropic.com/settings/keys, or try again in a moment.");
   } finally {
     els.btnFormat.disabled = false;
   }
@@ -441,6 +426,9 @@ function applyTier(){
     o.textContent = o.textContent.replace(/ 🔒 Pro$/, "") + (locked ? " 🔒 Pro" : "");
     o.disabled = locked;
   });
+  // Pro customers already have full access — the free mock demo is only useful
+  // pre-purchase, so hide it once a license is active.
+  els.btnMock.style.display = tier === "pro" ? "none" : "";
   if (els.segCount.selectedOptions[0] && els.segCount.selectedOptions[0].disabled) {
     els.segCount.value = String(FREE_MAX_SEGS); updateLengthUI();
   }
