@@ -112,8 +112,8 @@ els.btnFormat.addEventListener("click", async () => {
   els.btnFormat.disabled = true;
   setStatus("info", `<span class="spin"></span>Calling Anthropic API… splitting into ${n} × 10s segments`);
 
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+  async function callAnthropic() {
+    return fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -128,6 +128,19 @@ els.btnFormat.addEventListener("click", async () => {
         messages: [{ role: "user", content: userMsg }]
       })
     });
+  }
+
+  try {
+    let res;
+    try {
+      res = await callAnthropic();
+    } catch (networkErr) {
+      // Transient network/CORS-layer failure (browser extension, VPN, corporate
+      // proxy, or a brief hiccup) — the request never reached Anthropic at all,
+      // so it's always safe to retry once before giving up.
+      await new Promise(r => setTimeout(r, 900));
+      res = await callAnthropic();
+    }
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
     lastRaw = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n").trim();
@@ -138,7 +151,21 @@ els.btnFormat.addEventListener("click", async () => {
     els.btnSaveLib.textContent = "💾 Save to Library";
     setStatus("ok", `✓ Done — ${n} segments generated. Copy blocks are ready below.`);
   } catch (err) {
-    setStatus("err", "API error: " + err.message + "<br>Check: key valid · all 3 headers present · network allows api.anthropic.com");
+    if (err instanceof TypeError) {
+      // fetch() throws a plain TypeError only when the request never completed —
+      // it never reached Anthropic's server, so this is not a bad-key or
+      // rate-limit error. It's almost always something local intercepting the
+      // request before it leaves the browser.
+      setStatus("err",
+        "Couldn't reach Anthropic's API from this browser.<br>" +
+        "This usually means something on this device is blocking the request — not your key or our servers. Try:<br>" +
+        "• An incognito/private window (rules out browser extensions like ad blockers or privacy tools)<br>" +
+        "• A different network if you're on a work VPN or corporate firewall<br>" +
+        "• <a href=\"https://status.claude.com\" target=\"_blank\" rel=\"noopener\">status.claude.com</a> to rule out an Anthropic-side outage"
+      );
+    } else {
+      setStatus("err", "API error: " + err.message + "<br>Check that your key is valid at console.anthropic.com/settings/keys.");
+    }
   } finally {
     els.btnFormat.disabled = false;
   }
