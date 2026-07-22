@@ -1,7 +1,11 @@
 /* Shared helpers for ScriptForge Pages Functions.
    Data-minimization contract: these functions may touch ONLY email, credentials (via
    Supabase Auth), subscription status, license redemptions, and session ids.
-   They must NEVER accept, forward, or log script content or Anthropic API keys. */
+   They must NEVER log or persist script content or Anthropic API keys.
+   Exception: functions/api/format.js relays script text + the user's API key to
+   Anthropic's API, in memory, for the duration of a single request only — this is
+   the one function in this directory allowed to touch that data, and even it must
+   never write either value to Supabase, KV, or any log. */
 
 export function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
