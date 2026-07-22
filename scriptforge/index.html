@@ -87,6 +87,29 @@
     <button class="btn-ghost" id="btnMock" style="width:100%;margin-top:10px;border-color:var(--ok);color:var(--ok)">🧪 Run Mock Test — instant free demo, no API key</button>
     <div class="status" id="status"></div>
   </div>
+
+  <div class="card">
+    <h2>5 · Video Generation <span style="color:var(--muted);font-weight:400;font-size:.8rem">(optional — bring your own key per provider)</span></h2>
+    <p style="color:var(--muted);font-size:.8rem;margin:0 0 10px">
+      Once your script is formatted, each segment below gets a "Generate clip" option. Your key is relayed
+      through our server for that single request only — never stored or logged (see Privacy Policy).
+    </p>
+    <label>Google Gemini API key (for Veo 3.1) — aistudio.google.com/apikey</label>
+    <input type="password" id="videoKeyVeo" placeholder="AIza...">
+    <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
+      <input type="checkbox" id="rememberVideoKeyVeo" style="width:auto"> Remember on this device
+    </label>
+    <label style="margin-top:12px">xAI API key (for Grok Imagine) — console.x.ai</label>
+    <input type="password" id="videoKeyGrok" placeholder="xai-...">
+    <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
+      <input type="checkbox" id="rememberVideoKeyGrok" style="width:auto"> Remember on this device
+    </label>
+    <label style="margin-top:12px">HeyGen API key (for HeyGen Video Agent) — app.heygen.com Settings → API</label>
+    <input type="password" id="videoKeyHeygen" placeholder="your HeyGen key">
+    <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
+      <input type="checkbox" id="rememberVideoKeyHeygen" style="width:auto"> Remember on this device
+    </label>
+  </div>
 </div>
 
 <!-- ══════════ RIGHT: OUTPUT ══════════ -->
@@ -176,6 +199,6 @@
   © 2026 TAHA Production Studio · <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a> · <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> · Your scripts and API key are never stored or logged — see our Privacy Policy for details.
 </footer>
 
-<script src="/assets/app.js?v=relay1" defer></script>
+<script src="/assets/app.js?v=video1" defer></script>
 </body>
 </html>
