@@ -1,5 +1,5 @@
 
-/* ─────────────────────────  THE EXACT FORMATTER PROMPT  ───────────────────────── */
+/* ────────────────────────  THE EXACT FORMATTER PROMPT  ───────────────────────── */
 function tstamp(sec){const m=String(Math.floor(sec/60)).padStart(2,"0"),s=String(sec%60).padStart(2,"0");return `${m}:${s}`;}
 function totalLabel(n){const t=n*10;return t%60===0?`${t/60}-minute (${t}-second)`:`${t}-second`;}
 function buildSystemPrompt(n, ratio){
@@ -50,7 +50,10 @@ const els = {
   output: $("output"), rawOut: $("rawOut"),
   btnToggleRaw: $("btnToggleRaw"), btnCopyAll: $("btnCopyAll"),
   scriptType: $("scriptType"), btnSaveLib: $("btnSaveLib"), btnPdf: $("btnPdf"),
-  btnLibrary: $("btnLibrary"), libOverlay: $("libOverlay"), libList: $("libList"), btnLibClose: $("btnLibClose")
+  btnLibrary: $("btnLibrary"), libOverlay: $("libOverlay"), libList: $("libList"), btnLibClose: $("btnLibClose"),
+  videoKeyVeo: $("videoKeyVeo"), rememberVideoKeyVeo: $("rememberVideoKeyVeo"),
+  videoKeyGrok: $("videoKeyGrok"), rememberVideoKeyGrok: $("rememberVideoKeyGrok"),
+  videoKeyHeygen: $("videoKeyHeygen"), rememberVideoKeyHeygen: $("rememberVideoKeyHeygen")
 };
 let lastRaw = "";
 let lastMeta = null;
@@ -67,6 +70,28 @@ function persistKey(){
     if (els.rememberKey.checked) localStorage.setItem("sca_fmt_key", els.apiKey.value);
     else localStorage.removeItem("sca_fmt_key");
   } catch(e){}
+}
+
+/* remember video-provider keys — each provider gets its own localStorage slot so
+   switching between them never overwrites another provider's saved key */
+const VIDEO_PROVIDERS = {
+  veo:    { keyEl: "videoKeyVeo",    rememberEl: "rememberVideoKeyVeo",    ls: "sf_video_key_veo" },
+  grok:   { keyEl: "videoKeyGrok",   rememberEl: "rememberVideoKeyGrok",   ls: "sf_video_key_grok" },
+  heygen: { keyEl: "videoKeyHeygen", rememberEl: "rememberVideoKeyHeygen", ls: "sf_video_key_heygen" }
+};
+Object.values(VIDEO_PROVIDERS).forEach(p => {
+  try {
+    const saved = localStorage.getItem(p.ls);
+    if (saved) { els[p.keyEl].value = saved; els[p.rememberEl].checked = true; }
+  } catch (e) {}
+  els[p.keyEl].addEventListener("input", () => persistVideoKey(p));
+  els[p.rememberEl].addEventListener("change", () => persistVideoKey(p));
+});
+function persistVideoKey(p) {
+  try {
+    if (els[p.rememberEl].checked) localStorage.setItem(p.ls, els[p.keyEl].value);
+    else localStorage.removeItem(p.ls);
+  } catch (e) {}
 }
 
 /* word meter */
@@ -175,16 +200,21 @@ function renderOutput(raw){
   }
 
   /* Segments */
+  window.__segPrompts = {};
   const segRe = /###\s*SEGMENT\s*(\d+)\s*\|\s*([^\n]+)\n([\s\S]*?)(?=###\s*SEGMENT|\s*$)/gi;
   let m, found = 0;
   while ((m = segRe.exec(raw)) !== null) {
     found++;
     const num = m[1], time = m[2].trim(), body = m[3];
+    const visualPrompt = pick(body, "Visual / B-Roll Prompt") || pick(body, "Visual");
+    const motion = pick(body, "Motion");
+    const segType = pick(body, "Type");
+    window.__segPrompts[num] = { visualPrompt, motion };
     const fields = [
-      ["Type",                pick(body, "Type")],
+      ["Type",                segType],
       ["TTS Script",          pick(body, "TTS Script"),          "tts"],
-      ["Visual / B-Roll Prompt", pick(body, "Visual / B-Roll Prompt") || pick(body, "Visual"), "visual"],
-      ["Motion",              pick(body, "Motion")],
+      ["Visual / B-Roll Prompt", visualPrompt, "visual"],
+      ["Motion",              motion],
       ["Audio Note",          pick(body, "Audio Note")]
     ];
     let inner = "";
@@ -200,6 +230,19 @@ function renderOutput(raw){
            <button class="btn-copy" onclick="copyText(this, ${JSON.stringify(blockMd).replace(/"/g,"&quot;")})">📋 Copy block</button>
          </div>
          <div class="seg-body">${inner || "<div class='field'><div class='fv'>"+esc(body.trim())+"</div></div>"}</div>
+         ${visualPrompt ? `
+         <div class="seg-video" style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px">
+           <div style="display:flex;gap:8px;align-items:center">
+             <select id="vidGen${num}" style="flex:1">
+               <option value="veo">Veo 3.1</option>
+               <option value="grok">Grok Imagine</option>
+               <option value="heygen">HeyGen Video Agent</option>
+             </select>
+             <button class="btn-copy" onclick="genClip(${num}, this)">🎬 Generate clip</button>
+           </div>
+           <div class="status" id="vidStatus${num}"></div>
+           <div id="vidResult${num}" style="margin-top:8px"></div>
+         </div>` : ""}
        </div>`
     );
   }
@@ -217,7 +260,7 @@ function pick(body, label){
 }
 function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
-/* ─────────────────────────  COPY / TOGGLE / CLEAR  ───────────────────────── */
+/* ─────────────────────────  COPY / TOGGLE / CLEAR  ─────────────────────── */
 window.copyText = function(btn, text){
   navigator.clipboard.writeText(text).then(() => {
     const o = btn.textContent; btn.textContent = "✓ Copied";
@@ -536,3 +579,82 @@ els2.libFile.addEventListener("change", () => {
   };
   rd.readAsText(f);
 });
+
+/* ═════════════════════════  VIDEO GENERATION (Veo 3.1 / Grok Imagine / HeyGen)  ═════════════════════════
+   Calls our own /api/video-start, /api/video-poll, /api/video-download relays — never the
+   provider directly — using whichever of your own keys you entered in "5 · Video Generation".
+   Ported from the standalone local pilot that validated all three providers; the only change
+   is that every provider call now goes through our server instead of straight from the browser,
+   for the same reason the Anthropic "Format" call does (real customers' ad blockers / antivirus
+   can silently block a direct third-party call — confirmed behavior earlier in this product). */
+async function videoApi(path, body) {
+  const res = await fetch("/api/" + path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json().catch(() => null);
+  return { ok: res.ok, status: res.status, data };
+}
+
+function vidSetStatus(num, cls, msg) {
+  const el = $("vidStatus" + num);
+  if (!el) return;
+  el.className = "status " + cls;
+  el.innerHTML = msg;
+}
+
+window.genClip = async function (num, btn) {
+  const seg = window.__segPrompts && window.__segPrompts[num];
+  if (!seg || !seg.visualPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
+
+  const provider = $("vidGen" + num).value;
+  const providerMeta = VIDEO_PROVIDERS[provider];
+  const apiKey = els[providerMeta.keyEl].value.trim();
+  if (!apiKey) { vidSetStatus(num, "err", `Enter your ${provider === "veo" ? "Gemini" : provider === "grok" ? "xAI" : "HeyGen"} API key in the "5 · Video Generation" section first.`); return; }
+
+  const prompt = seg.motion ? `${seg.visualPrompt}. Camera direction: ${seg.motion}` : seg.visualPrompt;
+
+  btn.disabled = true;
+  $("vidResult" + num).innerHTML = "";
+  vidSetStatus(num, "info", '<span class="spin"></span>Submitting…');
+
+  try {
+    const startRes = await videoApi("video-start", { provider, apiKey, prompt, params: { durationSeconds: 8, duration: 8 } });
+    if (!startRes.ok) throw new Error(startRes.data?.error?.message || `HTTP ${startRes.status}`);
+    let jobRef = startRes.data.jobRef;
+
+    const maxAttempts = 225, pollInterval = 4000;
+    let uri = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      await new Promise(r => setTimeout(r, pollInterval));
+      vidSetStatus(num, "info", `<span class="spin"></span>Rendering… (attempt ${attempt}/${maxAttempts})`);
+      const pollRes = await videoApi("video-poll", { provider, apiKey, jobRef });
+      if (!pollRes.ok) throw new Error(pollRes.data?.error?.message || `HTTP ${pollRes.status}`);
+      if (pollRes.data.jobRef) jobRef = pollRes.data.jobRef;
+      if (pollRes.data.done) { uri = pollRes.data.uri; break; }
+    }
+    if (!uri) throw new Error("Timed out waiting for the clip after ~15 minutes.");
+
+    vidSetStatus(num, "info", '<span class="spin"></span>Fetching clip…');
+    const dlRes = await fetch("/api/video-download", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider, apiKey, uri })
+    });
+    if (!dlRes.ok) {
+      const errData = await dlRes.json().catch(() => null);
+      throw new Error(errData?.error?.message || `Download failed: HTTP ${dlRes.status}`);
+    }
+    const blob = await dlRes.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    $("vidResult" + num).innerHTML = `
+      <video controls src="${blobUrl}" style="max-width:100%;border-radius:8px"></video>
+      <div style="margin-top:6px"><a href="${blobUrl}" download="segment-${num}-clip.mp4" style="color:var(--accent2)">⬇ Download this clip</a></div>`;
+    vidSetStatus(num, "ok", "✓ Done.");
+  } catch (err) {
+    vidSetStatus(num, "err", "Error: " + err.message);
+  } finally {
+    btn.disabled = false;
+  }
+};
