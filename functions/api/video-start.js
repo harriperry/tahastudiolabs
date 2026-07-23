@@ -30,18 +30,29 @@ export async function onRequestPost(context) {
 /* Veo 3.1 — https://ai.google.dev/gemini-api/docs/veo
    Reference images: Google's own documented schema (ai.google.dev/gemini-api/docs/video#
    reference-images) requires every reference image object to include a "referenceType": "asset"
-   field alongside "image" — every one of Google's own request examples sends it. This relay was
-   previously forwarding reference images WITHOUT that field at all, an outright malformed
-   request, not a prompt-wording problem — very likely why identity preservation ("same person
-   in every slot") was unreliable. Enforced here server-side too, in case any cached client ever
-   sends the old shape. */
+   field alongside "image" — every one of Google's own request examples sends it. Enforced here
+   server-side too, in case any cached client ever sends the old shape.
+
+   ROUND 2 FIX — the actual image payload shape was ALSO wrong, confirmed by re-reading Google's
+   own REST curl example for this exact endpoint (ai.google.dev/gemini-api/docs/video#reference-
+   images): the "image" field must be a nested { inlineData: { mimeType, data } } object —
+   `"image": {"inlineData": {"mimeType": "image/png", "data": "<base64>"}}` — NOT a flat
+   { bytesBase64Encoded, mimeType } object (that flat shape belongs to a different endpoint,
+   Imagen's predict API, not Veo's). We were sending the flat shape, which doesn't match Veo's
+   schema at all — very likely why reference images were being silently ignored/malformed and a
+   different person kept showing up regardless of the referenceType fix above. Client still sends
+   { bytesBase64Encoded, mimeType } (see assets/app.js fileToBase64) — wrapped correctly here. */
 async function startVeo(apiKey, prompt, params) {
   const instance = { prompt };
   if (params.referenceImages) {
-    instance.referenceImages = params.referenceImages.map(r => ({
-      image: r.image,
-      referenceType: r.referenceType || "asset"
-    }));
+    instance.referenceImages = params.referenceImages.map(r => {
+      const mimeType = r.image?.mimeType || r.mimeType || "image/png";
+      const data = r.image?.bytesBase64Encoded || r.image?.data || r.data;
+      return {
+        image: { inlineData: { mimeType, data } },
+        referenceType: r.referenceType || "asset"
+      };
+    });
   }
   const parameters = {
     aspectRatio: params.aspectRatio || "16:9",
