@@ -236,7 +236,9 @@ function renderOutput(raw){
     const visualPrompt = pick(body, "Visual / B-Roll Prompt") || pick(body, "Visual");
     const motion = pick(body, "Motion");
     const segType = pick(body, "Type");
-    window.__segPrompts[num] = { visualPrompt, motion };
+    const ttsScript = pick(body, "TTS Script");
+    const audioNote = pick(body, "Audio Note");
+    window.__segPrompts[num] = { visualPrompt, motion, ttsScript, audioNote, segType };
     const fields = [
       ["Type",                segType],
       ["TTS Script",          pick(body, "TTS Script"),          "tts"],
@@ -654,14 +656,26 @@ function vidSetStatus(num, cls, msg) {
 
 window.genClip = async function (num, btn) {
   const seg = window.__segPrompts && window.__segPrompts[num];
-  if (!seg || !seg.visualPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
+  if (!seg) { vidSetStatus(num, "err", "No segment data found."); return; }
 
   const provider = $("vidGen" + num).value;
   const providerMeta = VIDEO_PROVIDERS[provider];
   const apiKey = els[providerMeta.keyEl].value.trim();
   if (!apiKey) { vidSetStatus(num, "err", `Enter your ${provider === "veo" ? "Gemini" : provider === "grok" ? "xAI" : "HeyGen"} API key in the "5 · Video Generation" section first.`); return; }
 
-  const prompt = seg.motion ? `${seg.visualPrompt}. Camera direction: ${seg.motion}` : seg.visualPrompt;
+  /* HeyGen's Video Agent is a talking-presenter generator — it needs to know what to SAY
+     (the TTS Script), not what the shot should look like. Veo/Grok are silent B-roll
+     generators — they need the Visual/B-Roll Prompt instead. Sending the visual prompt to
+     HeyGen (the old behavior) gave it nothing to speak, producing a silent clip even though
+     the segment clearly had a TTS Script and Audio Note. */
+  let prompt;
+  if (provider === "heygen") {
+    if (!seg.ttsScript) { vidSetStatus(num, "err", "No TTS Script found for this segment — HeyGen needs the spoken script text to generate voice."); return; }
+    prompt = seg.audioNote ? `${seg.ttsScript} (Delivery note: ${seg.audioNote})` : seg.ttsScript;
+  } else {
+    if (!seg.visualPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
+    prompt = seg.motion ? `${seg.visualPrompt}. Camera direction: ${seg.motion}` : seg.visualPrompt;
+  }
 
   btn.disabled = true;
   $("vidResult" + num).innerHTML = "";
