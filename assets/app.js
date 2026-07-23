@@ -2,11 +2,20 @@
 /* ─────────────────────────  THE EXACT FORMATTER PROMPT  ───────────────────────── */
 function tstamp(sec){const m=String(Math.floor(sec/60)).padStart(2,"0"),s=String(sec%60).padStart(2,"0");return `${m}:${s}`;}
 function totalLabel(n){const t=n*10;return t%60===0?`${t/60}-minute (${t}-second)`:`${t}-second`;}
+/* B-ROLL FIELD RESTRUCTURE: the old template had 2 loosely-defined fields ("Visual / B-Roll
+   Prompt" + "Motion") that left camera movement, lighting, and mood folded into one blob of
+   text, or skipped entirely, and never distinguished a still-frame description from a motion
+   instruction. Video generators work better when those roles are separated explicitly, so this
+   now asks for 5 distinct fields per segment: a Text-to-Image Prompt (the still composition),
+   an Image-to-Video Prompt (what happens as it moves), Camera Movement, Lighting, and Mood.
+   renderOutput()/pick() in this file parse all 5 out by their exact labels below, and genClip()
+   recombines them into one prompt when generating a clip, so the video generator gets the full
+   picture instead of a single vague sentence. */
 function buildSystemPrompt(n, ratio){
 const timingRule = Array.from({length:n},(_,i)=>`Segment ${i+1} = ${tstamp(i*10)}\u2013${tstamp((i+1)*10)}`).join(", ");
 return `Act as a professional AI video production formatter. Take the full script the user provides, and split it EXACTLY into ${n} equal segment${n>1?'s':''} of 10 seconds each, to make a total ${totalLabel(n)} video.
 
-Follow this exact structure for EVERY segment — keep wording clear and concise, match the tone of the original script, and ensure smooth natural continuity between segments:
+Follow this exact structure for EVERY segment. Keep wording clear and concise, match the tone of the original script, and ensure smooth natural continuity between segments.
 
 ---
 
@@ -15,13 +24,22 @@ Follow this exact structure for EVERY segment — keep wording clear and concise
 **Type**: [On-Camera / Voiceover + B-Roll / On-Camera + Brand Close]
 
 **TTS Script**:
-> [Full spoken text for this exact 10-second block — include short connecting phrases to flow smoothly between segments, keep it conversational and perfectly timed for 10 seconds]
+> [Full spoken text for this exact 10-second block. Include short connecting phrases to flow smoothly between segments, keep it conversational and perfectly timed for 10 seconds]
 
-**Visual / B-Roll Prompt**:
-> [Detailed, photorealistic ${ratio} prompt matching the content, setting, and style of the original example]
+**Text-to-Image Prompt**:
+> [Detailed, photorealistic ${ratio} still-frame prompt describing the opening composition of this shot: subject, setting, wardrobe or props, framing, and style, specific enough to generate a single reference still image on its own]
 
-**Motion**:
-> [Specify exact camera movement + fallback Ken Burns rule if applicable]
+**Image-to-Video Prompt**:
+> [What happens as that still comes to life across these 10 seconds: the action, movement, and any expression or dialogue delivery, written as motion instructions for a model animating a still image]
+
+**Camera Movement**:
+> [Specific camera movement, e.g. slow push-in, static locked shot, lateral glide, handheld follow, plus a fallback Ken Burns instruction if the shot is meant to hold still]
+
+**Lighting**:
+> [Lighting setup and quality: source, direction, color temperature, time of day]
+
+**Mood**:
+> [Overall emotional tone and atmosphere of the shot, in a few words]
 
 **Audio Note**:
 > [Music level / voice clarity instruction if needed]
@@ -30,13 +48,14 @@ Follow this exact structure for EVERY segment — keep wording clear and concise
 
 Additional rules:
 1. Keep all timing precise: ${timingRule}
-2. Preserve all original key information, brand names, and facts — do not add or remove core details
+2. Preserve all original key information, brand names, and facts. Do not add or remove core details
 3. Match the visual style, realism, and location details from the original reference examples
 4. Output as clean, copy-paste ready blocks exactly like the sample format
 5. If voice ID, avatar, or technical specs are provided, include them at the very top of the output in a "TECHNICAL SPECS" block before Segment 1
-6. Each 10-second TTS block should be approximately 22–28 spoken words (≈150 wpm)
-7. B-roll prompts: cinematic documentary grade, ultra-realistic African physiognomy where people appear, specify era, geography, lighting and composition — never generic stock-photo descriptors
-8. Output ONLY the formatted blocks. No preamble, no commentary, no closing remarks.`;
+6. Each 10-second TTS block should be approximately 22 to 28 spoken words (about 150 wpm)
+7. Visuals: cinematic documentary grade, ultra-realistic African physiognomy where people appear, specify era, geography, lighting, and composition. Never use generic stock-photo descriptors. The Text-to-Image Prompt and Image-to-Video Prompt must each be independently detailed enough that a video generator fully understands the role it should play: one describes the still composition, the other describes the motion
+8. Never use an em dash (the "—" character) anywhere in the output, in any field. Use a comma, a period, or the word "and" instead
+9. Output ONLY the formatted blocks. No preamble, no commentary, no closing remarks.`;
 }
 
 /* ─────────────────────────  DOM  ───────────────────────── */
@@ -61,7 +80,9 @@ const els = {
   refImg1: $("refImg1"), refImg1prev: $("refImg1prev"),
   refImg2: $("refImg2"), refImg2prev: $("refImg2prev"),
   refImg3: $("refImg3"), refImg3prev: $("refImg3prev"),
-  vidAspectRatio: $("vidAspectRatio"), vidResolution: $("vidResolution")
+  vidAspectRatio: $("vidAspectRatio"), vidResolution: $("vidResolution"),
+  elevenLabsKey: $("elevenLabsKey"), rememberElevenLabsKey: $("rememberElevenLabsKey"),
+  btnFetchVoices: $("btnFetchVoices"), elevenLabsVoice: $("elevenLabsVoice"), elevenLabsStatus: $("elevenLabsStatus")
 };
 let lastRaw = "";
 let lastMeta = null;
@@ -136,6 +157,89 @@ function persistVideoKey(p) {
   } catch (e) {}
 }
 
+/* ElevenLabs voice-ID picker — same one-slot localStorage key persistence pattern as the
+   providers above. IMPORTANT SCOPE NOTE: this only fetches the account's voice list and lets
+   the user pick a Voice ID; it never calls ElevenLabs to generate audio. The chosen Voice ID
+   is written into the script's TECHNICAL SPECS block (see btnFormat handler below) so it lands
+   at the top of the formatted output, ready to hand to whichever TTS/avatar step runs after
+   ScriptForge (e.g. pasted into HeyGen, or used with the user's own ElevenLabs workflow). */
+try {
+  const saved = localStorage.getItem("sf_elevenlabs_key");
+  if (saved && els.elevenLabsKey) { els.elevenLabsKey.value = saved; els.rememberElevenLabsKey.checked = true; }
+} catch (e) {}
+els.rememberElevenLabsKey?.addEventListener("change", persistElevenLabsKey);
+els.elevenLabsKey?.addEventListener("input", persistElevenLabsKey);
+function persistElevenLabsKey() {
+  try {
+    if (els.rememberElevenLabsKey.checked) localStorage.setItem("sf_elevenlabs_key", els.elevenLabsKey.value);
+    else localStorage.removeItem("sf_elevenlabs_key");
+  } catch (e) {}
+}
+
+/* Restore a previously picked voice (if any) as a preselected option before the user has even
+   fetched the list this session, so the TECHNICAL SPECS line still gets written on Format. */
+try {
+  const savedVoiceId = localStorage.getItem("sf_elevenlabs_voice_id");
+  const savedVoiceName = localStorage.getItem("sf_elevenlabs_voice_name");
+  if (savedVoiceId && els.elevenLabsVoice) {
+    const opt = document.createElement("option");
+    opt.value = savedVoiceId;
+    opt.textContent = savedVoiceName || savedVoiceId;
+    opt.dataset.name = savedVoiceName || "";
+    els.elevenLabsVoice.appendChild(opt);
+    els.elevenLabsVoice.value = savedVoiceId;
+  }
+} catch (e) {}
+
+els.btnFetchVoices?.addEventListener("click", async () => {
+  const key = els.elevenLabsKey.value.trim();
+  if (!key) {
+    els.elevenLabsStatus.className = "status err";
+    els.elevenLabsStatus.textContent = "Enter your ElevenLabs API key first (elevenlabs.io → Profile → API Keys).";
+    return;
+  }
+  els.btnFetchVoices.disabled = true;
+  els.elevenLabsStatus.className = "status info";
+  els.elevenLabsStatus.innerHTML = '<span class="spin"></span>Fetching voices…';
+  try {
+    const res = await fetch("/api/elevenlabs-voices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apiKey: key })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+    els.elevenLabsVoice.innerHTML = '<option value="">· choose a voice ·</option>';
+    (data.voices || []).forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v.voice_id;
+      opt.textContent = v.name + (v.category ? ` (${v.category})` : "");
+      opt.dataset.name = v.name;
+      els.elevenLabsVoice.appendChild(opt);
+    });
+    els.elevenLabsStatus.className = "status ok";
+    els.elevenLabsStatus.textContent = `✓ ${data.voices.length} voice(s) loaded, pick one below.`;
+  } catch (err) {
+    els.elevenLabsStatus.className = "status err";
+    els.elevenLabsStatus.textContent = "Error: " + err.message;
+  } finally {
+    els.btnFetchVoices.disabled = false;
+  }
+});
+
+els.elevenLabsVoice?.addEventListener("change", () => {
+  const opt = els.elevenLabsVoice.selectedOptions[0];
+  try {
+    if (els.elevenLabsVoice.value) {
+      localStorage.setItem("sf_elevenlabs_voice_id", els.elevenLabsVoice.value);
+      localStorage.setItem("sf_elevenlabs_voice_name", opt?.dataset.name || "");
+    } else {
+      localStorage.removeItem("sf_elevenlabs_voice_id");
+      localStorage.removeItem("sf_elevenlabs_voice_name");
+    }
+  } catch (e) {}
+});
+
 /* reference image previews (Veo 3.1 "Ingredients to video" — up to 3, optional) */
 function wireImageInput(inputEl, previewEl) {
   if (!inputEl || !previewEl) return;
@@ -180,7 +284,7 @@ els.segCount.addEventListener("change", updateLengthUI);
 function updateWordMeter(){
   const n = +els.segCount.value, lo = n*22, hi = n*28;
   const w = els.script.value.trim().split(/\s+/).filter(Boolean).length;
-  els.wordMeter.textContent = `${w} words · target ≈ ${lo}–${hi} words for ${tstamp(n*10)}` + (w > Math.round(hi*1.2) ? " — ⚠ likely over target, formatter will condense" : "");
+  els.wordMeter.textContent = `${w} words · target ≈ ${lo}–${hi} words for ${tstamp(n*10)}` + (w > Math.round(hi*1.2) ? " · ⚠ likely over target, formatter will condense" : "");
 }
 function updateLengthUI(){
   const n = +els.segCount.value;
@@ -223,9 +327,13 @@ els.btnFormat.addEventListener("click", async () => {
   if (stype) specs += `Script type: ${stype}\n`;
   specs += `Ratio: ${ratio}\n`;
   if (els.techSpecs.value.trim()) specs += `Specs: ${els.techSpecs.value.trim()}\n`;
+  if (els.elevenLabsVoice?.value) {
+    const voiceName = els.elevenLabsVoice.selectedOptions[0]?.dataset.name || "";
+    specs += `ElevenLabs Voice ID: ${els.elevenLabsVoice.value}${voiceName ? " (" + voiceName + ")" : ""}\n`;
+  }
 
   const userMsg = (specs ? `TECHNICAL SPECS PROVIDED (include at very top of output):\n${specs}\n` : "") +
-                  (stype ? `FORMAT STYLE: ${stype} — adapt the Type fields, pacing and tone of every segment to a ${stype.toLowerCase()}.\n\n` : "") +
+                  (stype ? `FORMAT STYLE: ${stype}. Adapt the Type fields, pacing and tone of every segment to a ${stype.toLowerCase()}.\n\n` : "") +
                   `Now process this script:\n\n${script}`;
 
   els.btnFormat.disabled = true;
@@ -298,18 +406,29 @@ function renderOutput(raw){
   while ((m = segRe.exec(raw)) !== null) {
     found++;
     const num = m[1], time = m[2].trim(), body = m[3];
-    const visualPrompt = pick(body, "Visual / B-Roll Prompt") || pick(body, "Visual");
-    const motion = pick(body, "Motion");
+    /* 5-field B-roll model (Text-to-Image / Image-to-Video / Camera Movement / Lighting / Mood)
+       replaces the old 2-field "Visual / B-Roll Prompt" + "Motion" pair so the video generator
+       gets the still composition, the motion, the camera work, the lighting, and the mood as
+       distinct instructions instead of one blob of text. Old labels are kept as a fallback so
+       scripts already saved to a user's Library before this change still render correctly. */
+    const t2iPrompt = pick(body, "Text-to-Image Prompt") || pick(body, "Visual / B-Roll Prompt") || pick(body, "Visual");
+    const i2vPrompt = pick(body, "Image-to-Video Prompt");
+    const camera = pick(body, "Camera Movement") || pick(body, "Motion");
+    const lighting = pick(body, "Lighting");
+    const mood = pick(body, "Mood");
     const segType = pick(body, "Type");
     const ttsScript = pick(body, "TTS Script");
     const audioNote = pick(body, "Audio Note");
-    window.__segPrompts[num] = { visualPrompt, motion, ttsScript, audioNote, segType };
+    window.__segPrompts[num] = { t2iPrompt, i2vPrompt, camera, lighting, mood, ttsScript, audioNote, segType };
     const fields = [
-      ["Type",                segType],
-      ["TTS Script",          pick(body, "TTS Script"),          "tts"],
-      ["Visual / B-Roll Prompt", visualPrompt, "visual"],
-      ["Motion",              motion],
-      ["Audio Note",          pick(body, "Audio Note")]
+      ["Type",                  segType],
+      ["TTS Script",            ttsScript,  "tts"],
+      ["Text-to-Image Prompt",  t2iPrompt,  "visual"],
+      ["Image-to-Video Prompt", i2vPrompt,  "visual"],
+      ["Camera Movement",       camera],
+      ["Lighting",              lighting],
+      ["Mood",                  mood],
+      ["Audio Note",            audioNote]
     ];
     let inner = "";
     for (const [lab, val, cls] of fields) {
@@ -324,7 +443,7 @@ function renderOutput(raw){
            <button class="btn-copy" data-action="copy-block" data-text="${encodeURIComponent(blockMd)}">📋 Copy block</button>
          </div>
          <div class="seg-body">${inner || "<div class='field'><div class='fv'>"+esc(body.trim())+"</div></div>"}</div>
-         ${visualPrompt ? `
+         ${t2iPrompt ? `
          <div class="seg-video" style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px">
            <div style="display:flex;gap:8px;align-items:center">
              <select id="vidGen${num}" style="flex:1">
@@ -395,7 +514,7 @@ function setLib(list){ try { localStorage.setItem("sca_fmt_library", JSON.string
 function titleFor(raw, meta){
   const m = raw.match(/\*\*TTS Script\*\*:\s*\n?>?\s*([^\n]+)/i);
   const base = m ? m[1].replace(/[>*"]/g,"").trim().split(/\s+/).slice(0,8).join(" ") : "Untitled script";
-  return `${meta && meta.type ? meta.type + " — " : ""}${base}`;
+  return `${meta && meta.type ? meta.type + " · " : ""}${base}`;
 }
 els.btnSaveLib.addEventListener("click", () => {
   if (!lastRaw) return;
@@ -456,7 +575,7 @@ function makePdf(title, raw, meta){
   const margin = 18, maxW = 210 - margin*2;
   let y = margin;
   doc.setFont("helvetica", "bold"); doc.setFontSize(14);
-  const tLines = doc.splitTextToSize("TAHA Studio AI ScriptForge — " + title, maxW);
+  const tLines = doc.splitTextToSize("TAHA Studio AI ScriptForge · " + title, maxW);
   doc.text(tLines, margin, y); y += tLines.length * 6 + 3;
   doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120);
   doc.text(`${meta && meta.date ? new Date(meta.date).toLocaleString() : ""}${meta && meta.n ? "  ·  " + meta.n + " × 10s segments (" + tstamp(meta.n*10) + " total)" : ""}  ·  TAHA Production Studio`, margin, y);
@@ -471,7 +590,7 @@ function makePdf(title, raw, meta){
   doc.save(title.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "_").slice(0, 60) + ".pdf");
 }
 /* ─────────────────────────  MOCK TEST (canned simulation — no API)  ───────────────────────── */
-const MOCK_SCRIPT = "Every great video starts with a script — but timing it, shot-listing it, and prepping it for production takes hours. TAHA Studio's Segment Formatter splits any script into perfectly timed ten-second blocks — narration, visuals, motion and audio notes included. From thirty seconds to five minutes, your script is production-ready in one click. Try it free at TAHA Production Studio today.";
+const MOCK_SCRIPT = "Every great video starts with a script, but timing it, shot-listing it, and prepping it for production takes hours. TAHA Studio's Segment Formatter splits any script into perfectly timed ten-second blocks, narration, visuals, motion and audio notes included. From thirty seconds to five minutes, your script is production-ready in one click. Try it free at TAHA Production Studio today.";
 const MOCK_RAW = `TECHNICAL SPECS
 Script type: Short Advert
 Ratio: 16:9
@@ -484,13 +603,22 @@ Specs: 1080p · SRT captions · flux-realism for B-roll
 **Type**: Voiceover + B-Roll
 
 **TTS Script**:
-> Every great video starts with a script — but timing it, shot-listing it, and prepping it for production takes hours.
+> Every great video starts with a script, but timing it, shot-listing it, and prepping it for production takes hours.
 
-**Visual / B-Roll Prompt**:
+**Text-to-Image Prompt**:
 > Photorealistic 16:9 shot of a cluttered editor's desk at night, dual monitors glowing with scattered script pages, warm lamp light, shallow depth of field, cinematic documentary grade.
 
-**Motion**:
-> Slow push-in toward the monitors; fallback Ken Burns zoom on still.
+**Image-to-Video Prompt**:
+> The camera holds on the glowing monitors as script pages ripple faintly under the desk fan, the editor's hand enters frame to scroll the timeline, cursor blinking on an unfinished script.
+
+**Camera Movement**:
+> Slow push-in toward the monitors, fallback Ken Burns zoom on still.
+
+**Lighting**:
+> Warm practical lamp light against cool monitor glow, high contrast, moody night interior.
+
+**Mood**:
+> Late-night grind, quietly overwhelmed but focused.
 
 **Audio Note**:
 > Music bed low (-18 dB), voice clear and forward.
@@ -502,16 +630,25 @@ Specs: 1080p · SRT captions · flux-realism for B-roll
 **Type**: Voiceover + B-Roll
 
 **TTS Script**:
-> TAHA Studio's Segment Formatter splits any script into perfectly timed ten-second blocks — narration, visuals, motion, and audio notes included.
+> TAHA Studio's Segment Formatter splits any script into perfectly timed ten-second blocks, narration, visuals, motion, and audio notes included.
 
-**Visual / B-Roll Prompt**:
+**Text-to-Image Prompt**:
 > Clean 16:9 screen-capture style view of a dark dashboard interface, glowing blue segment cards appearing one by one, modern tech aesthetic, crisp UI lighting.
 
-**Motion**:
-> Subtle lateral glide; fallback Ken Burns left-to-right.
+**Image-to-Video Prompt**:
+> Segment cards animate into place left to right in quick succession, each one populating with labeled fields as a cursor glides between them.
+
+**Camera Movement**:
+> Subtle lateral glide, fallback Ken Burns left-to-right.
+
+**Lighting**:
+> Even, cool blue UI glow, no harsh shadows, clean tech-product lighting.
+
+**Mood**:
+> Confident, efficient, satisfying.
 
 **Audio Note**:
-> Keep music steady; no ducking needed.
+> Keep music steady, no ducking needed.
 
 ---
 
@@ -522,11 +659,20 @@ Specs: 1080p · SRT captions · flux-realism for B-roll
 **TTS Script**:
 > From thirty seconds to five minutes, your script is production-ready in one click. Try it free at TAHA Production Studio today.
 
-**Visual / B-Roll Prompt**:
+**Text-to-Image Prompt**:
 > Photorealistic 16:9 presenter in a modern studio, soft key light, TAHA Production Studio logo on a wall screen, confident closing smile.
 
-**Motion**:
-> Static locked shot; end-card fade to logo.
+**Image-to-Video Prompt**:
+> The presenter delivers the closing line directly to camera, gestures gently toward the logo on the last phrase, holds a warm smile as the frame settles.
+
+**Camera Movement**:
+> Static locked shot, end-card fade to logo.
+
+**Lighting**:
+> Soft three-point studio key light, clean and bright, brand-safe color balance.
+
+**Mood**:
+> Warm, confident, inviting.
 
 **Audio Note**:
 > Music swells slightly for close (-14 dB), clean voice tail.`;
@@ -720,6 +866,22 @@ function vidSetStatus(num, cls, msg) {
   el.innerHTML = msg;
 }
 
+/* Combines the 5-field B-roll model (Text-to-Image / Image-to-Video / Camera Movement /
+   Lighting / Mood) into one cohesive visual description for whichever video generator ends up
+   receiving it. Each field is kept as its own clearly labeled clause rather than mashed together
+   unlabeled, so the video generator can tell the still composition, the motion, the camera work,
+   the lighting, and the mood apart, per the user's requirement that it "fully understand the
+   role it should play." */
+function buildVisualDescription(seg) {
+  const parts = [];
+  if (seg.t2iPrompt) parts.push(seg.t2iPrompt);
+  if (seg.i2vPrompt) parts.push(seg.i2vPrompt);
+  if (seg.camera) parts.push("Camera: " + seg.camera);
+  if (seg.lighting) parts.push("Lighting: " + seg.lighting);
+  if (seg.mood) parts.push("Mood: " + seg.mood);
+  return parts.join(". ");
+}
+
 window.genClip = async function (num, btn) {
   const seg = window.__segPrompts && window.__segPrompts[num];
   if (!seg) { vidSetStatus(num, "err", "No segment data found."); return; }
@@ -764,22 +926,22 @@ window.genClip = async function (num, btn) {
   if (provider === "heygen") {
     if (!seg.ttsScript) { vidSetStatus(num, "err", "No TTS Script found for this segment — HeyGen needs the spoken script text to generate voice."); return; }
     prompt = `Scene: ${seg.segType || "On-camera presenter"}\n`
-      + `Visual: ${seg.visualPrompt || "A presenter speaking directly to camera"}${seg.motion ? ". Camera: " + seg.motion : ""}\n`
+      + `Visual: ${buildVisualDescription(seg) || "A presenter speaking directly to camera"}\n`
       + `VO/Script: "${seg.ttsScript}"\n`
       + `Instruction: this is a talking-presenter video, not silent B-roll — an on-camera avatar must speak the VO/Script line above verbatim, aloud, in a natural human voice.`
       + (seg.audioNote ? `\nAudio/Tone: ${seg.audioNote}` : "")
       + `\nDuration: ~${requestedDuration} seconds`;
   } else if (provider === "grok") {
-    if (!seg.visualPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
-    let p = seg.motion ? `${seg.visualPrompt}. Camera direction: ${seg.motion}` : seg.visualPrompt;
+    if (!seg.t2iPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
+    let p = buildVisualDescription(seg);
     if (seg.ttsScript) p += `. The on-camera subject speaks: "${seg.ttsScript}"`;
     if (seg.audioNote) p += `. Audio: ${seg.audioNote}`;
     prompt = p;
   } else {
     // Veo 3.1 — natively supports dialogue/SFX/ambience in the same prompt (per Google's own
     // prompting guide), using quotes for speech, so pass TTS Script/Audio Note through too.
-    if (!seg.visualPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
-    let p = seg.motion ? `${seg.visualPrompt}. Camera direction: ${seg.motion}` : seg.visualPrompt;
+    if (!seg.t2iPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
+    let p = buildVisualDescription(seg);
     if (seg.ttsScript) p += `. A character on screen says: "${seg.ttsScript}"`;
     if (seg.audioNote) p += `. Audio: ${seg.audioNote}`;
     prompt = p;
