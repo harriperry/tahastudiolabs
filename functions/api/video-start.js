@@ -49,10 +49,15 @@ async function startVeo(apiKey, prompt, params) {
 
 /* Grok Imagine — https://docs.x.ai/developers/rest-api-reference/inference/videos */
 async function startGrok(apiKey, prompt, params) {
+  const body = { model: "grok-imagine-video", prompt, duration: Number(params.duration || 8) };
+  if (Array.isArray(params.referenceImages) && params.referenceImages.length) {
+    body.reference_images = params.referenceImages.slice(0, 7).map(r => ({ url: r.url }));
+    if (body.duration > 10) body.duration = 10;
+  }
   const res = await fetch("https://api.x.ai/v1/videos/generations", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-    body: JSON.stringify({ model: "grok-imagine-video", prompt, duration: Number(params.duration || 8) })
+    body: JSON.stringify(body)
   });
   const data = await res.json().catch(() => null);
   if (!res.ok) return json({ error: data?.error || { message: `HTTP ${res.status}` } }, res.status);
