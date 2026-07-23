@@ -27,10 +27,22 @@ export async function onRequestPost(context) {
   }
 }
 
-/* Veo 3.1 — https://ai.google.dev/gemini-api/docs/veo */
+/* Veo 3.1 — https://ai.google.dev/gemini-api/docs/veo
+   Reference images: Google's own documented schema (ai.google.dev/gemini-api/docs/video#
+   reference-images) requires every reference image object to include a "referenceType": "asset"
+   field alongside "image" — every one of Google's own request examples sends it. This relay was
+   previously forwarding reference images WITHOUT that field at all, an outright malformed
+   request, not a prompt-wording problem — very likely why identity preservation ("same person
+   in every slot") was unreliable. Enforced here server-side too, in case any cached client ever
+   sends the old shape. */
 async function startVeo(apiKey, prompt, params) {
   const instance = { prompt };
-  if (params.referenceImages) instance.referenceImages = params.referenceImages;
+  if (params.referenceImages) {
+    instance.referenceImages = params.referenceImages.map(r => ({
+      image: r.image,
+      referenceType: r.referenceType || "asset"
+    }));
+  }
   const parameters = {
     aspectRatio: params.aspectRatio || "16:9",
     durationSeconds: Number(params.durationSeconds || 8),
