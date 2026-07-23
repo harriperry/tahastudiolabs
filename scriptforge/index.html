@@ -169,6 +169,25 @@
       </div>
       <p style="color:var(--muted);font-size:.72rem;margin-top:6px">Slot 1 is treated as the required on-camera narrator/speaker — the clip is explicitly instructed to preserve that face throughout. Slots 2-3 are optional supporting participants or objects. Not used by HeyGen (no reference-image support in its API). If attached: Veo clips generate at 8s (Google's requirement for image-referenced video); Grok clips are capped at 10s even if you selected a longer duration above (xAI's requirement for reference-guided video).</p>
   </div>
+
+  <div class="card">
+    <h2>6 · ElevenLabs Voice <span style="color:var(--muted);font-weight:400;font-size:.8rem">(optional, voice ID picker)</span></h2>
+    <p style="color:var(--muted);font-size:.8rem;margin:0 0 10px">
+      Connect your ElevenLabs account to pick a Voice ID for this script. ScriptForge doesn't generate audio itself — the
+      chosen Voice ID is written into your script's TECHNICAL SPECS block, ready to hand to HeyGen or your own TTS step.
+    </p>
+    <label>ElevenLabs API key <span style="color:var(--muted);font-weight:400">— elevenlabs.io → Profile → API Keys</span></label>
+    <input type="password" id="elevenLabsKey" placeholder="sk_...">
+    <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
+      <input type="checkbox" id="rememberElevenLabsKey" style="width:auto"> Remember on this device
+    </label>
+    <button class="btn-ghost" id="btnFetchVoices" style="width:100%;margin-top:10px">🔊 Fetch my voices</button>
+    <div class="status" id="elevenLabsStatus"></div>
+    <label style="margin-top:12px">Voice</label>
+    <select id="elevenLabsVoice">
+      <option value="">— fetch voices to choose one —</option>
+    </select>
+  </div>
 </div>
 
 <!-- ══════════ RIGHT: OUTPUT ══════════ -->
@@ -283,6 +302,6 @@
   © 2026 TAHA Production Studio · <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a> · <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> · Your scripts and API key are never stored or logged — see our Privacy Policy for details.
 </footer>
 
-<script src="/assets/app.js?v=video9" defer></script>
+<script src="/assets/app.js?v=video10" defer></script>
 </body>
 </html>
