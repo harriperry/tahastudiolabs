@@ -109,13 +109,13 @@
     <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
       <input type="checkbox" id="rememberVideoKeyHeygen" style="width:auto"> Remember on this device
     </label>
-    <label style="margin-top:14px">Reference images <span style="color:var(--muted);font-weight:400">(optional, Veo 3.1 only — up to 3, e.g. a character or product to keep consistent across clips)</span></label>
+    <label style="margin-top:14px">Reference images <span style="color:var(--muted);font-weight:400">(optional, Veo 3.1 or Grok Imagine — up to 3, e.g. a character or product to keep consistent across clips)</span></label>
     <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
       <div><input type="file" id="refImg1" accept="image/*" style="max-width:150px"><br><img id="refImg1prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
       <div><input type="file" id="refImg2" accept="image/*" style="max-width:150px"><br><img id="refImg2prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
       <div><input type="file" id="refImg3" accept="image/*" style="max-width:150px"><br><img id="refImg3prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
     </div>
-    <p style="color:var(--muted);font-size:.72rem;margin-top:6px">If any reference image is attached, that Veo clip is generated at 8 seconds (Google's requirement for image-referenced video).</p>
+    <p style="color:var(--muted);font-size:.72rem;margin-top:6px">Not used by HeyGen. If attached: Veo clips generate at 8s (Google's requirement for image-referenced video); Grok clips are capped at 10s even if you selected a longer duration above (xAI's requirement for reference-guided video).</p>
   </div>
 </div>
 
@@ -206,6 +206,6 @@
   © 2026 TAHA Production Studio · <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a> · <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> · Your scripts and API key are never stored or logged — see our Privacy Policy for details.
 </footer>
 
-<script src="/assets/app.js?v=video5" defer></script>
+<script src="/assets/app.js?v=video6" defer></script>
 </body>
 </html>
