@@ -25,6 +25,17 @@ import { json } from "../_utils.js";
    Supabase, KV, disk, or any log — the key and script are used once to make the
    upstream call and are discarded the instant the response is returned. See
    privacy.html §1 for the accurate description of this flow. */
+/* HARD BAN ON EM DASHES — the user does not want "—" anywhere in generated dialogue/script
+   output, regardless of which provider wrote it. buildSystemPrompt() (assets/app.js) also
+   instructs every model not to use one, but instructions alone are not a guarantee — models
+   still slip one in occasionally. This is the actual enforcement: every provider's text passes
+   through here, right before it reaches the browser, so no em dash can survive regardless of
+   model compliance. Replaces "—" (with or without surrounding spaces) with a comma, which reads
+   naturally in the vast majority of real sentence positions an em dash appears in. */
+function stripEmDashes(text) {
+  return typeof text === "string" ? text.replace(/\s*—\s*/g, ", ") : text;
+}
+
 export async function onRequestPost(context) {
   const { request } = context;
   let body;
@@ -43,9 +54,10 @@ export async function onRequestPost(context) {
   }
 }
 
-/* Anthropic Messages API — the original/default path, unchanged in shape. Response is
-   returned to the browser as-is, since it's already in the { content: [...] } shape every
-   other provider below gets normalized into. */
+/* Anthropic Messages API — the original/default path, unchanged in request shape. Response
+   used to be passed through completely as-is; now it's parsed just enough to run every text
+   block through stripEmDashes() before re-serializing, since Claude is just as capable of
+   producing an em dash as any other provider and the ban applies regardless of provider. */
 async function formatAnthropic(apiKey, model, max_tokens, system, messages) {
   const upstream = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -57,7 +69,23 @@ async function formatAnthropic(apiKey, model, max_tokens, system, messages) {
     body: JSON.stringify({ model, max_tokens, system, messages })
   });
   const text = await upstream.text();
-  return new Response(text, {
+  if (!upstream.ok) {
+    return new Response(text, {
+      status: upstream.status,
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }
+    });
+  }
+  let data;
+  try { data = JSON.parse(text); } catch (e) {
+    return new Response(text, {
+      status: upstream.status,
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }
+    });
+  }
+  if (Array.isArray(data.content)) {
+    data.content = data.content.map(b => b && b.type === "text" ? { ...b, text: stripEmDashes(b.text) } : b);
+  }
+  return new Response(JSON.stringify(data), {
     status: upstream.status,
     headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }
   });
@@ -87,7 +115,7 @@ async function formatGemini(apiKey, model, max_tokens, system, messages) {
   }
   const data = await res.json().catch(() => null);
   if (!res.ok) return json({ error: data?.error || { message: `HTTP ${res.status}` } }, res.status);
-  const text = (data?.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
+  const text = stripEmDashes((data?.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim());
   if (!text) return json({ error: { message: "Gemini returned an empty response — try again, or double-check your key/model at aistudio.google.com." } }, 502);
   return json({ content: [{ type: "text", text }] });
 }
@@ -111,7 +139,7 @@ async function formatGroq(apiKey, model, max_tokens, system, messages) {
   }
   const data = await res.json().catch(() => null);
   if (!res.ok) return json({ error: data?.error || { message: `HTTP ${res.status}` } }, res.status);
-  const text = (data?.choices?.[0]?.message?.content || "").trim();
+  const text = stripEmDashes((data?.choices?.[0]?.message?.content || "").trim());
   if (!text) return json({ error: { message: "Groq returned an empty response — try again, or double-check your key/model at console.groq.com." } }, 502);
   return json({ content: [{ type: "text", text }] });
 }
