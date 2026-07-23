@@ -161,13 +161,13 @@
       <option value="4k">4k (Veo: forces 8s duration, slower/pricier)</option>
     </select>
     <p style="color:var(--muted);font-size:.72rem;margin-top:6px">HeyGen has no resolution or aspect-ratio parameter — it auto-detects orientation from your script/prompt. Grok Imagine only supports 16:9/9:16 here (same as Veo) and always renders at 720p regardless of the Resolution setting above, since this model tier doesn't support 1080p/4k.</p>
-    <label style="margin-top:14px">Reference images <span style="color:var(--muted);font-weight:400">(optional, Veo 3.1 or Grok Imagine — up to 3, e.g. a character or product to keep consistent across clips)</span></label>
-    <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
-      <div><input type="file" id="refImg1" accept="image/*" style="max-width:150px"><br><img id="refImg1prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
-      <div><input type="file" id="refImg2" accept="image/*" style="max-width:150px"><br><img id="refImg2prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
-      <div><input type="file" id="refImg3" accept="image/*" style="max-width:150px"><br><img id="refImg3prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
-    </div>
-    <p style="color:var(--muted);font-size:.72rem;margin-top:6px">Not used by HeyGen. If attached: Veo clips generate at 8s (Google's requirement for image-referenced video); Grok clips are capped at 10s even if you selected a longer duration above (xAI's requirement for reference-guided video).</p>
+    <label style="margin-top:14px">Reference images <span style="color:var(--muted);font-weight:400">(optional, Veo 3.1 or Grok Imagine — up to 3)</span></label>
+      <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+        <div><input type="file" id="refImg1" accept="image/*" style="max-width:150px"><br><span style="color:var(--muted);font-size:.68rem">1 — required speaker</span><br><img id="refImg1prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
+        <div><input type="file" id="refImg2" accept="image/*" style="max-width:150px"><br><span style="color:var(--muted);font-size:.68rem">2 — other participant</span><br><img id="refImg2prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
+        <div><input type="file" id="refImg3" accept="image/*" style="max-width:150px"><br><span style="color:var(--muted);font-size:.68rem">3 — other participant</span><br><img id="refImg3prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
+      </div>
+      <p style="color:var(--muted);font-size:.72rem;margin-top:6px">Slot 1 is treated as the required on-camera narrator/speaker — the clip is explicitly instructed to preserve that face throughout. Slots 2-3 are optional supporting participants or objects. Not used by HeyGen (no reference-image support in its API). If attached: Veo clips generate at 8s (Google's requirement for image-referenced video); Grok clips are capped at 10s even if you selected a longer duration above (xAI's requirement for reference-guided video).</p>
   </div>
 </div>
 
@@ -283,6 +283,6 @@
   © 2026 TAHA Production Studio · <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a> · <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> · Your scripts and API key are never stored or logged — see our Privacy Policy for details.
 </footer>
 
-<script src="/assets/app.js?v=video8" defer></script>
+<script src="/assets/app.js?v=video9" defer></script>
 </body>
 </html>
