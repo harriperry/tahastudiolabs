@@ -56,7 +56,8 @@ const els = {
   videoKeyHeygen: $("videoKeyHeygen"), rememberVideoKeyHeygen: $("rememberVideoKeyHeygen"),
   refImg1: $("refImg1"), refImg1prev: $("refImg1prev"),
   refImg2: $("refImg2"), refImg2prev: $("refImg2prev"),
-  refImg3: $("refImg3"), refImg3prev: $("refImg3prev")
+  refImg3: $("refImg3"), refImg3prev: $("refImg3prev"),
+  vidAspectRatio: $("vidAspectRatio"), vidResolution: $("vidResolution")
 };
 let lastRaw = "";
 let lastMeta = null;
@@ -739,14 +740,40 @@ window.genClip = async function (num, btn) {
   vidSetStatus(num, "info", '<span class="spin"></span>Submitting…');
 
   try {
-    const params = { durationSeconds: 8, duration: provider === "grok" ? requestedDuration : 8 };
+    const refFiles = [els.refImg1, els.refImg2, els.refImg3].map(el => el?.files?.[0]).filter(Boolean);
+    const aspectRatio = els.vidAspectRatio?.value || "16:9";
+    const resolutionSel = els.vidResolution?.value || "720p";
+
+    /* Aspect ratio / resolution — the standalone pilot had these as real controls (Veo’s
+       predictLongRunning API takes aspectRatio/resolution/durationSeconds directly), but the
+       fusion never exposed them: genClip always sent the server-side defaults (16:9, 720p,
+       durationSeconds:8) no matter what. Restoring parity with the pilot, including its
+       duration-forcing rule — Veo only accepts 4/6/8-second clips, and Google forces 8s
+       whenever resolution is 1080p/4k or a reference image is attached. */
+    const veoForce8 = resolutionSel === "1080p" || resolutionSel === "4k" || refFiles.length > 0;
+    let veoDuration = requestedDuration;
+    if (veoForce8) veoDuration = 8;
+    else veoDuration = [4, 6, 8].reduce((best, v) => Math.abs(v - veoDuration) < Math.abs(best - veoDuration) ? v : best);
+
+    const params = {
+      aspectRatio,
+      // Grok’s base "grok-imagine-video" model doesn’t support 1080p/4k (that tier is 1.5-only,
+      // and only for image-to-video) — always send 720p for Grok regardless of the Resolution
+      // dropdown, rather than let a request with an unsupported resolution fail.
+      resolution: provider === "grok" ? "720p" : resolutionSel,
+      durationSeconds: veoDuration,
+      duration: provider === "grok" ? requestedDuration : 8,
+      // HeyGen has no resolution field, only orientation (landscape/portrait) — derive it from
+      // the same aspect-ratio control so all three providers respect one shared setting.
+      orientation: aspectRatio === "9:16" ? "portrait" : "landscape"
+    };
+
     /* Reference images used to be encoded ONLY when provider === "veo" — selecting Grok skipped
        this whole block silently (no error shown), so Grok always generated from text alone and
        invented its own visuals instead of using the attached image. Grok Imagine has its own
        documented reference-to-video mode (docs.x.ai/.../video/reference-to-video), so it now
        gets the same images too, just encoded in the shape Grok’s API actually expects. */
     if (provider === "veo" || provider === "grok") {
-      const refFiles = [els.refImg1, els.refImg2, els.refImg3].map(el => el?.files?.[0]).filter(Boolean);
       if (refFiles.length) {
         vidSetStatus(num, "info", '<span class="spin"></span>Encoding reference image(s)…');
         if (provider === "veo") {
