@@ -43,6 +43,10 @@ Additional rules:
 const $ = id => document.getElementById(id);
 const els = {
   apiKey: $("apiKey"), rememberKey: $("rememberKey"), model: $("model"),
+  formatProvider: $("formatProvider"),
+  anthropicFormatOptions: $("anthropicFormatOptions"), geminiFormatOptions: $("geminiFormatOptions"), groqFormatOptions: $("groqFormatOptions"),
+  apiKeyGemini: $("apiKeyGemini"), rememberKeyGemini: $("rememberKeyGemini"), modelGemini: $("modelGemini"),
+  apiKeyGroq: $("apiKeyGroq"), rememberKeyGroq: $("rememberKeyGroq"), modelGroq: $("modelGroq"),
   segCount: $("segCount"), lenBadge: $("lenBadge"),
   ratio: $("ratio"),
   techSpecs: $("techSpecs"), script: $("script"), wordMeter: $("wordMeter"),
@@ -75,6 +79,40 @@ function persistKey(){
     else localStorage.removeItem("sca_fmt_key");
   } catch(e){}
 }
+
+/* Remember Gemini/Groq keys for script formatting — same one-slot-per-provider pattern used
+   for the video providers below. Anthropic keeps its own dedicated apiKey/rememberKey/
+   persistKey above (unchanged, still "sca_fmt_key") since it predates this pattern and
+   existing saved keys shouldn't be disturbed. */
+const FORMAT_PROVIDERS = {
+  gemini: { keyEl: "apiKeyGemini", rememberEl: "rememberKeyGemini", ls: "sf_format_key_gemini" },
+  groq:   { keyEl: "apiKeyGroq",   rememberEl: "rememberKeyGroq",   ls: "sf_format_key_groq" }
+};
+Object.values(FORMAT_PROVIDERS).forEach(p => {
+  try {
+    const saved = localStorage.getItem(p.ls);
+    if (saved) { els[p.keyEl].value = saved; els[p.rememberEl].checked = true; }
+  } catch (e) {}
+  els[p.keyEl].addEventListener("input", () => persistFormatKey(p));
+  els[p.rememberEl].addEventListener("change", () => persistFormatKey(p));
+});
+function persistFormatKey(p) {
+  try {
+    if (els[p.rememberEl].checked) localStorage.setItem(p.ls, els[p.keyEl].value);
+    else localStorage.removeItem(p.ls);
+  } catch (e) {}
+}
+
+/* Show only the key/model fields for whichever script-writing provider is selected — same
+   show/hide-by-provider pattern used for the video providers' option panels. */
+function switchFormatProvider() {
+  const p = els.formatProvider.value;
+  els.anthropicFormatOptions.style.display = p === "anthropic" ? "" : "none";
+  els.geminiFormatOptions.style.display = p === "gemini" ? "" : "none";
+  els.groqFormatOptions.style.display = p === "groq" ? "" : "none";
+}
+els.formatProvider.addEventListener("change", switchFormatProvider);
+switchFormatProvider();
 
 /* remember video-provider keys — each provider gets its own localStorage slot so
    switching between them never overwrites another provider's saved key */
@@ -160,10 +198,21 @@ function setStatus(cls, html){
    extension interference; see functions/api/format.js for the relay + the
    data-handling note on why this changed from a direct browser→Anthropic call)
    ───────────────────────── */
+/* Provider metadata for the "Format" call — mirrors VIDEO_PROVIDERS' shape but keyed to the
+   script-writing providers instead. keyUrl/label feed the error messages below so a wrong or
+   missing key points people at the right place regardless of which provider they picked. */
+const FORMAT_PROVIDER_META = {
+  anthropic: { label: "Anthropic", keyEl: "apiKey",       modelEl: "model",       keyUrl: "console.anthropic.com/settings/keys" },
+  gemini:    { label: "Gemini",    keyEl: "apiKeyGemini",  modelEl: "modelGemini", keyUrl: "aistudio.google.com/apikey" },
+  groq:      { label: "Groq",      keyEl: "apiKeyGroq",    modelEl: "modelGroq",   keyUrl: "console.groq.com/keys" }
+};
+
 els.btnFormat.addEventListener("click", async () => {
-  const key = els.apiKey.value.trim();
+  const provider = els.formatProvider.value;
+  const pmeta = FORMAT_PROVIDER_META[provider];
+  const key = els[pmeta.keyEl].value.trim();
   const script = els.script.value.trim();
-  if (!key || key === "sk-ant-YOUR_KEY_HERE") { setStatus("err", "Enter your Anthropic API key (console.anthropic.com/settings/keys)."); return; }
+  if (!key || (provider === "anthropic" && key === "sk-ant-YOUR_KEY_HERE")) { setStatus("err", `Enter your ${pmeta.label} API key (${pmeta.keyUrl}).`); return; }
   if (!script) { setStatus("err", "Paste a script first."); return; }
 
   const n = +els.segCount.value;
@@ -180,15 +229,16 @@ els.btnFormat.addEventListener("click", async () => {
                   `Now process this script:\n\n${script}`;
 
   els.btnFormat.disabled = true;
-  setStatus("info", `<span class="spin"></span>Calling Anthropic API… splitting into ${n} × 10s segments`);
+  setStatus("info", `<span class="spin"></span>Calling ${pmeta.label}… splitting into ${n} × 10s segments`);
 
   async function callFormat() {
     return fetch("/api/format", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        provider,
         apiKey: key,
-        model: els.model.value,
+        model: els[pmeta.modelEl].value,
         max_tokens: Math.min(1500 + n*800, 16000),
         system: buildSystemPrompt(n, ratio),
         messages: [{ role: "user", content: userMsg }]
@@ -217,7 +267,7 @@ els.btnFormat.addEventListener("click", async () => {
     els.btnSaveLib.textContent = "💾 Save to Library";
     setStatus("ok", `✓ Done — ${n} segments generated. Copy blocks are ready below.`);
   } catch (err) {
-    setStatus("err", "API error: " + err.message + "<br>Check that your key is valid at console.anthropic.com/settings/keys, or try again in a moment.");
+    setStatus("err", "API error: " + err.message + `<br>Check that your key is valid at ${pmeta.keyUrl}, or try again in a moment.`);
   } finally {
     els.btnFormat.disabled = false;
   }
