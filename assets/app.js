@@ -663,18 +663,51 @@ window.genClip = async function (num, btn) {
   const apiKey = els[providerMeta.keyEl].value.trim();
   if (!apiKey) { vidSetStatus(num, "err", `Enter your ${provider === "veo" ? "Gemini" : provider === "grok" ? "xAI" : "HeyGen"} API key in the "5 · Video Generation" section first.`); return; }
 
-  /* HeyGen's Video Agent is a talking-presenter generator — it needs to know what to SAY
-     (the TTS Script), not what the shot should look like. Veo/Grok are silent B-roll
-     generators — they need the Visual/B-Roll Prompt instead. Sending the visual prompt to
-     HeyGen (the old behavior) gave it nothing to speak, producing a silent clip even though
-     the segment clearly had a TTS Script and Audio Note. */
+  /* Round 1 fix (routing TTS Script to HeyGen instead of the Visual Prompt) was confirmed
+     insufficient by real-world testing: HeyGen still produced no sound, and Grok produced
+     background music but never spoke the dialogue. Verified against each provider's actual
+     API docs (not guessed):
+     - Veo 3.1 (ai.google.dev/gemini-api/docs/veo): natively generates dialogue + SFX +
+       ambience in ONE call, but only if the prompt explicitly writes speech in quotes, e.g.
+       `A character says: "..."` — plain visual description alone renders silent/ambient-only.
+     - Grok Imagine (docs.x.ai .../video/generation): the REST body is just
+       {model, prompt, duration} — there is no separate dialogue field. Grok DOES support
+       short embedded dialogue with lip-sync (per xAI's own partner-quote marketing), but only
+       if the spoken line is written into the prompt text itself. Our old code sent Grok only
+       seg.visualPrompt — literally never gave it any words — which fully explains "music but
+       no dialogue": Grok had nothing to say because we never sent it anything to say.
+     - HeyGen Video Agent (developers.heygen.com/reference/create-video-agent-session): the
+       body has no dedicated script field either — a single free-text `prompt` (1–10000 chars)
+       that an LLM storyboard planner freely interprets, deciding on its own whether to include
+       an avatar and whether it speaks. avatar_id/voice_id default to null (auto-picked). HeyGen's
+       own prompting guide's "Scene-by-Scene Prompting: Maximum Control" section recommends a
+       labeled `Scene / Visual / VO/Script: "..." / Duration` structure specifically to force
+       verbatim spoken narration — a bare unlabeled string (the round-1 fix) doesn't clearly
+       signal "this must be spoken by an on-camera presenter," so the planner could reasonably
+       render silent B-roll instead, which matches what was seen. */
   let prompt;
   if (provider === "heygen") {
     if (!seg.ttsScript) { vidSetStatus(num, "err", "No TTS Script found for this segment — HeyGen needs the spoken script text to generate voice."); return; }
-    prompt = seg.audioNote ? `${seg.ttsScript} (Delivery note: ${seg.audioNote})` : seg.ttsScript;
-  } else {
+    prompt = `Scene: ${seg.segType || "On-camera presenter"}\n`
+      + `Visual: ${seg.visualPrompt || "A presenter speaking directly to camera"}${seg.motion ? ". Camera: " + seg.motion : ""}\n`
+      + `VO/Script: "${seg.ttsScript}"\n`
+      + `Instruction: this is a talking-presenter video, not silent B-roll — an on-camera avatar must speak the VO/Script line above verbatim, aloud, in a natural human voice.`
+      + (seg.audioNote ? `\nAudio/Tone: ${seg.audioNote}` : "")
+      + `\nDuration: ~10 seconds`;
+  } else if (provider === "grok") {
     if (!seg.visualPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
-    prompt = seg.motion ? `${seg.visualPrompt}. Camera direction: ${seg.motion}` : seg.visualPrompt;
+    let p = seg.motion ? `${seg.visualPrompt}. Camera direction: ${seg.motion}` : seg.visualPrompt;
+    if (seg.ttsScript) p += `. The on-camera subject speaks: "${seg.ttsScript}"`;
+    if (seg.audioNote) p += `. Audio: ${seg.audioNote}`;
+    prompt = p;
+  } else {
+    // Veo 3.1 — natively supports dialogue/SFX/ambience in the same prompt (per Google's own
+    // prompting guide), using quotes for speech, so pass TTS Script/Audio Note through too.
+    if (!seg.visualPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
+    let p = seg.motion ? `${seg.visualPrompt}. Camera direction: ${seg.motion}` : seg.visualPrompt;
+    if (seg.ttsScript) p += `. A character on screen says: "${seg.ttsScript}"`;
+    if (seg.audioNote) p += `. Audio: ${seg.audioNote}`;
+    prompt = p;
   }
 
   btn.disabled = true;
