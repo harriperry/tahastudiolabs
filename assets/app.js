@@ -1,5 +1,5 @@
 
-/* ────────────────────────  THE EXACT FORMATTER PROMPT  ───────────────────────── */
+/* ─────────────────────────  THE EXACT FORMATTER PROMPT  ───────────────────────── */
 function tstamp(sec){const m=String(Math.floor(sec/60)).padStart(2,"0"),s=String(sec%60).padStart(2,"0");return `${m}:${s}`;}
 function totalLabel(n){const t=n*10;return t%60===0?`${t/60}-minute (${t}-second)`:`${t}-second`;}
 function buildSystemPrompt(n, ratio){
@@ -53,7 +53,10 @@ const els = {
   btnLibrary: $("btnLibrary"), libOverlay: $("libOverlay"), libList: $("libList"), btnLibClose: $("btnLibClose"),
   videoKeyVeo: $("videoKeyVeo"), rememberVideoKeyVeo: $("rememberVideoKeyVeo"),
   videoKeyGrok: $("videoKeyGrok"), rememberVideoKeyGrok: $("rememberVideoKeyGrok"),
-  videoKeyHeygen: $("videoKeyHeygen"), rememberVideoKeyHeygen: $("rememberVideoKeyHeygen")
+  videoKeyHeygen: $("videoKeyHeygen"), rememberVideoKeyHeygen: $("rememberVideoKeyHeygen"),
+  refImg1: $("refImg1"), refImg1prev: $("refImg1prev"),
+  refImg2: $("refImg2"), refImg2prev: $("refImg2prev"),
+  refImg3: $("refImg3"), refImg3prev: $("refImg3prev")
 };
 let lastRaw = "";
 let lastMeta = null;
@@ -92,6 +95,30 @@ function persistVideoKey(p) {
     if (els[p.rememberEl].checked) localStorage.setItem(p.ls, els[p.keyEl].value);
     else localStorage.removeItem(p.ls);
   } catch (e) {}
+}
+
+/* reference image previews (Veo 3.1 "Ingredients to video" — up to 3, optional) */
+function wireImageInput(inputEl, previewEl) {
+  if (!inputEl || !previewEl) return;
+  inputEl.addEventListener("change", () => {
+    const f = inputEl.files[0];
+    if (!f) { previewEl.style.display = "none"; return; }
+    const reader = new FileReader();
+    reader.onload = () => { previewEl.src = reader.result; previewEl.style.display = "inline-block"; };
+    reader.readAsDataURL(f);
+  });
+}
+wireImageInput(els.refImg1, els.refImg1prev);
+wireImageInput(els.refImg2, els.refImg2prev);
+wireImageInput(els.refImg3, els.refImg3prev);
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve({ bytesBase64Encoded: reader.result.split(",")[1], mimeType: file.type || "image/png" });
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 /* word meter */
@@ -227,7 +254,7 @@ function renderOutput(raw){
       `<div class="seg-card">
          <div class="seg-head">
            <div class="t">SEGMENT ${num}<small>${esc(time)}</small></div>
-           <button class="btn-copy" onclick="copyText(this, ${JSON.stringify(blockMd).replace(/"/g,"&quot;")})">📋 Copy block</button>
+           <button class="btn-copy" data-action="copy-block" data-text="${encodeURIComponent(blockMd)}">📋 Copy block</button>
          </div>
          <div class="seg-body">${inner || "<div class='field'><div class='fv'>"+esc(body.trim())+"</div></div>"}</div>
          ${visualPrompt ? `
@@ -238,7 +265,7 @@ function renderOutput(raw){
                <option value="grok">Grok Imagine</option>
                <option value="heygen">HeyGen Video Agent</option>
              </select>
-             <button class="btn-copy" onclick="genClip(${num}, this)">🎬 Generate clip</button>
+             <button class="btn-copy" data-action="gen-clip" data-num="${num}">🎬 Generate clip</button>
            </div>
            <div class="status" id="vidStatus${num}"></div>
            <div id="vidResult${num}" style="margin-top:8px"></div>
@@ -252,6 +279,19 @@ function renderOutput(raw){
     : `<div class="specs-block"><div class="fl">Raw output</div>${esc(raw)}</div>`;
 }
 
+/* Delegated click handling for the output panel. The site's Content-Security-Policy is
+   script-src 'self' (no 'unsafe-inline'), which silently blocks inline onclick="" attributes
+   in the browser — buttons still look clickable but their handler never fires. This was
+   true for the pre-existing "Copy block" button too, not just the new video one. Using one
+   listener on the stable container + data-attributes on the buttons is CSP-safe and only
+   needs to be wired once, regardless of how many segment cards get re-rendered. */
+els.output.addEventListener("click", (e) => {
+  const copyBtn = e.target.closest('[data-action="copy-block"]');
+  if (copyBtn) { copyText(copyBtn, decodeURIComponent(copyBtn.dataset.text)); return; }
+  const genBtn = e.target.closest('[data-action="gen-clip"]');
+  if (genBtn) { genClip(Number(genBtn.dataset.num), genBtn); return; }
+});
+
 function pick(body, label){
   const re = new RegExp("\\*\\*" + label.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&") + "\\*\\*\\s*:?\\s*\\n?((?:>[^\\n]*\\n?)+|[^\\n*]+)", "i");
   const m = body.match(re);
@@ -260,7 +300,7 @@ function pick(body, label){
 }
 function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
-/* ─────────────────────────  COPY / TOGGLE / CLEAR  ─────────────────────── */
+/* ─────────────────────────  COPY / TOGGLE / CLEAR  ───────────────────────── */
 window.copyText = function(btn, text){
   navigator.clipboard.writeText(text).then(() => {
     const o = btn.textContent; btn.textContent = "✓ Copied";
@@ -309,11 +349,19 @@ function renderLib(){
         <div class="t">${esc(item.title)}</div>
         <div class="d">${new Date((item.meta && item.meta.date) || item.id).toLocaleString()}${item.meta && item.meta.n ? " · " + item.meta.n + " segments · " + tstamp(item.meta.n*10) : ""}${item.meta && (item.meta.ratio || item.meta.avatar) ? " · " + esc(item.meta.ratio || item.meta.avatar) : ""}</div>
       </div>
-      <button class="btn-copy" onclick="libLoad(${item.id})">Open</button>
-      <button class="btn-copy" onclick="libPdf(${item.id})">⬇ PDF</button>
-      <button class="btn-copy" style="color:var(--err)" onclick="libDel(${item.id})">Delete</button>
+      <button class="btn-copy" data-action="lib-open" data-id="${item.id}">Open</button>
+      <button class="btn-copy" data-action="lib-pdf" data-id="${item.id}">⬇ PDF</button>
+      <button class="btn-copy" style="color:var(--err)" data-action="lib-del" data-id="${item.id}">Delete</button>
     </div>`).join("");
 }
+els.libList.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const id = Number(btn.dataset.id);
+  if (btn.dataset.action === "lib-open") libLoad(id);
+  else if (btn.dataset.action === "lib-pdf") libPdf(id);
+  else if (btn.dataset.action === "lib-del") libDel(id);
+});
 window.libLoad = function(id){
   const item = getLib().find(x => x.id === id); if (!item) return;
   lastRaw = item.raw; lastMeta = item.meta;
@@ -620,7 +668,17 @@ window.genClip = async function (num, btn) {
   vidSetStatus(num, "info", '<span class="spin"></span>Submitting…');
 
   try {
-    const startRes = await videoApi("video-start", { provider, apiKey, prompt, params: { durationSeconds: 8, duration: 8 } });
+    const params = { durationSeconds: 8, duration: 8 };
+    if (provider === "veo") {
+      const refFiles = [els.refImg1, els.refImg2, els.refImg3].map(el => el?.files?.[0]).filter(Boolean);
+      if (refFiles.length) {
+        vidSetStatus(num, "info", '<span class="spin"></span>Encoding reference image(s)…');
+        const encoded = await Promise.all(refFiles.map(fileToBase64));
+        params.referenceImages = encoded.map(img => ({ image: img }));
+        vidSetStatus(num, "info", '<span class="spin"></span>Submitting…');
+      }
+    }
+    const startRes = await videoApi("video-start", { provider, apiKey, prompt, params });
     if (!startRes.ok) throw new Error(startRes.data?.error?.message || `HTTP ${startRes.status}`);
     let jobRef = startRes.data.jobRef;
 
