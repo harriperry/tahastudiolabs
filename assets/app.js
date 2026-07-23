@@ -267,6 +267,7 @@ function renderOutput(raw){
                <option value="grok">Grok Imagine</option>
                <option value="heygen">HeyGen Video Agent</option>
              </select>
+             <input type="number" id="vidDur${num}" min="1" max="15" step="1" value="15" style="width:52px" title="Clip length in seconds. Grok Imagine allows 1-15s (this dropdown only applies to Grok — Veo 3.1 is fixed at 8s per call, and HeyGen has no formal duration parameter).">
              <button class="btn-copy" data-action="gen-clip" data-num="${num}">🎬 Generate clip</button>
            </div>
            <div class="status" id="vidStatus${num}"></div>
@@ -663,6 +664,15 @@ window.genClip = async function (num, btn) {
   const apiKey = els[providerMeta.keyEl].value.trim();
   if (!apiKey) { vidSetStatus(num, "err", `Enter your ${provider === "veo" ? "Gemini" : provider === "grok" ? "xAI" : "HeyGen"} API key in the "5 · Video Generation" section first.`); return; }
 
+  /* Duration: only Grok Imagine’s API actually accepts a variable duration (1-15s, confirmed
+     via docs.x.ai/developers/model-capabilities/video/generation). Veo 3.1 generates fixed
+     8-second clips per call (ai.google.dev/gemini-api/docs/veo) — sending it anything else
+     isn’t supported by this integration, so it’s ignored. HeyGen’s /v3/video-agents has no
+     formal duration field at all (confirmed via its OpenAPI schema) — "Duration: ~Ns" in the
+     prompt is only a hint to its storyboard planner, not an enforced parameter. */
+  const durInput = document.getElementById("vidDur" + num);
+  const requestedDuration = Math.min(15, Math.max(1, Number(durInput?.value) || 15));
+
   /* Round 1 fix (routing TTS Script to HeyGen instead of the Visual Prompt) was confirmed
      insufficient by real-world testing: HeyGen still produced no sound, and Grok produced
      background music but never spoke the dialogue. Verified against each provider's actual
@@ -693,7 +703,7 @@ window.genClip = async function (num, btn) {
       + `VO/Script: "${seg.ttsScript}"\n`
       + `Instruction: this is a talking-presenter video, not silent B-roll — an on-camera avatar must speak the VO/Script line above verbatim, aloud, in a natural human voice.`
       + (seg.audioNote ? `\nAudio/Tone: ${seg.audioNote}` : "")
-      + `\nDuration: ~10 seconds`;
+      + `\nDuration: ~${requestedDuration} seconds`;
   } else if (provider === "grok") {
     if (!seg.visualPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
     let p = seg.motion ? `${seg.visualPrompt}. Camera direction: ${seg.motion}` : seg.visualPrompt;
@@ -715,7 +725,7 @@ window.genClip = async function (num, btn) {
   vidSetStatus(num, "info", '<span class="spin"></span>Submitting…');
 
   try {
-    const params = { durationSeconds: 8, duration: 8 };
+    const params = { durationSeconds: 8, duration: provider === "grok" ? requestedDuration : 8 };
     if (provider === "veo") {
       const refFiles = [els.refImg1, els.refImg2, els.refImg3].map(el => el?.files?.[0]).filter(Boolean);
       if (refFiles.length) {
