@@ -822,22 +822,45 @@ window.genClip = async function (num, btn) {
        this whole block silently (no error shown), so Grok always generated from text alone and
        invented its own visuals instead of using the attached image. Grok Imagine has its own
        documented reference-to-video mode (docs.x.ai/.../video/reference-to-video), so it now
-       gets the same images too, just encoded in the shape Grok’s API actually expects. */
+       gets the same images too, just encoded in the shape Grok's API actually expects.
+
+       ROLE ASSIGNMENT: real-world testing showed the same reference image attached in all 3
+       slots still produced a completely different person on screen. Root-caused two distinct
+       issues, verified against each provider's actual docs (not guessed):
+       - Veo (ai.google.dev/gemini-api/docs/video#reference-images): every reference image
+         object requires a "referenceType": "asset" field — this relay was never sending it at
+         all, an outright malformed request, not a prompt-wording problem.
+       - Neither provider has a per-image "this one is the main character" flag in the API
+         itself. Google's own reference-image examples tie images to roles purely through prose
+         in the prompt (describing "a woman... wearing X... and Y" so each asset maps to a
+         described element), while Grok's own docs use inline <IMAGE_1>/<IMAGE_2> tags for the
+         same purpose. So slot 1 is now explicitly called out in the prompt as the required
+         on-camera narrator — via Grok's documented <IMAGE_n> tags for Grok, and via plain
+         descriptive instruction for Veo (which has no numbered-tag convention) — and slots 2-3
+         are described as supporting participants, matching how each provider actually expects
+         multi-image intent to be communicated. */
     if (provider === "veo" || provider === "grok") {
       if (refFiles.length) {
         vidSetStatus(num, "info", '<span class="spin"></span>Encoding reference image(s)…');
         if (provider === "veo") {
           const encoded = await Promise.all(refFiles.map(fileToBase64));
-          params.referenceImages = encoded.map(img => ({ image: img }));
+          params.referenceImages = encoded.map(img => ({ image: img, referenceType: "asset" }));
+          prompt = (refFiles.length > 1
+            ? "The person shown in the first reference image is the required on-camera narrator/speaker for this scene — preserve their exact face and appearance as the talking head throughout the clip. Any other reference images show supporting participants or objects that may also appear, but must not replace the first image's subject as the speaker. "
+            : "The person shown in the reference image is the required on-camera narrator/speaker for this scene — preserve their exact face and appearance as the talking head throughout the clip. "
+          ) + prompt;
         } else {
           const dataUris = await Promise.all(refFiles.map(fileToDataUri));
           params.referenceImages = dataUris.map(url => ({ url }));
-          // Grok’s reference-to-video mode caps duration at 10s whenever reference images are
+          // Grok's reference-to-video mode caps duration at 10s whenever reference images are
           // attached (confirmed in its docs) — clamp down rather than let the request fail.
           if (params.duration > 10) {
             params.duration = 10;
             vidSetStatus(num, "info", '<span class="spin"></span>Reference image attached — Grok caps clips with a reference image at 10s, adjusting…');
           }
+          let roleNote = "The person shown in <IMAGE_1> is the required on-camera narrator/speaker for this scene — preserve their exact face and appearance as the talking head throughout the clip.";
+          if (refFiles.length > 1) roleNote += ` <IMAGE_2>${refFiles.length > 2 ? " and <IMAGE_3>" : ""} show supporting participants or objects that may also appear in the shot, but must not replace the speaker from <IMAGE_1>.`;
+          prompt = roleNote + " " + prompt;
         }
         vidSetStatus(num, "info", '<span class="spin"></span>Submitting…');
       }
