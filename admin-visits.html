@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Visit Stats</title>
+<link rel="stylesheet" href="/assets/app.css">
+<style>
+  body{display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+  .card{max-width:420px;width:100%;padding:24px;border:1px solid #333;border-radius:12px;text-align:center}
+  .stat{font-size:2.5rem;font-weight:700;margin:8px 0}
+  .label{color:#888;font-size:.85rem;text-transform:uppercase;letter-spacing:.05em}
+  input{width:100%;padding:10px;margin-top:12px;border-radius:8px;border:1px solid #444;background:#111;color:#fff;box-sizing:border-box}
+  button{margin-top:12px;padding:10px 16px;border-radius:8px;border:none;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="card" id="app">
+  <h2>Site Visit Stats</h2>
+  <div id="gate">
+    <p>Enter admin key to view stats.</p>
+    <input type="password" id="keyInput" placeholder="Admin key">
+    <button id="btnGo">View Stats</button>
+    <p id="err" style="color:#e55;display:none">Invalid key.</p>
+  </div>
+  <div id="stats" style="display:none">
+    <div class="label">Unique Visitors (by IP)</div>
+    <div class="stat" id="uniqueVisitors">-</div>
+    <div class="label">Total Visits</div>
+    <div class="stat" id="totalVisits">-</div>
+    <button id="btnRefresh">Refresh</button>
+  </div>
+</div>
+<script>
+(function(){
+  var gate = document.getElementById('gate');
+  var statsEl = document.getElementById('stats');
+  var err = document.getElementById('err');
+  var uniqueEl = document.getElementById('uniqueVisitors');
+  var totalEl = document.getElementById('totalVisits');
+  var STORE_KEY = 'sf_admin_stats_key';
+
+  function loadStats(key) {
+    err.style.display = 'none';
+    fetch('/api/visit-stats?key=' + encodeURIComponent(key))
+      .then(function(r){ if (!r.ok) throw new Error('unauthorized'); return r.json(); })
+      .then(function(data){
+        window.localStorage.setItem(STORE_KEY, key);
+        uniqueEl.textContent = data.unique_visitors;
+        totalEl.textContent = data.total_visits;
+        gate.style.display = 'none';
+        statsEl.style.display = 'block';
+      })
+      .catch(function(){
+        err.style.display = 'block';
+        window.localStorage.removeItem(STORE_KEY);
+      });
+  }
+
+  document.getElementById('btnGo').addEventListener('click', function(){
+    var key = document.getElementById('keyInput').value.trim();
+    if (key) loadStats(key);
+  });
+
+  document.getElementById('btnRefresh').addEventListener('click', function(){
+    var key = window.localStorage.getItem(STORE_KEY);
+    if (key) loadStats(key);
+  });
+
+  var saved = window.localStorage.getItem(STORE_KEY);
+  if (saved) loadStats(saved);
+})();
+</script>
+</body>
+</html>
