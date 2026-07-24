@@ -740,6 +740,9 @@ function applyTier(){
     els.segCount.value = String(FREE_MAX_SEGS); updateLengthUI();
   }
   els2.btnAccount.textContent = user ? (tier === "pro" ? "👤 Account · Pro" : "👤 Account · Free") : "Sign in";
+  // Pro subscribers no longer need the marketing/about blurb once they have paid access.
+  const aboutSection = document.getElementById("aboutSection");
+  if (aboutSection) aboutSection.style.display = tier === "pro" ? "none" : "";
   if (user) {
     els2.acctInfo.textContent = `Signed in as: ${user.email}\nPlan: ${tier === "pro" ? "Pro (active)" : "Free"}`;
     els2.upgradeBox.style.display = tier === "pro" ? "none" : "block";
