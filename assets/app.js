@@ -698,9 +698,9 @@ updateLengthUI();
    license redemption record. Scripts + API key NEVER leave this browser.               */
 
 const FREE_MAX_SEGS = 3, FREE_LIB_CAP = 5;
-const PRO_MONTHLY_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_A6Vc4BjSfy6csnvzYQdje8tq3QX85U2MI9HHw2iegnR";
-const PRO_ANNUAL_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_IocSZNT4jxQRqeijsaOd8zj7q31p2s09HmVQT42pvCr";
-const LIFETIME_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_Wt5DoGAYG0ewAMyDzs5vJ2CqdyR8Y8c7zYewT2a5TtN";
+const PRO_MONTHLY_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_1dj4mZuMYRipiLEHbgot9NjORmxDyf1SOYhc72ryz5k";
+const PRO_ANNUAL_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_wcCONu3qcjnaWOHKBvRkKmHyZdrisOFdIQtpm2F0e8c";
+const LIFETIME_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_yZ9zCvMx2U09IWhar3iZ4M6sa29MivL8EqeRN4c1Ilv";
 let user = null, tier = "free";
 
 const els2 = {};
