@@ -30,10 +30,10 @@ Follow this exact structure for EVERY segment. Keep wording clear and concise, m
 > [Detailed, photorealistic ${ratio} still-frame prompt describing the opening composition of this shot: subject, setting, wardrobe or props, framing, and style, specific enough to generate a single reference still image on its own]
 
 **Image-to-Video Prompt**:
-> [What happens as that still comes to life across these 10 seconds: the action, movement, and any expression or dialogue delivery, written as motion instructions for a model animating a still image]
+> [Only the kinetic action and camera path for these 10 seconds, written as motion instructions for a model animating a still image. Do NOT include descriptive adjectives about the characters' appearance, clothing, environment, or target objects/products (no color, material, brand, or style descriptors for things like perfume bottles, cans, phones, computers, wardrobe, or setting) — the model must rely entirely on the uploaded reference image for all visual detail. Describe motion and camera path only]
 
 **Camera Movement**:
-> [Specific camera movement, e.g. slow push-in, static locked shot, lateral glide, handheld follow, plus a fallback Ken Burns instruction if the shot is meant to hold still]
+> [Exactly ONE single-axis camera motion for this entire 10-second block: either a pure horizontal pan, a pure vertical tilt, or a steady linear dolly-in/out. Never combine two axes of movement in the same segment. If the moment calls for high kinetic energy, keep the camera itself single-axis (or static) and put the energy into the scenery/background instead (e.g. background motion blur or moving background elements). A static locked shot is always an acceptable fallback]
 
 **Lighting**:
 > [Lighting setup and quality: source, direction, color temperature, time of day]
@@ -55,7 +55,9 @@ Additional rules:
 6. Each 10-second TTS block should be approximately 22 to 28 spoken words (about 150 wpm)
 7. Visuals: cinematic documentary grade, ultra-realistic African physiognomy where people appear, specify era, geography, lighting, and composition. Never use generic stock-photo descriptors. The Text-to-Image Prompt and Image-to-Video Prompt must each be independently detailed enough that a video generator fully understands the role it should play: one describes the still composition, the other describes the motion
 8. Never use an em dash (the "—" character) anywhere in the output, in any field. Use a comma, a period, or the word "and" instead
-9. Output ONLY the formatted blocks. No preamble, no commentary, no closing remarks.`;
+9. Camera Movement must always be single-axis only for every segment: pure pan, pure tilt, or pure dolly in/out (or static). Never combine axes in one segment. Use background motion for kinetic energy instead of a complex camera path
+10. The Image-to-Video Prompt must never include descriptive adjectives about character appearance, clothing, environment, or target objects/products — describe only the kinetic action and camera path. All visual detail comes from the reference image, not the prompt
+11. Output ONLY the formatted blocks. No preamble, no commentary, no closing remarks.`;
 }
 
 /* ─────────────────────────  DOM  ───────────────────────── */
@@ -1027,7 +1029,25 @@ window.genClip = async function (num, btn) {
         vidSetStatus(num, "info", '<span class="spin"></span>Submitting…');
       }
     }
-    const startRes = await videoApi("video-start", { provider, apiKey, prompt, params });
+    /* --- Global prompt safety rules (forced on every generated visual prompt, regardless
+   of provider) ---
+   FIRST-FRAME ANCHOR: every prompt must open with this exact, immutable instruction so
+   the model treats the reference composition as locked and only animates the specified
+   motion, never reinventing subject/background/product design.
+   GENERATOR-SPECIFIC SEPARATION BLUEPRINTS: a tail-end command matched to how each
+   target generator actually behaves (static talking head vs. physical object
+   interaction), appended after everything else so it's always the last instruction
+   the model sees. */
+const FIRST_FRAME_ANCHOR = "Using this initial source composition as an absolute, immutable first-frame anchor. Animate the kinetic motion specified below. Do not reinvent or alter the visual details of the subject, background layout, or product design.";
+prompt = FIRST_FRAME_ANCHOR + " " + prompt;
+
+if (provider === "heygen") {
+  prompt += " [The human actor speaks the synced script audio directly to the camera with realistic facial expressions. CRITICAL NEGATIVE EXCLUSION: The small object/product and background environment must remain 100% static, unwarped, and structurally locked.]";
+} else if (provider === "veo") {
+  prompt += " [Execute a smooth physical interaction based purely on the existing frame physics. Maintain strict branding, logo clarity, and structural geometry on the target consumer object throughout the clip.]";
+}
+
+const startRes = await videoApi("video-start", { provider, apiKey, prompt, params });
     if (!startRes.ok) throw new Error(startRes.data?.error?.message || `HTTP ${startRes.status}`);
     let jobRef = startRes.data.jobRef;
 
