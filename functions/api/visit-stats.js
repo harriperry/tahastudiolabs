@@ -15,9 +15,15 @@ export async function onRequestGet(context) {
 
   try {
     const rows = await db(env, "POST", "rpc/visit_stats", {});
+    if (url.searchParams.get("debug") === "1") {
+      return json({ debug: true, rowsType: typeof rows, isArray: Array.isArray(rows), rows });
+    }
     const stats = Array.isArray(rows) && rows[0] ? rows[0] : { unique_visitors: 0, total_visits: 0 };
     return json(stats);
   } catch (err) {
+    if (url.searchParams.get("debug") === "1") {
+      return json({ debug: true, error: String(err) });
+    }
     return json({ error: "Failed to load stats" }, 500);
   }
 }
