@@ -11,7 +11,8 @@ function totalLabel(n){const t=n*10;return t%60===0?`${t/60}-minute (${t}-second
    renderOutput()/pick() in this file parse all 5 out by their exact labels below, and genClip()
    recombines them into one prompt when generating a clip, so the video generator gets the full
    picture instead of a single vague sentence. */
-function buildSystemPrompt(n, ratio){
+function buildSystemPrompt(n, ratio, allowBRoll){
+if (allowBRoll === undefined) allowBRoll = true;
 const timingRule = Array.from({length:n},(_,i)=>`Segment ${i+1} = ${tstamp(i*10)}\u2013${tstamp((i+1)*10)}`).join(", ");
 return `Act as a professional AI video production formatter. Take the full script the user provides, and split it EXACTLY into ${n} equal segment${n>1?'s':''} of 10 seconds each, to make a total ${totalLabel(n)} video.
 
@@ -21,7 +22,7 @@ Follow this exact structure for EVERY segment. Keep wording clear and concise, m
 
 ### SEGMENT [NUMBER] | [START TIME]–[END TIME]
 
-**Type**: [On-Camera / Voiceover + B-Roll / On-Camera + Brand Close]
+**Type**: [${allowBRoll ? "On-Camera / Voiceover + B-Roll / On-Camera + Brand Close" : "On-Camera / On-Camera + Brand Close"}]
 
 **TTS Script**:
 > [Full spoken text for this exact 10-second block. Include short connecting phrases to flow smoothly between segments, keep it conversational and perfectly timed for 10 seconds]
@@ -33,7 +34,7 @@ Follow this exact structure for EVERY segment. Keep wording clear and concise, m
 > [Only the kinetic action and camera path for these 10 seconds, written as motion instructions for a model animating a still image. Do NOT include descriptive adjectives about the characters' appearance, clothing, environment, or target objects/products (no color, material, brand, or style descriptors for things like perfume bottles, cans, phones, computers, wardrobe, or setting) — the model must rely entirely on the uploaded reference image for all visual detail. Describe motion and camera path only]
 
 **Camera Movement**:
-> [Exactly ONE single-axis camera motion for this entire 10-second block: either a pure horizontal pan, a pure vertical tilt, or a steady linear dolly-in/out. Never combine two axes of movement in the same segment. If the moment calls for high kinetic energy, keep the camera itself single-axis (or static) and put the energy into the scenery/background instead (e.g. background motion blur or moving background elements). A static locked shot is always an acceptable fallback]
+> [Exactly ONE single-axis camera motion for this entire 10-second block: either a pure horizontal pan, a pure vertical tilt, or a steady linear dolly-in/out. Never combine two axes of movement in the same segment, and never leave the camera fully static or locked off. Every single segment must have some deliberate camera movement, even if subtle. Vary which axis and direction you use from one segment to the next so consecutive segments never repeat the same camera move. If the moment calls for high kinetic energy, keep the camera itself single-axis and put additional energy into the scenery/background instead (e.g. background motion blur or moving background elements)]
 
 **Lighting**:
 > [Lighting setup and quality: source, direction, color temperature, time of day]
@@ -55,9 +56,10 @@ Additional rules:
 6. Each 10-second TTS block should be approximately 22 to 28 spoken words (about 150 wpm)
 7. Visuals: cinematic documentary grade, ultra-realistic African physiognomy where people appear, specify era, geography, lighting, and composition. Never use generic stock-photo descriptors. The Text-to-Image Prompt and Image-to-Video Prompt must each be independently detailed enough that a video generator fully understands the role it should play: one describes the still composition, the other describes the motion
 8. Never use an em dash (the "—" character) anywhere in the output, in any field. Use a comma, a period, or the word "and" instead
-9. Camera Movement must always be single-axis only for every segment: pure pan, pure tilt, or pure dolly in/out (or static). Never combine axes in one segment. Use background motion for kinetic energy instead of a complex camera path
+9. Camera Movement must always be single-axis only for every segment: pure pan, pure tilt, or pure dolly in/out. Never combine axes in one segment, and never use a fully static or locked-off shot, the camera must always be doing something, however subtle. Vary the axis and direction across segments so the camera never repeats the same move twice in a row. Use background motion for kinetic energy instead of a complex camera path
 10. The Image-to-Video Prompt must never include descriptive adjectives about character appearance, clothing, environment, or target objects/products — describe only the kinetic action and camera path. All visual detail comes from the reference image, not the prompt
-11. Output ONLY the formatted blocks. No preamble, no commentary, no closing remarks.`;
+11. B-Roll handling: ${allowBRoll ? "Voiceover + B-Roll segments are allowed and encouraged where they suit the content, use them for cutaway shots that support the narration." : "B-Roll is DISABLED for this script. Every segment's Type must be On-Camera or On-Camera + Brand Close only, never Voiceover + B-Roll. Every Text-to-Image and Image-to-Video prompt must keep the on-camera presenter/subject directly in frame at all times, never a cutaway B-roll-only shot."}
+12. Output ONLY the formatted blocks. No preamble, no commentary, no closing remarks.`;
 }
 
 /* ─────────────────────────  DOM  ───────────────────────── */
@@ -65,9 +67,11 @@ const $ = id => document.getElementById(id);
 const els = {
   apiKey: $("apiKey"), rememberKey: $("rememberKey"), model: $("model"),
   formatProvider: $("formatProvider"),
-  anthropicFormatOptions: $("anthropicFormatOptions"), geminiFormatOptions: $("geminiFormatOptions"), groqFormatOptions: $("groqFormatOptions"),
+  anthropicFormatOptions: $("anthropicFormatOptions"), geminiFormatOptions: $("geminiFormatOptions"), groqFormatOptions: $("groqFormatOptions"), deepseekFormatOptions: $("deepseekFormatOptions"),
   apiKeyGemini: $("apiKeyGemini"), rememberKeyGemini: $("rememberKeyGemini"), modelGemini: $("modelGemini"),
   apiKeyGroq: $("apiKeyGroq"), rememberKeyGroq: $("rememberKeyGroq"), modelGroq: $("modelGroq"),
+  apiKeyDeepseek: $("apiKeyDeepseek"), rememberKeyDeepseek: $("rememberKeyDeepseek"), modelDeepseek: $("modelDeepseek"),
+  allowBRoll: $("allowBRoll"),
   segCount: $("segCount"), lenBadge: $("lenBadge"),
   ratio: $("ratio"),
   techSpecs: $("techSpecs"), script: $("script"), wordMeter: $("wordMeter"),
@@ -110,8 +114,9 @@ function persistKey(){
    persistKey above (unchanged, still "sca_fmt_key") since it predates this pattern and
    existing saved keys shouldn't be disturbed. */
 const FORMAT_PROVIDERS = {
-  gemini: { keyEl: "apiKeyGemini", rememberEl: "rememberKeyGemini", ls: "sf_format_key_gemini" },
-  groq:   { keyEl: "apiKeyGroq",   rememberEl: "rememberKeyGroq",   ls: "sf_format_key_groq" }
+  gemini:   { keyEl: "apiKeyGemini",   rememberEl: "rememberKeyGemini",   ls: "sf_format_key_gemini" },
+  groq:     { keyEl: "apiKeyGroq",     rememberEl: "rememberKeyGroq",     ls: "sf_format_key_groq" },
+  deepseek: { keyEl: "apiKeyDeepseek", rememberEl: "rememberKeyDeepseek", ls: "sf_format_key_deepseek" }
 };
 Object.values(FORMAT_PROVIDERS).forEach(p => {
   try {
@@ -135,6 +140,7 @@ function switchFormatProvider() {
   els.anthropicFormatOptions.style.display = p === "anthropic" ? "" : "none";
   els.geminiFormatOptions.style.display = p === "gemini" ? "" : "none";
   els.groqFormatOptions.style.display = p === "groq" ? "" : "none";
+  els.deepseekFormatOptions.style.display = p === "deepseek" ? "" : "none";
 }
 els.formatProvider.addEventListener("change", switchFormatProvider);
 switchFormatProvider();
@@ -371,9 +377,10 @@ function setStatus(cls, html){
    script-writing providers instead. keyUrl/label feed the error messages below so a wrong or
    missing key points people at the right place regardless of which provider they picked. */
 const FORMAT_PROVIDER_META = {
-  anthropic: { label: "Anthropic", keyEl: "apiKey",       modelEl: "model",       keyUrl: "console.anthropic.com/settings/keys" },
-  gemini:    { label: "Gemini",    keyEl: "apiKeyGemini",  modelEl: "modelGemini", keyUrl: "aistudio.google.com/apikey" },
-  groq:      { label: "Groq",      keyEl: "apiKeyGroq",    modelEl: "modelGroq",   keyUrl: "console.groq.com/keys" }
+  anthropic: { label: "Anthropic", keyEl: "apiKey",         modelEl: "model",         keyUrl: "console.anthropic.com/settings/keys" },
+  gemini:    { label: "Gemini",    keyEl: "apiKeyGemini",    modelEl: "modelGemini",   keyUrl: "aistudio.google.com/apikey" },
+  groq:      { label: "Groq",      keyEl: "apiKeyGroq",      modelEl: "modelGroq",     keyUrl: "console.groq.com/keys" },
+  deepseek:  { label: "DeepSeek",  keyEl: "apiKeyDeepseek",  modelEl: "modelDeepseek", keyUrl: "platform.deepseek.com/api_keys" }
 };
 
 els.btnFormat.addEventListener("click", async () => {
@@ -388,17 +395,29 @@ els.btnFormat.addEventListener("click", async () => {
   if (n > FREE_MAX_SEGS && tier !== "pro") { showUpgrade("Segments beyond " + FREE_MAX_SEGS + " × 10s are a Pro feature."); return; }
   const ratio = els.ratio.value;
   const stype = els.scriptType.value;
+  const allowBRoll = els.allowBRoll ? els.allowBRoll.checked : true;
   let specs = "";
   if (stype) specs += `Script type: ${stype}\n`;
   specs += `Ratio: ${ratio}\n`;
+  if (!allowBRoll) specs += `B-Roll: disabled\n`;
   if (els.techSpecs.value.trim()) specs += `Specs: ${els.techSpecs.value.trim()}\n`;
   if (els.elevenLabsVoice?.value) {
     const voiceName = els.elevenLabsVoice.selectedOptions[0]?.dataset.name || "";
     specs += `ElevenLabs Voice ID: ${els.elevenLabsVoice.value}${voiceName ? " (" + voiceName + ")" : ""}\n`;
   }
 
+  /* PODCAST gets its own dedicated instruction block rather than just the generic
+     "FORMAT STYLE: adapt tone" line below — a podcast isn't a sequence of separate scenes,
+     it's one continuous conversation that happens to be cut into 10-second boundaries, so the
+     model needs to be told explicitly not to treat each segment as a fresh scene. */
+  const podcastBlock = stype === "Podcast"
+    ? `PODCAST FORMAT — DEDICATED INSTRUCTIONS: this is a continuous conversational podcast/banter about a single theme or subject, not a series of separate scenes. Treat the whole script as one ongoing conversation split purely by the 10-second timing boundaries, not by topic or scene changes, every segment should feel like a natural continuation of the moment right before it, mid-sentence energy is fine. Speakers should sound like they are genuinely reacting to, building on, or riffing off whatever was just said. Vary the camera position, framing, and angle across segments (wide two-shot, closer single, alternate angle, etc.) so the scene stays visually dynamic even though the setting and speakers stay the same, never lock the camera to one static angle for the whole episode.\n\n`
+    : "";
+
   const userMsg = (specs ? `TECHNICAL SPECS PROVIDED (include at very top of output):\n${specs}\n` : "") +
+                  podcastBlock +
                   (stype ? `FORMAT STYLE: ${stype}. Adapt the Type fields, pacing and tone of every segment to a ${stype.toLowerCase()}.\n\n` : "") +
+                  (allowBRoll ? "" : "B-ROLL DISABLED: do not produce any Voiceover + B-Roll segments, every segment must be On-Camera or On-Camera + Brand Close, with the presenter/subject visible throughout.\n\n") +
                   `Now process this script:\n\n${script}`;
 
   els.btnFormat.disabled = true;
@@ -413,7 +432,7 @@ els.btnFormat.addEventListener("click", async () => {
         apiKey: key,
         model: els[pmeta.modelEl].value,
         max_tokens: Math.min(1500 + n*800, 16000),
-        system: buildSystemPrompt(n, ratio),
+        system: buildSystemPrompt(n, ratio, allowBRoll),
         messages: [{ role: "user", content: userMsg }]
       })
     });
@@ -457,11 +476,13 @@ function renderOutput(raw){
 
   const html = [];
 
-  /* Technical specs block (anything before first "### SEGMENT") */
+  /* Technical specs block (anything before first "### SEGMENT"). Kept verbatim in
+     window.__specsBlock so rebuildLastRaw() below can re-prepend it exactly as generated
+     every time an editable field changes, without needing to re-parse it from the DOM. */
   const firstSeg = raw.search(/###\s*SEGMENT/i);
-  if (firstSeg > 0) {
-    const pre = raw.slice(0, firstSeg).replace(/^-+\s*$/gm, "").trim();
-    if (pre) html.push(`<div class="specs-block"><div class="fl">Technical Specs</div>${esc(pre).replace(/\*\*/g,"")}</div>`);
+  window.__specsBlock = firstSeg > 0 ? raw.slice(0, firstSeg).replace(/^-+\s*$/gm, "").trim() : "";
+  if (window.__specsBlock) {
+    html.push(`<div class="specs-block"><div class="fl">Technical Specs</div>${esc(window.__specsBlock).replace(/\*\*/g,"")}</div>`);
   }
 
   /* Segments */
@@ -484,30 +505,37 @@ function renderOutput(raw){
     const segType = pick(body, "Type");
     const ttsScript = pick(body, "TTS Script");
     const audioNote = pick(body, "Audio Note");
-    window.__segPrompts[num] = { t2iPrompt, i2vPrompt, camera, lighting, mood, ttsScript, audioNote, segType };
+    /* time + num are kept on the object (not just used locally) so serializeSegment() below
+       can rebuild a correct "### SEGMENT N | TIME" header purely from this object, live, on
+       every keystroke, with no dependency on the original AI-generated text ever again. */
+    window.__segPrompts[num] = { num, time, t2iPrompt, i2vPrompt, camera, lighting, mood, ttsScript, audioNote, segType };
+    /* Every field renders as an editable textarea (not a read-only div) so the user can bring
+       their own touch to the TTS script, prompts, or any other field before either copying the
+       block, saving it, or hitting Generate clip, everything downstream (Copy full output,
+       Save to Library, Download PDF, genClip) reads from this same live-edited object/lastRaw,
+       never from the original frozen AI text. */
     const fields = [
-      ["Type",                  segType],
-      ["TTS Script",            ttsScript,  "tts"],
-      ["Text-to-Image Prompt",  t2iPrompt,  "visual"],
-      ["Image-to-Video Prompt", i2vPrompt,  "visual"],
-      ["Camera Movement",       camera],
-      ["Lighting",              lighting],
-      ["Mood",                  mood],
-      ["Audio Note",            audioNote]
+      ["Type",                  segType,   "",        "segType"],
+      ["TTS Script",            ttsScript, "tts",     "ttsScript"],
+      ["Text-to-Image Prompt",  t2iPrompt, "visual",  "t2iPrompt"],
+      ["Image-to-Video Prompt", i2vPrompt, "visual",  "i2vPrompt"],
+      ["Camera Movement",       camera,    "",        "camera"],
+      ["Lighting",              lighting,  "",        "lighting"],
+      ["Mood",                  mood,      "",        "mood"],
+      ["Audio Note",            audioNote, "",        "audioNote"]
     ];
     let inner = "";
-    for (const [lab, val, cls] of fields) {
-      if (!val) continue;
-      inner += `<div class="field ${cls||""}"><div class="fl">${lab}</div><div class="fv">${esc(val)}</div></div>`;
+    for (const [lab, val, cls, key] of fields) {
+      const rows = (key === "ttsScript" || key === "t2iPrompt" || key === "i2vPrompt") ? 3 : (key === "segType" ? 1 : 2);
+      inner += `<div class="field ${cls}"><div class="fl">${lab}</div><textarea class="fv fv-edit" data-num="${num}" data-field="${key}" rows="${rows}">${esc(val)}</textarea></div>`;
     }
-    const blockMd = `### SEGMENT ${num} | ${time}\n${body.trim()}`;
     html.push(
       `<div class="seg-card">
          <div class="seg-head">
            <div class="t">SEGMENT ${num}<small>${esc(time)}</small></div>
-           <button class="btn-copy" data-action="copy-block" data-text="${encodeURIComponent(blockMd)}">📋 Copy block</button>
+           <button class="btn-copy" data-action="copy-block" data-num="${num}">📋 Copy block</button>
          </div>
-         <div class="seg-body">${inner || "<div class='field'><div class='fv'>"+esc(body.trim())+"</div></div>"}</div>
+         <div class="seg-body">${inner}</div>
          ${t2iPrompt ? `
          <div class="seg-video" style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px">
            <div style="display:flex;gap:8px;align-items:center">
@@ -541,10 +569,66 @@ function renderOutput(raw){
    needs to be wired once, regardless of how many segment cards get re-rendered. */
 els.output.addEventListener("click", (e) => {
   const copyBtn = e.target.closest('[data-action="copy-block"]');
-  if (copyBtn) { copyText(copyBtn, decodeURIComponent(copyBtn.dataset.text)); return; }
+  if (copyBtn) { copyText(copyBtn, serializeSegment(copyBtn.dataset.num)); return; }
   const genBtn = e.target.closest('[data-action="gen-clip"]');
   if (genBtn) { genClip(Number(genBtn.dataset.num), genBtn); return; }
 });
+
+/* Delegated input handling — fires on every keystroke in any editable field textarea. Updates
+   the live window.__segPrompts object (which genClip() already reads from) and recomputes
+   lastRaw (which Copy full output / Save to Library / Download PDF all read from), so every
+   downstream consumer of the output picks up the user's edits with zero changes of its own. */
+els.output.addEventListener("input", (e) => {
+  const t = e.target;
+  if (!t.classList || !t.classList.contains("fv-edit")) return;
+  const num = t.dataset.num, field = t.dataset.field;
+  if (window.__segPrompts && window.__segPrompts[num]) {
+    window.__segPrompts[num][field] = t.value;
+    rebuildLastRaw();
+  }
+});
+
+/* Rebuilds one segment's full "### SEGMENT N | TIME" markdown block straight from the live
+   window.__segPrompts object, matching the exact label/blockquote format the AI providers
+   output (and that pick() above parses back in), so an edited segment round-trips identically
+   through Copy block / Save to Library / reload from Library. */
+function serializeSegment(num){
+  const seg = window.__segPrompts && window.__segPrompts[num];
+  if (!seg) return "";
+  return `### SEGMENT ${seg.num} | ${seg.time}
+**Type**: ${seg.segType}
+
+**TTS Script**:
+> ${seg.ttsScript}
+
+**Text-to-Image Prompt**:
+> ${seg.t2iPrompt}
+
+**Image-to-Video Prompt**:
+> ${seg.i2vPrompt}
+
+**Camera Movement**:
+> ${seg.camera}
+
+**Lighting**:
+> ${seg.lighting}
+
+**Mood**:
+> ${seg.mood}
+
+**Audio Note**:
+> ${seg.audioNote}`;
+}
+
+/* Recomputes lastRaw (the source for Copy full output / Save to Library / Download PDF) from
+   window.__specsBlock + every live segment, in segment-number order, every time an editable
+   field changes. This is the one place lastRaw gets reassigned after the initial format call. */
+function rebuildLastRaw(){
+  const nums = Object.keys(window.__segPrompts || {}).map(Number).sort((a,b) => a - b);
+  const segsMd = nums.map(n => serializeSegment(n)).join("\n\n---\n\n");
+  lastRaw = (window.__specsBlock ? window.__specsBlock + "\n\n---\n\n" : "") + segsMd;
+  els.rawOut.value = lastRaw;
+}
 
 function pick(body, label){
   const re = new RegExp("\\*\\*" + label.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&") + "\\*\\*\\s*:?\\s*\\n?((?:>[^\\n]*\\n?)+|[^\\n*]+)", "i");
