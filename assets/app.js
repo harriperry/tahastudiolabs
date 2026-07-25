@@ -1081,8 +1081,8 @@ const refFiles = [slot1, els.refImg2?.files?.[0], els.refImg3?.files?.[0]].filte
           const encoded = await Promise.all(refFiles.map(fileToBase64));
           params.referenceImages = encoded.map(img => ({ image: img, referenceType: "asset" }));
           prompt = (refFiles.length > 1
-            ? "The person shown in the first reference image is the required on-camera narrator/speaker for this scene — preserve their exact face and appearance as the talking head throughout the clip. Any other reference images show supporting participants or objects that may also appear, but must not replace the first image's subject as the speaker. "
-            : "The person shown in the reference image is the required on-camera narrator/speaker for this scene — preserve their exact face and appearance as the talking head throughout the clip. "
+            ? "The person shown in the first reference image is the required on-camera character for this scene — keep their exact face and identity recognizable while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud. Any other reference images show supporting participants or objects that may also appear, but must not replace the first image's subject as the speaker. "
+            : "The person shown in the reference image is the required on-camera character for this scene — keep their exact face and identity recognizable while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud. "
           ) + prompt;
         } else {
           const dataUris = await Promise.all(refFiles.map(fileToDataUri));
@@ -1093,7 +1093,7 @@ const refFiles = [slot1, els.refImg2?.files?.[0], els.refImg3?.files?.[0]].filte
             params.duration = 10;
             vidSetStatus(num, "info", '<span class="spin"></span>Reference image attached — Grok caps clips with a reference image at 10s, adjusting…');
           }
-          let roleNote = "The person shown in <IMAGE_1> is the required on-camera narrator/speaker for this scene — preserve their exact face and appearance as the talking head throughout the clip.";
+          let roleNote = "The person shown in <IMAGE_1> is the required on-camera character for this scene — keep their exact face and identity recognizable while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud.";
           if (refFiles.length > 1) roleNote += ` <IMAGE_2>${refFiles.length > 2 ? " and <IMAGE_3>" : ""} show supporting participants or objects that may also appear in the shot, but must not replace the speaker from <IMAGE_1>.`;
           prompt = roleNote + " " + prompt;
         }
@@ -1109,13 +1109,13 @@ const refFiles = [slot1, els.refImg2?.files?.[0], els.refImg3?.files?.[0]].filte
    target generator actually behaves (static talking head vs. physical object
    interaction), appended after everything else so it's always the last instruction
    the model sees. */
-const FIRST_FRAME_ANCHOR = "Using this initial source composition as an absolute, immutable first-frame anchor. Animate the kinetic motion specified below. Do not reinvent or alter the visual details of the subject, background layout, or product design.";
+const FIRST_FRAME_ANCHOR = "This reference composition anchors the character's identity and the setting only — their face and the environment must stay recognizable. This is a full continuous video, NOT a still photo: the character must move naturally, gesture, walk, and actively interact with objects and their environment throughout the clip, and must audibly speak every word of the dialogue below on camera with lip-synced, natural delivery. Never render a static, frozen, motionless, or silent shot.";
 prompt = FIRST_FRAME_ANCHOR + " " + prompt;
 
 if (provider === "heygen") {
-  prompt += " [The human actor speaks the synced script audio directly to the camera with realistic facial expressions. CRITICAL NEGATIVE EXCLUSION: The small object/product and background environment must remain 100% static, unwarped, and structurally locked.]";
+  prompt += " [The human actor moves naturally, gestures, and interacts with their environment while speaking the synced script audio directly to the camera with realistic facial expressions and lip-sync. Only static props/products in frame must remain unwarped and structurally stable — the character and the overall scene must show continuous natural motion, not a frozen shot.]";
 } else if (provider === "veo") {
-  prompt += " [Execute a smooth physical interaction based purely on the existing frame physics. Maintain strict branding, logo clarity, and structural geometry on the target consumer object throughout the clip.]";
+  prompt += " [This is a dynamic video: the character performs continuous natural motion — walking, gesturing, or interacting with the environment — while speaking every line of dialogue below aloud with realistic lip-sync and facial expression. Maintain their identity, branding, and logo clarity while doing so, but do not produce a static, frozen, or silent shot.]";
 }
 
 const elevenKey = els.elevenLabsKey?.value.trim();
