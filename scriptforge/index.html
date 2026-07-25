@@ -21,11 +21,12 @@
 <div>
   <div class="card">
     <h2>1 · API Configuration</h2>
-    <label>Provider <span style="color:var(--muted);font-weight:400">(pick whichever you have a key for — all three work the same way)</span></label>
+    <label>Provider <span style="color:var(--muted);font-weight:400">(pick whichever you have a key for — all four work the same way)</span></label>
     <select id="formatProvider">
       <option value="anthropic" selected>Anthropic Claude</option>
       <option value="gemini">Google Gemini (free tier available)</option>
       <option value="groq">Groq (free tier available)</option>
+      <option value="deepseek">DeepSeek (signup credit, not a permanent free tier)</option>
     </select>
 
     <div id="anthropicFormatOptions">
@@ -74,6 +75,22 @@
         <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (larger, reasoning)</option>
       </select>
     </div>
+
+    <div id="deepseekFormatOptions" style="display:none">
+      <label style="margin-top:12px">DeepSeek API Key <span style="color:var(--muted);font-weight:400">— platform.deepseek.com/api_keys</span></label>
+      <input type="password" id="apiKeyDeepseek" placeholder="sk-..." autocomplete="off">
+      <div class="row" style="margin-top:8px;align-items:center">
+        <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer">
+          <input type="checkbox" id="rememberKeyDeepseek" style="width:auto"> Remember key on this device
+        </label>
+      </div>
+      <label>Model</label>
+      <select id="modelDeepseek">
+        <option value="deepseek-chat" selected>deepseek-chat (recommended)</option>
+        <option value="deepseek-reasoner">deepseek-reasoner (slower, stronger reasoning)</option>
+      </select>
+      <p style="color:var(--muted);font-size:.72rem;margin-top:6px">⚠ DeepSeek does not offer a permanent free tier — new accounts get a one-time 5-million-token / 30-day signup credit, then it's pay-as-you-go. Unlike the Gemini and Groq options above, budget for this once the credit runs out.</p>
+    </div>
   </div>
 
   <div class="card">
@@ -103,7 +120,12 @@
       <option value="Short Movie Script">Short Movie Script</option>
       <option value="Short Documentary">Short Documentary</option>
       <option value="Short Advert">Short Advert</option>
+      <option value="Podcast">Podcast</option>
     </select>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer">
+      <input type="checkbox" id="allowBRoll" checked style="width:auto">
+      Allow B-Roll segments <span style="color:var(--muted);font-weight:400">(uncheck for HeyGen-only/on-camera output with no cutaway shots)</span>
+    </label>
     <label>Ratio (video aspect ratio — included at top of output)</label>
     <select id="ratio">
       <option value="16:9" selected>16:9 — widescreen / YouTube / TV</option>
@@ -306,7 +328,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
   © 2026 TAHA Production Studio · <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a> · <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> · Your scripts and API key are never stored or logged — see our Privacy Policy for details.
 </footer>
 
-<script src="/assets/app.js?v=video14" defer></script>
+<script src="/assets/app.js?v=video15" defer></script>
 <script src="/assets/visit-tracker.js" defer></script>
 </body>
 </html>
