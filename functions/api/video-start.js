@@ -20,7 +20,10 @@ export async function onRequestPost(context) {
   try {
     if (provider === "veo") return await startVeo(apiKey, prompt, params || {});
     if (provider === "grok") return await startGrok(apiKey, prompt, params || {});
-    if (provider === "heygen") return await startHeyGen(apiKey, prompt, params || {});
+    if (provider === "heygen") {
+if (params && params.audioAssetId && params.avatarId) return await startHeyGenAudio(apiKey, params);
+return await startHeyGen(apiKey, prompt, params || {});
+}
     return json({ error: { message: "Unknown provider." } }, 400);
   } catch (e) {
     return json({ error: { message: "Our server couldn't reach the provider just now. Please try again in a moment." } }, 502);
@@ -119,3 +122,37 @@ async function startHeyGen(apiKey, prompt, params) {
   if (!res.ok) return json({ error: data?.error || { message: `HTTP ${res.status}` } }, res.status);
   return json({ jobRef: { sessionId: data?.data?.session_id, videoId: data?.data?.video_id || null } });
 }
+
+/* HeyGen Create Avatar Video (V2) — used only when both an Avatar ID and an ElevenLabs-
+generated audio asset are supplied (see the ElevenLabs block in genClip(), assets/app.js),
+for genuine audio-driven voice + lip-sync consistency across segments. The v3 Video Agent
+used by startHeyGen() above has no documented support for a custom audio voice source —
+that is a Studio-API-only feature. Confirmed via docs.heygen.com/reference/create-an-avatar-
+video-v2 and docs.heygen.com/docs/using-audio-source-as-voice (not guessed): POST
+https://api.heygen.com/v2/video/generate, video_inputs[] takes { character: { type: "avatar",
+avatar_id, avatar_style: "normal" }, voice: { type: "audio", audio_asset_id } }. No separate
+prompt/script is sent — the video's spoken words come entirely from the uploaded audio, so
+this also sidesteps the "does the storyboard planner decide to include spoken narration"
+problem documented above startHeyGen(). UNVERIFIED AGAINST A LIVE HEYGEN ACCOUNT — built from
+HeyGen's published docs, not tested end-to-end (no HeyGen credentials available here). If a
+real request fails, check the exact video_inputs schema against a live account first. */
+async function startHeyGenAudio(apiKey, params) {
+const body = {
+video_inputs: [{
+character: { type: "avatar", avatar_id: params.avatarId, avatar_style: "normal" },
+voice: { type: "audio", audio_asset_id: params.audioAssetId }
+}],
+dimension: params.orientation === "portrait" ? { width: 720, height: 1280 } : { width: 1280, height: 720 }
+};
+const res = await fetch("https://api.heygen.com/v2/video/generate", {
+method: "POST",
+headers: { "Content-Type": "application/json", "X-Api-Key": apiKey },
+body: JSON.stringify(body)
+});
+const data = await res.json().catch(() => null);
+if (!res.ok) return json({ error: data?.error || { message: `HTTP ${res.status}` } }, res.status);
+const videoId = data?.data?.video_id;
+if (!videoId) return json({ error: { message: "HeyGen accepted the request but returned no video ID." } }, 502);
+return json({ jobRef: { videoId, v2: true } });
+}
+
