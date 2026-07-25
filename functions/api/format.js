@@ -48,6 +48,7 @@ export async function onRequestPost(context) {
   try {
     if (provider === "gemini") return await formatGemini(apiKey, model, max_tokens, system, messages);
     if (provider === "groq") return await formatGroq(apiKey, model, max_tokens, system, messages);
+    if (provider === "deepseek") return await formatDeepSeek(apiKey, model, max_tokens, system, messages);
     return await formatAnthropic(apiKey, model, max_tokens, system, messages);
   } catch (e) {
     return json({ error: { message: "Our server couldn't reach the provider just now. Please try again in a moment." } }, 502);
@@ -141,5 +142,32 @@ async function formatGroq(apiKey, model, max_tokens, system, messages) {
   if (!res.ok) return json({ error: data?.error || { message: `HTTP ${res.status}` } }, res.status);
   const text = stripEmDashes((data?.choices?.[0]?.message?.content || "").trim());
   if (!text) return json({ error: { message: "Groq returned an empty response — try again, or double-check your key/model at console.groq.com." } }, 502);
+  return json({ content: [{ type: "text", text }] });
+}
+
+/* DeepSeek — OpenAI-compatible chat completions (api-docs.deepseek.com). NOTE: unlike Gemini
+   and Groq above, DeepSeek does NOT offer a permanent free tier — new accounts get a one-time
+   5-million-token / 30-day signup credit, then it's pay-as-you-go. The UI labels this
+   accurately (not "free tier") so people aren't surprised when the credit runs out. Same
+   response normalization as Gemini/Groq, into Anthropic's { content: [...] } shape. */
+async function formatDeepSeek(apiKey, model, max_tokens, system, messages) {
+  let res;
+  try {
+    res = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: model || "deepseek-chat",
+        max_tokens: Number(max_tokens || 4096),
+        messages: [{ role: "system", content: system || "" }, ...messages]
+      })
+    });
+  } catch (e) {
+    return json({ error: { message: "Our server couldn't reach DeepSeek's API just now. Please try again in a moment." } }, 502);
+  }
+  const data = await res.json().catch(() => null);
+  if (!res.ok) return json({ error: data?.error || { message: `HTTP ${res.status}` } }, res.status);
+  const text = stripEmDashes((data?.choices?.[0]?.message?.content || "").trim());
+  if (!text) return json({ error: { message: "DeepSeek returned an empty response — try again, or double-check your key at platform.deepseek.com. Note: DeepSeek's signup credit expires after 30 days/5M tokens, not a permanent free tier." } }, 502);
   return json({ content: [{ type: "text", text }] });
 }
