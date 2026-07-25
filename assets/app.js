@@ -1119,7 +1119,13 @@ if (provider === "heygen") {
 }
 
 const elevenKey = els.elevenLabsKey?.value.trim();
-const elevenVoice = els.elevenLabsVoice?.value;
+/* HARDCODED NARRATION VOICE: per explicit request, narration audio always uses this exact
+ElevenLabs voice ("mY VOICE"), regardless of whatever is selected in the Voice dropdown above
+(that dropdown still only controls the text written into the script's TECHNICAL SPECS block).
+This guarantees the downloaded/HeyGen-fed narration audio never silently mismatches the
+reference voice that was actually validated end-to-end. To change the fixed voice later,
+update this ID (elevenlabs.io → Voices → the voice's settings show its Voice ID). */
+const elevenVoice = "y5e1PUCrX9XvTExckwSl";
 let elevenAudioBlob = null;
 if (elevenKey && elevenVoice && seg.ttsScript) {
 try {
