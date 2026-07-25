@@ -146,6 +146,8 @@
     </label>
     <label style="margin-top:12px">HeyGen API key (for HeyGen Video Agent) — app.heygen.com Settings → API</label>
     <input type="password" id="videoKeyHeygen" placeholder="your HeyGen key">
+<label style="margin-top:12px">HeyGen Avatar ID <span style="color:var(--muted);font-weight:400">(optional — only needed for ElevenLabs audio-driven voice matching, see section 6 below)</span></label>
+<input type="text" id="heygenAvatarId" placeholder="e.g. Josh_lite3_20230714">
     <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
       <input type="checkbox" id="rememberVideoKeyHeygen" style="width:auto"> Remember on this device
     </label>
@@ -173,9 +175,11 @@
   <div class="card">
     <h2>6 · ElevenLabs Voice <span style="color:var(--muted);font-weight:400;font-size:.8rem">(optional, voice ID picker)</span></h2>
     <p style="color:var(--muted);font-size:.8rem;margin:0 0 10px">
-      Connect your ElevenLabs account to pick a Voice ID for this script. ScriptForge doesn't generate audio itself — the
-      chosen Voice ID is written into your script's TECHNICAL SPECS block, ready to hand to HeyGen or your own TTS step.
-    </p>
+      Connect your ElevenLabs account and pick a Voice ID to get real narration audio generated per segment. For
+<b>HeyGen</b>: also fill in a HeyGen Avatar ID above and each clip is generated in HeyGen's audio-driven mode using
+this exact voice, for genuine lip-synced consistency across segments. For <b>Veo / Grok</b>: neither accepts
+external audio, so the narration is generated alongside each clip as a downloadable file to mux in your own editor
+instead. The Voice ID is also still written into your script's TECHNICAL SPECS block as before.</p>
     <label>ElevenLabs API key <span style="color:var(--muted);font-weight:400">— elevenlabs.io → Profile → API Keys</span></label>
     <input type="password" id="elevenLabsKey" placeholder="sk_...">
     <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
@@ -302,7 +306,7 @@
   © 2026 TAHA Production Studio · <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a> · <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> · Your scripts and API key are never stored or logged — see our Privacy Policy for details.
 </footer>
 
-<script src="/assets/app.js?v=video11" defer></script>
+<script src="/assets/app.js?v=video12" defer></script>
 <script src="/assets/visit-tracker.js" defer></script>
 </body>
 </html>
