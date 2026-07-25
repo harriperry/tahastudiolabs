@@ -79,6 +79,7 @@ const els = {
   videoKeyVeo: $("videoKeyVeo"), rememberVideoKeyVeo: $("rememberVideoKeyVeo"),
   videoKeyGrok: $("videoKeyGrok"), rememberVideoKeyGrok: $("rememberVideoKeyGrok"),
   videoKeyHeygen: $("videoKeyHeygen"), rememberVideoKeyHeygen: $("rememberVideoKeyHeygen"),
+heygenAvatarId: $("heygenAvatarId"),
   refImg1: $("refImg1"), refImg1prev: $("refImg1prev"),
   refImg2: $("refImg2"), refImg2prev: $("refImg2prev"),
   refImg3: $("refImg3"), refImg3prev: $("refImg3prev"),
@@ -88,6 +89,7 @@ const els = {
 };
 let lastRaw = "";
 let lastMeta = null;
+let chainFrames = {};
 
 /* remember key (local file — localStorage, guarded) */
 try {
@@ -280,6 +282,67 @@ function fileToDataUri(file) {
   });
 }
 
+/* CHARACTER CONTINUITY + ELEVENLABS AUDIO HELPERS (see genClip() below for where these are
+used). extractLastFrame grabs the final frame of a just-finished Veo/Grok clip client-side —
+Cloudflare's Workers runtime (where every /api/* relay in this app runs) has no video codec
+support at all, so there is no way to decode a frame server-side; the browser already has the
+finished clip's bytes by the time this runs, so that's the only place this can happen. */
+function extractLastFrame(videoBlobUrl) {
+return new Promise((resolve) => {
+const v = document.createElement("video");
+v.muted = true;
+v.playsInline = true;
+v.src = videoBlobUrl;
+v.addEventListener("loadedmetadata", () => {
+v.currentTime = Math.max(0, v.duration - 0.15);
+});
+v.addEventListener("seeked", () => {
+try {
+const canvas = document.createElement("canvas");
+canvas.width = v.videoWidth;
+canvas.height = v.videoHeight;
+canvas.getContext("2d").drawImage(v, 0, 0, canvas.width, canvas.height);
+canvas.toBlob(blob => resolve(blob), "image/png");
+} catch (e) { resolve(null); }
+});
+v.addEventListener("error", () => resolve(null));
+});
+}
+function showChainOption(nextNum) {
+const wrap = $("chainWrap" + nextNum);
+if (!wrap) return;
+wrap.style.display = "flex";
+const thumb = $("chainThumb" + nextNum);
+if (thumb && chainFrames[nextNum]) {
+const url = URL.createObjectURL(chainFrames[nextNum]);
+thumb.innerHTML = `<img src="${url}" style="max-width:70px;border-radius:6px;margin-top:4px">`;
+}
+}
+/* ElevenLabs text-to-speech relay call — see functions/api/elevenlabs-tts.js. Used by
+genClip() below either to feed HeyGen's audio-driven avatar mode (real voice + lip-sync
+consistency) or, for Veo/Grok which can't accept external audio at all, to offer the
+narration as a separate download to mux in your own editor. */
+async function fetchElevenTTS(voiceId, apiKey, text) {
+const res = await fetch("/api/elevenlabs-tts", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ apiKey, voiceId, text })
+});
+if (!res.ok) {
+const errData = await res.json().catch(() => null);
+throw new Error(errData?.error?.message || `ElevenLabs TTS failed: HTTP ${res.status}`);
+}
+return await res.blob();
+}
+function blobToBase64(blob) {
+return new Promise((resolve, reject) => {
+const reader = new FileReader();
+reader.onload = () => resolve(reader.result.split(",")[1]);
+reader.onerror = reject;
+reader.readAsDataURL(blob);
+});
+}
+
 /* word meter */
 els.script.addEventListener("input", updateWordMeter);
 els.segCount.addEventListener("change", updateLengthUI);
@@ -457,6 +520,8 @@ function renderOutput(raw){
              <button class="btn-copy" data-action="gen-clip" data-num="${num}">🎬 Generate clip</button>
            </div>
            <div class="status" id="vidStatus${num}"></div>
+<label id="chainWrap${num}" style="display:none;align-items:center;gap:6px;font-size:.72rem;margin-top:6px;cursor:pointer"><input type="checkbox" id="chainUse${num}" checked style="width:auto"> 🔗 Use Segment ${Number(num)-1}'s final frame as this segment's character reference (Veo/Grok)</label>
+<div id="chainThumb${num}"></div>
            <div id="vidResult${num}" style="margin-top:8px"></div>
          </div>` : ""}
        </div>`
@@ -957,7 +1022,10 @@ window.genClip = async function (num, btn) {
   vidSetStatus(num, "info", '<span class="spin"></span>Submitting…');
 
   try {
-    const refFiles = [els.refImg1, els.refImg2, els.refImg3].map(el => el?.files?.[0]).filter(Boolean);
+    const chainCheckbox = $("chainUse" + num);
+const useChain = !!(chainFrames[num] && chainCheckbox && chainCheckbox.checked);
+const slot1 = useChain ? new File([chainFrames[num]], `segment${num}-chained-ref.png`, { type: "image/png" }) : els.refImg1?.files?.[0];
+const refFiles = [slot1, els.refImg2?.files?.[0], els.refImg3?.files?.[0]].filter(Boolean);
     const aspectRatio = els.vidAspectRatio?.value || "16:9";
     const resolutionSel = els.vidResolution?.value || "720p";
 
@@ -1050,6 +1118,31 @@ if (provider === "heygen") {
   prompt += " [Execute a smooth physical interaction based purely on the existing frame physics. Maintain strict branding, logo clarity, and structural geometry on the target consumer object throughout the clip.]";
 }
 
+const elevenKey = els.elevenLabsKey?.value.trim();
+const elevenVoice = els.elevenLabsVoice?.value;
+let elevenAudioBlob = null;
+if (elevenKey && elevenVoice && seg.ttsScript) {
+try {
+vidSetStatus(num, "info", '<span class="spin"></span>Generating narration audio (ElevenLabs)…');
+elevenAudioBlob = await fetchElevenTTS(elevenVoice, elevenKey, seg.ttsScript);
+if (provider === "heygen" && els.heygenAvatarId?.value.trim()) {
+vidSetStatus(num, "info", '<span class="spin"></span>Uploading narration to HeyGen…');
+const base64 = await blobToBase64(elevenAudioBlob);
+const upRes = await videoApi("heygen-upload-asset", { apiKey, base64, mimeType: elevenAudioBlob.type || "audio/mpeg" });
+if (!upRes.ok) throw new Error(upRes.data?.error?.message || `HTTP ${upRes.status}`);
+params.audioAssetId = upRes.data.assetId;
+params.avatarId = els.heygenAvatarId.value.trim();
+}
+vidSetStatus(num, "info", '<span class="spin"></span>Submitting…');
+} catch (e) {
+vidSetStatus(num, "err", "ElevenLabs step failed: " + e.message + " — continuing without it.");
+elevenAudioBlob = null;
+delete params.audioAssetId;
+delete params.avatarId;
+await new Promise(r => setTimeout(r, 1200));
+vidSetStatus(num, "info", '<span class="spin"></span>Submitting…');
+}
+}
 const startRes = await videoApi("video-start", { provider, apiKey, prompt, params });
     if (!startRes.ok) throw new Error(startRes.data?.error?.message || `HTTP ${startRes.status}`);
     let jobRef = startRes.data.jobRef;
@@ -1078,10 +1171,22 @@ const startRes = await videoApi("video-start", { provider, apiKey, prompt, param
     }
     const blob = await dlRes.blob();
     const blobUrl = URL.createObjectURL(blob);
-    $("vidResult" + num).innerHTML = `
-      <video controls src="${blobUrl}" style="max-width:100%;border-radius:8px"></video>
-      <div style="margin-top:6px"><a href="${blobUrl}" download="segment-${num}-clip.mp4" style="color:var(--accent2)">⬇ Download this clip</a></div>`;
-    vidSetStatus(num, "ok", "✓ Done.");
+    let narrationHtml = "";
+if (elevenAudioBlob && (provider === "veo" || provider === "grok")) {
+const narrationUrl = URL.createObjectURL(elevenAudioBlob);
+narrationHtml = `<div style="margin-top:6px"><a href="${narrationUrl}" download="segment-${num}-narration.mp3" style="color:var(--accent2)">🔊 Download narration audio (ElevenLabs) — mux onto the clip above in your editor</a></div>`;
+}
+$("vidResult" + num).innerHTML = `
+<video controls src="${blobUrl}" style="max-width:100%;border-radius:8px"></video>
+<div style="margin-top:6px"><a href="${blobUrl}" download="segment-${num}-clip.mp4" style="color:var(--accent2)">⬇ Download this clip</a></div>
+${narrationHtml}`;
+if (provider === "veo" || provider === "grok") {
+try {
+const frameBlob = await extractLastFrame(blobUrl);
+if (frameBlob) { chainFrames[String(Number(num) + 1)] = frameBlob; showChainOption(String(Number(num) + 1)); }
+} catch (e) {}
+}
+vidSetStatus(num, "ok", "✓ Done.");
   } catch (err) {
     vidSetStatus(num, "err", "Error: " + err.message);
   } finally {
