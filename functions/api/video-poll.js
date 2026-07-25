@@ -49,6 +49,7 @@ async function pollGrok(apiKey, jobRef) {
 }
 
 async function pollHeyGen(apiKey, jobRef) {
+if (jobRef.v2) return await pollHeyGenV2(apiKey, jobRef);
   let { sessionId, videoId } = jobRef;
   if (!videoId) {
     const res = await fetch(`https://api.heygen.com/v3/video-agents/${sessionId}`, { headers: { "X-Api-Key": apiKey } });
@@ -65,6 +66,24 @@ async function pollHeyGen(apiKey, jobRef) {
   if (status === "completed") return json({ done: true, uri: data.data.video_url, jobRef: { sessionId, videoId } });
   return json({ done: false, jobRef: { sessionId, videoId } });
 }
+
+/* Status polling for the V2 audio-driven path (startHeyGenAudio in video-start.js) — this
+uses HeyGen's classic v1 status endpoint, which is still the documented way to poll a video
+created via v2/video/generate. UNVERIFIED AGAINST A LIVE HEYGEN ACCOUNT — same caveat as
+startHeyGenAudio() in video-start.js: built from HeyGen's published docs, not tested
+end-to-end. */
+async function pollHeyGenV2(apiKey, jobRef) {
+const res = await fetch(`https://api.heygen.com/v1/video_status.get?video_id=${encodeURIComponent(jobRef.videoId)}`, {
+headers: { "X-Api-Key": apiKey }
+});
+const data = await res.json().catch(() => null);
+if (!res.ok) return json({ error: data?.error || { message: `HTTP ${res.status}` } }, res.status);
+const status = data?.data?.status;
+if (status === "failed") return json({ error: { message: data?.data?.error?.message || "HeyGen reported the render failed." } }, 500);
+if (status === "completed") return json({ done: true, uri: data.data.video_url, jobRef });
+return json({ done: false, jobRef });
+}
+
 
 /* Confirmed field path from a real completed Veo job:
    response.generateVideoResponse.generatedSamples[0].video.uri — with a generic fallback
