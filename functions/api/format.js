@@ -157,7 +157,7 @@ async function formatDeepSeek(apiKey, model, max_tokens, system, messages) {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: model || "deepseek-chat",
+        model: model || "deepseek-v4-flash",
         max_tokens: Number(max_tokens || 4096),
         messages: [{ role: "system", content: system || "" }, ...messages]
       })
