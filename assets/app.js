@@ -189,6 +189,13 @@ const SCRIPT_TYPE_RECOMMENDATIONS = {
     videoKey: "veo",
     videoTip: "Veo 3.1 handles the varied camera angles this format needs; HeyGen suits a fixed presenter instead.",
     voiceTip: "Conversational, relaxed energy fits this format best."
+  },
+  "Public Address": {
+    writingKey: "anthropic", writingLabel: "Anthropic Claude",
+    writingReason: "Strong at formal, structured rhetoric for a single speaker.",
+    videoKey: "heygen",
+    videoTip: "HeyGen keeps one consistent presenter on camera throughout, well suited to a formal address.",
+    voiceTip: "A steady, authoritative tone suits a public address."
   }
 };
 
