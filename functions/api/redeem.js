@@ -25,6 +25,8 @@ export async function onRequestPost(context) {
 
   const ins = await db(env, "POST", "license_redemptions", { license_key: key, user_id: auth.user.id });
   if (!ins.ok) return json({ error: "Redemption failed — try again." }, 500);
-  await db(env, "POST", "subscriptions", { user_id: auth.user.id, status: "active", tier: "pro", updated_at: new Date().toISOString() });
+  // trial_ends_at: null — a real license redemption always supersedes any earlier trial claim,
+  // so a leftover expired-trial timestamp can never cause this now-paying account to lapse.
+  await db(env, "POST", "subscriptions", { user_id: auth.user.id, status: "active", tier: "pro", trial_ends_at: null, updated_at: new Date().toISOString() });
   return json({ ok: true });
 }

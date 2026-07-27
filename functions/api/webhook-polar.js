@@ -21,7 +21,10 @@ async function setStatusByEmail(env, email, status) {
   const list = (users.data && (users.data.users || users.data)) || [];
   const u = Array.isArray(list) ? list.find(x => x.email === email) : null;
   if (!u) return; // no account yet — license redemption will bind entitlement at first login
-  await db(env, "POST", "subscriptions", { user_id: u.id, status, tier: "pro", updated_at: new Date().toISOString() });
+  // trial_ends_at: null — any real Polar event (payment, cancellation, refund) supersedes an
+  // earlier trial claim, so a leftover expired-trial timestamp can never be mistaken for the
+  // reason a genuine paying customer's access changed.
+  await db(env, "POST", "subscriptions", { user_id: u.id, status, tier: "pro", trial_ends_at: null, updated_at: new Date().toISOString() });
   if (status === "inactive") await db(env, "DELETE", `active_sessions?user_id=eq.${u.id}`);
 }
 
