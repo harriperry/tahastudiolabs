@@ -325,7 +325,10 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
         <button class="btn-primary" id="btnLogin">Sign in</button>
         <button class="btn-ghost" id="btnSignup">Create account</button>
       </div>
-      <button class="btn-ghost" id="btnMagic" style="width:100%;margin-top:10px">✉ Email me a sign-in link instead</button>
+      <div class="row" style="margin-top:10px">
+        <button class="btn-ghost" id="btnMagic" style="flex:1">✉ Email me a sign-in link instead</button>
+        <button class="btn-ghost" id="btnForgotPw" style="flex:1">Forgot password?</button>
+      </div>
       <div class="status" id="authStatus"></div>
       <p style="color:var(--muted);font-size:.72rem;margin-top:12px">By creating an account you agree to the <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> and <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a>. We store only your email, login credential, and subscription status — never your scripts or API key.</p>
     </div>
@@ -357,8 +360,14 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
         </div>
       </div>
       <div class="row" style="margin-top:14px">
+        <button class="btn-ghost" id="btnChangePw">Change password</button>
         <button class="btn-ghost" id="btnSignOut">Sign out</button>
         <button class="btn-ghost" id="btnDeleteAcct" style="color:var(--err);border-color:var(--err)">Delete account</button>
+      </div>
+      <div id="changePwBox" style="display:none;margin-top:10px">
+        <label>New password (min 8 characters)</label>
+        <input type="password" id="newPw" autocomplete="new-password" placeholder="••••••••">
+        <button class="btn-primary" id="btnSetNewPw" style="width:100%;margin-top:8px">Set new password</button>
       </div>
       <div id="deleteConfirm" style="display:none;margin-top:10px">
         <label>Confirm your password to permanently delete your account</label>
@@ -374,7 +383,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
   © 2026 TAHA Production Studio · <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a> · <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> · Your scripts and API key are never stored or logged — see our Privacy Policy for details.
 </footer>
 
-<script src="/assets/app.js?v=video21" defer></script>
+<script src="/assets/app.js?v=video22" defer></script>
 <script src="/assets/visit-tracker.js" defer></script>
 </body>
 </html>
