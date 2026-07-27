@@ -58,10 +58,12 @@ export async function db(env, method, path, body) {
   return { ok: res.ok, status: res.status, data };
 }
 
-/* Supabase Auth endpoints */
-export async function sbAuth(env, path, body, token) {
+/* Supabase Auth endpoints. `method` defaults to GET (no body) / POST (body present) as before —
+   pass it explicitly for the one case that needs it: PUT /user to update the signed-in user's
+   own password (see update-password.js), which reuses this same helper. */
+export async function sbAuth(env, path, body, token, method) {
   const res = await fetch(`${env.SUPABASE_URL}/auth/v1/${path}`, {
-    method: body === undefined ? "GET" : "POST",
+    method: method || (body === undefined ? "GET" : "POST"),
     headers: {
       "apikey": env.SUPABASE_ANON_KEY,
       "Authorization": `Bearer ${token || env.SUPABASE_ANON_KEY}`,
