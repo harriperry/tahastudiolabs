@@ -595,29 +595,35 @@ els.output.addEventListener("input", (e) => {
 function serializeSegment(num){
   const seg = window.__segPrompts && window.__segPrompts[num];
   if (!seg) return "";
+  /* bq(): if the user pressed Enter inside an edited field, continuation lines must also be
+     blockquoted ("> ") or pick() will drop everything after the first newline when the block
+     is re-parsed on Library reload. inline(): the Type field is serialized inline (no
+     blockquote), so newlines there are collapsed to spaces instead. */
+  const bq = v => String(v ?? "").replace(/\n/g, "\n> ");
+  const inline = v => String(v ?? "").replace(/\s*\n\s*/g, " ");
   return `### SEGMENT ${seg.num} | ${seg.time}
-**Type**: ${seg.segType}
+**Type**: ${inline(seg.segType)}
 
 **TTS Script**:
-> ${seg.ttsScript}
+> ${bq(seg.ttsScript)}
 
 **Text-to-Image Prompt**:
-> ${seg.t2iPrompt}
+> ${bq(seg.t2iPrompt)}
 
 **Image-to-Video Prompt**:
-> ${seg.i2vPrompt}
+> ${bq(seg.i2vPrompt)}
 
 **Camera Movement**:
-> ${seg.camera}
+> ${bq(seg.camera)}
 
 **Lighting**:
-> ${seg.lighting}
+> ${bq(seg.lighting)}
 
 **Mood**:
-> ${seg.mood}
+> ${bq(seg.mood)}
 
 **Audio Note**:
-> ${seg.audioNote}`;
+> ${bq(seg.audioNote)}`;
 }
 
 /* Recomputes lastRaw (the source for Copy full output / Save to Library / Download PDF) from
