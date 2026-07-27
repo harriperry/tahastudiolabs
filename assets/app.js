@@ -1006,9 +1006,10 @@ let user = null, tier = "free";
 
 const els2 = {};
 ["btnAccount","authOverlay","btnAuthClose","authTitle","upsell","viewSignedOut","viewSignedIn",
- "authEmail","authPass","btnLogin","btnSignup","btnMagic","authStatus","acctInfo",
+ "authEmail","authPass","btnLogin","btnSignup","btnMagic","btnForgotPw","authStatus","acctInfo",
  "btnCheckoutMonthly","btnCheckoutAnnual","btnCheckoutLifetime",
- "licKey","btnRedeem","btnSignOut","btnDeleteAcct","deleteConfirm","delPass","btnDeleteFinal",
+ "licKey","btnRedeem","btnChangePw","changePwBox","newPw","btnSetNewPw",
+ "btnSignOut","btnDeleteAcct","deleteConfirm","delPass","btnDeleteFinal",
  "acctStatus","btnLibExport","btnLibImport","libFile","upgradeBox"].forEach(id => els2[id] = $(id));
 
 async function api(path, body){
@@ -1078,7 +1079,11 @@ els2.btnLogin.addEventListener("click", async () => {
 els2.btnSignup.addEventListener("click", async () => {
   setAuthStatus(els2.authStatus, "info", '<span class="spin"></span>Creating account…');
   const r = await api("signup", { email: els2.authEmail.value.trim(), password: els2.authPass.value });
-  if (r.ok) setAuthStatus(els2.authStatus, "ok", "✓ Account created. Check your inbox to confirm your email, then sign in.");
+  /* No email step at all: the backend confirms the address and signs the user in with the
+     password they just chose in the same request. autoLogin:false only happens in the rare
+     case that couldn't complete (network hiccup etc.) — fall back to asking them to sign in. */
+  if (r.ok && r.data && r.data.autoLogin) { setAuthStatus(els2.authStatus, "ok", "✓ Account created and signed in."); els2.authPass.value = ""; await refreshMe(); }
+  else if (r.ok) { setAuthStatus(els2.authStatus, "ok", "✓ Account created — sign in with your new password."); els2.authPass.value = ""; }
   else setAuthStatus(els2.authStatus, "err", (r.data && r.data.error) || "Sign-up failed.");
 });
 els2.btnMagic.addEventListener("click", async () => {
@@ -1086,6 +1091,24 @@ els2.btnMagic.addEventListener("click", async () => {
   const r = await api("magic", { email: els2.authEmail.value.trim() });
   if (r.ok) setAuthStatus(els2.authStatus, "ok", "✓ Check your inbox for a one-click sign-in link.");
   else setAuthStatus(els2.authStatus, "err", (r.data && r.data.error) || "Could not send link.");
+});
+els2.btnForgotPw.addEventListener("click", async () => {
+  const email = els2.authEmail.value.trim();
+  if (!email) { setAuthStatus(els2.authStatus, "err", "Enter your email above first."); return; }
+  setAuthStatus(els2.authStatus, "info", '<span class="spin"></span>Sending reset link…');
+  const r = await api("forgot-password", { email });
+  setAuthStatus(els2.authStatus, r.ok ? "ok" : "err", r.ok ? "✓ If that email has an account, a password reset link is on its way. This is a one-time link — after you use it you'll be able to sign in with your password normally from then on." : ((r.data && r.data.error) || "Could not send reset link."));
+});
+els2.btnChangePw.addEventListener("click", () => {
+  els2.changePwBox.style.display = els2.changePwBox.style.display === "none" ? "block" : "none";
+});
+els2.btnSetNewPw.addEventListener("click", async () => {
+  const pw = els2.newPw.value;
+  if (pw.length < 8) { setAuthStatus(els2.acctStatus, "err", "Password must be at least 8 characters."); return; }
+  setAuthStatus(els2.acctStatus, "info", '<span class="spin"></span>Updating password…');
+  const r = await api("update-password", { password: pw });
+  if (r.ok) { setAuthStatus(els2.acctStatus, "ok", "✓ Password updated. Use it to sign in directly next time."); els2.newPw.value = ""; els2.changePwBox.style.display = "none"; }
+  else setAuthStatus(els2.acctStatus, "err", (r.data && r.data.error) || "Could not update password.");
 });
 els2.btnSignOut.addEventListener("click", async () => { await api("logout", {}); await refreshMe(); });
 
@@ -1107,14 +1130,25 @@ els2.btnDeleteFinal.addEventListener("click", async () => {
   else setAuthStatus(els2.acctStatus, "err", (r.data && r.data.error) || "Deletion failed — check your password.");
 });
 
-/* magic-link callback: tokens arrive in the URL fragment; exchange for httpOnly cookies, never persist */
-(async function magicCallback(){
+/* auth callback: handles BOTH magic-link sign-in and password-recovery links, since Supabase
+   returns tokens in the URL fragment the same way for either — exchange them for httpOnly
+   cookies, never persist. type=recovery means this was a "forgot password" link specifically:
+   once signed in, open the account panel with the change-password box already expanded so the
+   one-time link ends in a permanent password, not a routine to repeat. */
+(async function authCallback(){
   const h = new URLSearchParams(location.hash.slice(1));
+  let isRecovery = false;
   if (h.get("access_token") && h.get("refresh_token")) {
+    isRecovery = h.get("type") === "recovery";
     history.replaceState(null, "", location.pathname + location.search);
     await api("session-from-token", { access_token: h.get("access_token"), refresh_token: h.get("refresh_token") });
   }
   await refreshMe();
+  if (isRecovery && user) {
+    openAccount();
+    els2.changePwBox.style.display = "block";
+    setAuthStatus(els2.acctStatus, "info", "Set a new password below to finish resetting your login.");
+  }
 })();
 
 /* library export / import — manual backup path, no cloud copy exists */
