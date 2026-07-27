@@ -1,7 +1,16 @@
 
 /* ─────────────────────────  THE EXACT FORMATTER PROMPT  ───────────────────────── */
 function tstamp(sec){const m=String(Math.floor(sec/60)).padStart(2,"0"),s=String(sec%60).padStart(2,"0");return `${m}:${s}`;}
-function totalLabel(n){const t=n*10;return t%60===0?`${t/60}-minute (${t}-second)`:`${t}-second`;}
+/* SEGMENT TIMING MODEL: segments 1-3 are 10 seconds each (0-10, 10-20, 20-30). From segment 4
+   onward, each segment is 15 seconds (30-45, 45-60, 60-75, ...), continuing until the video
+   reaches 5 minutes (300s total, which lands exactly on segment 21). segEndTime/segStartTime/
+   segDuration are the single source of truth for this and are used everywhere timing is
+   computed or displayed (prompt building, word-count targets, UI badges, Library display, PDF
+   export) so the model never drifts out of sync in different places. */
+function segEndTime(i){ return i<=3 ? i*10 : 30+(i-3)*15; }
+function segStartTime(i){ return i<=1 ? 0 : segEndTime(i-1); }
+function segDuration(i){ return segEndTime(i)-segStartTime(i); }
+function totalLabel(n){const t=segEndTime(n);return t%60===0?`${t/60}-minute (${t}-second)`:`${t}-second`;}
 /* B-ROLL FIELD RESTRUCTURE: the old template had 2 loosely-defined fields ("Visual / B-Roll
    Prompt" + "Motion") that left camera movement, lighting, and mood folded into one blob of
    text, or skipped entirely, and never distinguished a still-frame description from a motion
@@ -13,8 +22,8 @@ function totalLabel(n){const t=n*10;return t%60===0?`${t/60}-minute (${t}-second
    picture instead of a single vague sentence. */
 function buildSystemPrompt(n, ratio, allowBRoll){
 if (allowBRoll === undefined) allowBRoll = true;
-const timingRule = Array.from({length:n},(_,i)=>`Segment ${i+1} = ${tstamp(i*10)}\u2013${tstamp((i+1)*10)}`).join(", ");
-return `Act as a professional AI video production formatter. Take the full script the user provides, and split it EXACTLY into ${n} equal segment${n>1?'s':''} of 10 seconds each, to make a total ${totalLabel(n)} video.
+const timingRule = Array.from({length:n},(_,i)=>{const s=i+1;return `Segment ${s} = ${tstamp(segStartTime(s))}\u2013${tstamp(segEndTime(s))} (${segDuration(s)}s)`;}).join(", ");
+return `Act as a professional AI video production formatter. Take the full script the user provides, and split it EXACTLY into ${n} segment${n>1?'s':''} to make a total ${totalLabel(n)} video. Segment duration is NOT uniform: segments 1-3 are 10 seconds each, and every segment from segment 4 onward is 15 seconds each. Use the exact per-segment start/end times listed in rule 1 below, do not deviate from them.
 
 Follow this exact structure for EVERY segment. Keep wording clear and concise, match the tone of the original script, and ensure smooth natural continuity between segments.
 
@@ -25,16 +34,16 @@ Follow this exact structure for EVERY segment. Keep wording clear and concise, m
 **Type**: [${allowBRoll ? "On-Camera / Voiceover + B-Roll / On-Camera + Brand Close" : "On-Camera / On-Camera + Brand Close"}]
 
 **TTS Script**:
-> [Full spoken text for this exact 10-second block. Include short connecting phrases to flow smoothly between segments, keep it conversational and perfectly timed for 10 seconds]
+> [Full spoken text for this exact segment duration (10 seconds for segments 1-3, 15 seconds for segment 4 onward, per the timing list in rule 1). Include short connecting phrases to flow smoothly between segments, keep it conversational and perfectly timed for that duration]
 
 **Text-to-Image Prompt**:
 > [Detailed, photorealistic ${ratio} still-frame prompt describing the opening composition of this shot: subject, setting, wardrobe or props, framing, and style, specific enough to generate a single reference still image on its own]
 
 **Image-to-Video Prompt**:
-> [Only the kinetic action and camera path for these 10 seconds, written as motion instructions for a model animating a still image. Do NOT include descriptive adjectives about the characters' appearance, clothing, environment, or target objects/products (no color, material, brand, or style descriptors for things like perfume bottles, cans, phones, computers, wardrobe, or setting) — the model must rely entirely on the uploaded reference image for all visual detail. Describe motion and camera path only]
+> [Only the kinetic action and camera path for this segment's duration, written as motion instructions for a model animating a still image. Do NOT include descriptive adjectives about the characters' appearance, clothing, environment, or target objects/products (no color, material, brand, or style descriptors for things like perfume bottles, cans, phones, computers, wardrobe, or setting) — the model must rely entirely on the uploaded reference image for all visual detail. Describe motion and camera path only]
 
 **Camera Movement**:
-> [Exactly ONE single-axis camera motion for this entire 10-second block: either a pure horizontal pan, a pure vertical tilt, or a steady linear dolly-in/out. Never combine two axes of movement in the same segment, and never leave the camera fully static or locked off. Every single segment must have some deliberate camera movement, even if subtle. Vary which axis and direction you use from one segment to the next so consecutive segments never repeat the same camera move. If the moment calls for high kinetic energy, keep the camera itself single-axis and put additional energy into the scenery/background instead (e.g. background motion blur or moving background elements)]
+> [Exactly ONE single-axis camera motion for this entire segment: either a pure horizontal pan, a pure vertical tilt, or a steady linear dolly-in/out. Never combine two axes of movement in the same segment, and never leave the camera fully static or locked off. Every single segment must have some deliberate camera movement, even if subtle. Vary which axis and direction you use from one segment to the next so consecutive segments never repeat the same camera move. If the moment calls for high kinetic energy, keep the camera itself single-axis and put additional energy into the scenery/background instead (e.g. background motion blur or moving background elements)]
 
 **Lighting**:
 > [Lighting setup and quality: source, direction, color temperature, time of day]
@@ -53,7 +62,7 @@ Additional rules:
 3. Match the visual style, realism, and location details from the original reference examples
 4. Output as clean, copy-paste ready blocks exactly like the sample format
 5. If voice ID, avatar, or technical specs are provided, include them at the very top of the output in a "TECHNICAL SPECS" block before Segment 1
-6. Each 10-second TTS block should be approximately 22 to 28 spoken words (about 150 wpm)
+6. Pace TTS at approximately 150 spoken words per minute (about 2.5 words per second) for each segment's specific duration: roughly 22-28 words for a 10-second segment (segments 1-3), and roughly 33-42 words for a 15-second segment (segment 4 onward)
 7. Visuals: cinematic documentary grade, ultra-realistic African physiognomy where people appear, specify era, geography, lighting, and composition. Never use generic stock-photo descriptors. The Text-to-Image Prompt and Image-to-Video Prompt must each be independently detailed enough that a video generator fully understands the role it should play: one describes the still composition, the other describes the motion
 8. Never use an em dash (the "—" character) anywhere in the output, in any field. Use a comma, a period, or the word "and" instead
 9. Camera Movement must always be single-axis only for every segment: pure pan, pure tilt, or pure dolly in/out. Never combine axes in one segment, and never use a fully static or locked-off shot, the camera must always be doing something, however subtle. Vary the axis and direction across segments so the camera never repeats the same move twice in a row. Use background motion for kinetic energy instead of a complex camera path
@@ -486,14 +495,16 @@ reader.readAsDataURL(blob);
 els.script.addEventListener("input", updateWordMeter);
 els.segCount.addEventListener("change", updateLengthUI);
 function updateWordMeter(){
-  const n = +els.segCount.value, lo = n*22, hi = n*28;
+  const n = +els.segCount.value, total = segEndTime(n);
+  const lo = Math.round(total*2.5*0.88), hi = Math.round(total*2.5*1.12);
   const w = els.script.value.trim().split(/\s+/).filter(Boolean).length;
-  els.wordMeter.textContent = `${w} words · target ≈ ${lo}–${hi} words for ${tstamp(n*10)}` + (w > Math.round(hi*1.2) ? " · ⚠ likely over target, formatter will condense" : "");
+  els.wordMeter.textContent = `${w} words · target ≈ ${lo}–${hi} words for ${tstamp(total)}` + (w > Math.round(hi*1.2) ? " · ⚠ likely over target, formatter will condense" : "");
 }
 function updateLengthUI(){
-  const n = +els.segCount.value;
-  els.lenBadge.textContent = `00:00 – ${tstamp(n*10)} · ${n} segments · 10s each`;
-  els.btnFormat.textContent = `⚡ Format into ${n} × 10s Segments`;
+  const n = +els.segCount.value, total = segEndTime(n);
+  const durNote = n <= 3 ? "10s each" : "10s ×3, then 15s each";
+  els.lenBadge.textContent = `00:00 – ${tstamp(total)} · ${n} segments · ${durNote}`;
+  els.btnFormat.textContent = `⚡ Format into ${n} Segment${n>1?'s':''} (${tstamp(total)})`;
   updateWordMeter();
 }
 
@@ -544,7 +555,7 @@ els.btnFormat.addEventListener("click", async () => {
      it's one continuous conversation that happens to be cut into 10-second boundaries, so the
      model needs to be told explicitly not to treat each segment as a fresh scene. */
   const podcastBlock = stype === "Podcast"
-    ? `PODCAST FORMAT — DEDICATED INSTRUCTIONS: this is a continuous conversational podcast/banter about a single theme or subject, not a series of separate scenes. Treat the whole script as one ongoing conversation split purely by the 10-second timing boundaries, not by topic or scene changes, every segment should feel like a natural continuation of the moment right before it, mid-sentence energy is fine. Speakers should sound like they are genuinely reacting to, building on, or riffing off whatever was just said. Vary the camera position, framing, and angle across segments (wide two-shot, closer single, alternate angle, etc.) so the scene stays visually dynamic even though the setting and speakers stay the same, never lock the camera to one static angle for the whole episode. IMPORTANT: this continuity applies ONLY to the tone and content, you must still output every single 10-second block as its own separate "### SEGMENT [NUMBER] | [START]-[END]" header with all 8 required fields (Type, TTS Script, Text-to-Image Prompt, Image-to-Video Prompt, Camera Movement, Lighting, Mood, Audio Note) filled in exactly as specified in the structure above. Never merge multiple segments into one block, never omit a segment header, and never write the conversation as one continuous unbroken paragraph, the discrete segment structure is mandatory even though the conversation itself should read continuously across them.\n\n`
+    ? `PODCAST FORMAT — DEDICATED INSTRUCTIONS: this is a continuous conversational podcast/banter about a single theme or subject, not a series of separate scenes. Treat the whole script as one ongoing conversation split purely by the segment timing boundaries (10s for segments 1-3, 15s from segment 4 onward), not by topic or scene changes, every segment should feel like a natural continuation of the moment right before it, mid-sentence energy is fine. Speakers should sound like they are genuinely reacting to, building on, or riffing off whatever was just said. Vary the camera position, framing, and angle across segments (wide two-shot, closer single, alternate angle, etc.) so the scene stays visually dynamic even though the setting and speakers stay the same, never lock the camera to one static angle for the whole episode. IMPORTANT: this continuity applies ONLY to the tone and content, you must still output every single segment as its own separate "### SEGMENT [NUMBER] | [START]-[END]" header with all 8 required fields (Type, TTS Script, Text-to-Image Prompt, Image-to-Video Prompt, Camera Movement, Lighting, Mood, Audio Note) filled in exactly as specified in the structure above. Never merge multiple segments into one block, never omit a segment header, and never write the conversation as one continuous unbroken paragraph, the discrete segment structure is mandatory even though the conversation itself should read continuously across them.\n\n`
     : "";
 
   const userMsg = (specs ? `TECHNICAL SPECS PROVIDED (include at very top of output):\n${specs}\n` : "") +
@@ -824,7 +835,7 @@ function renderLib(){
     <div class="lib-item">
       <div class="meta">
         <div class="t">${esc(item.title)}</div>
-        <div class="d">${new Date((item.meta && item.meta.date) || item.id).toLocaleString()}${item.meta && item.meta.n ? " · " + item.meta.n + " segments · " + tstamp(item.meta.n*10) : ""}${item.meta && (item.meta.ratio || item.meta.avatar) ? " · " + esc(item.meta.ratio || item.meta.avatar) : ""}</div>
+        <div class="d">${new Date((item.meta && item.meta.date) || item.id).toLocaleString()}${item.meta && item.meta.n ? " · " + item.meta.n + " segments · " + tstamp(segEndTime(item.meta.n)) : ""}${item.meta && (item.meta.ratio || item.meta.avatar) ? " · " + esc(item.meta.ratio || item.meta.avatar) : ""}</div>
       </div>
       <button class="btn-copy" data-action="lib-open" data-id="${item.id}">Open</button>
       <button class="btn-copy" data-action="lib-pdf" data-id="${item.id}">⬇ PDF</button>
@@ -868,7 +879,7 @@ function makePdf(title, raw, meta){
   const tLines = doc.splitTextToSize("TAHA Studio AI ScriptForge · " + title, maxW);
   doc.text(tLines, margin, y); y += tLines.length * 6 + 3;
   doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120);
-  doc.text(`${meta && meta.date ? new Date(meta.date).toLocaleString() : ""}${meta && meta.n ? "  ·  " + meta.n + " × 10s segments (" + tstamp(meta.n*10) + " total)" : ""}  ·  TAHA Production Studio`, margin, y);
+  doc.text(`${meta && meta.date ? new Date(meta.date).toLocaleString() : ""}${meta && meta.n ? "  ·  " + meta.n + " segments (" + tstamp(segEndTime(meta.n)) + " total)" : ""}  ·  TAHA Production Studio`, margin, y);
   y += 8; doc.setTextColor(30); doc.setFontSize(10);
   const lines = doc.splitTextToSize(raw.replace(/\r/g,""), maxW);
   for (const line of lines) {
