@@ -127,9 +127,35 @@ export async function openSession(env, userId) {
   return ins.ok && ins.data && ins.data[0] ? ins.data[0].session_id : null;
 }
 
+/* Trial access is enforced lazily, not by any cron/scheduled job: trial_ends_at is a fixed
+   UTC-midnight timestamp set once at claim-trial.js time, and every call to this function
+   compares it against "now" fresh. The instant that boundary passes, the very next /api/me
+   (or any other call site) starts reporting free tier again — nothing has to run at midnight
+   for that to happen, so there's no scheduled task that could silently fail to fire. Real
+   payments (webhook-polar.js, redeem.js) always null out trial_ends_at when they grant access,
+   so a stale expired-trial timestamp can never be mistaken for the reason a genuine paying
+   customer loses access. */
 export async function getSubscription(env, userId) {
-  const r = await db(env, "GET", `subscriptions?user_id=eq.${userId}&select=status,tier`);
-  return (r.ok && r.data && r.data[0]) ? r.data[0] : { status: "inactive", tier: "free" };
+  const r = await db(env, "GET", `subscriptions?user_id=eq.${userId}&select=status,tier,trial_ends_at,trial_claimed_at`);
+  const row = (r.ok && r.data && r.data[0]) ? r.data[0] : null;
+  if (!row) return { status: "inactive", tier: "free", trialAvailable: true, trialActive: false, trialEndsAt: null };
+
+  const trialEndsMs = row.trial_ends_at ? new Date(row.trial_ends_at).getTime() : null;
+  const trialExpired = trialEndsMs !== null && trialEndsMs <= Date.now();
+
+  if (row.status === "active" && row.tier === "pro" && trialExpired) {
+    // Pro access here came from a trial claim whose end date has now passed — lapse back to
+    // free on this read. The underlying row is left untouched (still records the trial was
+    // claimed, so it can't be re-claimed); only what's served to the client changes.
+    return { status: "inactive", tier: "free", trialAvailable: false, trialActive: false, trialEndsAt: row.trial_ends_at };
+  }
+  return {
+    status: row.status,
+    tier: row.tier,
+    trialAvailable: !row.trial_claimed_at,
+    trialActive: !!(trialEndsMs !== null && !trialExpired && row.status === "active" && row.tier === "pro"),
+    trialEndsAt: row.trial_ends_at || null
+  };
 }
 
 export function validEmail(e) { return typeof e === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) && e.length < 255; }
