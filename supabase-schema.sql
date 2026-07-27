@@ -72,3 +72,23 @@ as $$
   select count(*)::bigint as unique_visitors, coalesce(sum(visit_count), 0)::bigint as total_visits
   from public.site_visits;
 $$;
+
+-- ---------------------------------------------------------------------------
+-- 7-day Pro trial support. Run this ALTER once against an existing database
+-- (safe to re-run — IF NOT EXISTS makes it idempotent).
+--
+-- trial_claimed_at: set the moment a user claims their one-time trial. Its mere
+--   presence (non-null) is what prevents re-claiming — see claim-trial.js.
+-- trial_ends_at: the exact UTC-midnight cutoff the trial lapses at. There is
+--   deliberately no cron job or scheduled downgrade anywhere in this system —
+--   functions/_utils.js's getSubscription() compares trial_ends_at against
+--   the current time on every single read (every /api/me call), so access
+--   disappears the instant that boundary passes, and it can never be missed
+--   the way a scheduled job could be. Real payments (webhook-polar.js,
+--   redeem.js) always null this column out when they grant access, so an old
+--   expired trial timestamp can never be mistaken for the reason a genuine
+--   paying customer loses access.
+-- ---------------------------------------------------------------------------
+alter table public.subscriptions
+  add column if not exists trial_claimed_at timestamptz,
+  add column if not exists trial_ends_at    timestamptz;
