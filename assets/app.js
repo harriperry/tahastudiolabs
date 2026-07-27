@@ -89,7 +89,10 @@ heygenAvatarId: $("heygenAvatarId"),
   refImg3: $("refImg3"), refImg3prev: $("refImg3prev"),
   vidAspectRatio: $("vidAspectRatio"), vidResolution: $("vidResolution"),
   elevenLabsKey: $("elevenLabsKey"), rememberElevenLabsKey: $("rememberElevenLabsKey"),
-  btnFetchVoices: $("btnFetchVoices"), elevenLabsVoice: $("elevenLabsVoice"), elevenLabsStatus: $("elevenLabsStatus")
+  btnFetchVoices: $("btnFetchVoices"), elevenLabsVoice: $("elevenLabsVoice"), elevenLabsStatus: $("elevenLabsStatus"),
+  recommendCard: $("recommendCard"), recWritingLabel: $("recWritingLabel"), recWritingReason: $("recWritingReason"),
+  recVideoTip: $("recVideoTip"), recVoiceTip: $("recVoiceTip"), recCostTime: $("recCostTime"),
+  btnRecommendUse: $("btnRecommendUse"), btnRecommendDismiss: $("btnRecommendDismiss")
 };
 let lastRaw = "";
 let lastMeta = null;
@@ -144,6 +147,86 @@ function switchFormatProvider() {
 }
 els.formatProvider.addEventListener("change", switchFormatProvider);
 switchFormatProvider();
+
+/* ═══════════════ SMART RECOMMENDATION (lightweight Mode 2) ═══════════════
+   Additive-only feature: a plain lookup table + one render function, no new architecture,
+   no provider adapters, no live resource/cost polling (most providers don't expose that via a
+   BYOK-friendly API anyway). Suggests a writing provider for the selected Script Type, plus
+   plain-text guidance for video/voice (there's no single global "video provider" control to
+   pre-fill — that choice happens per-segment after formatting — so those two stay informational
+   rather than actionable). Every number here is a rough, clearly-labeled estimate, not a real
+   balance check.
+   ROLLBACK: set FEATURE_SMART_RECOMMEND to false and redeploy to hide this instantly — nothing
+   else in the app reads any of the names below, so this whole block can also be deleted outright
+   with zero effect on the rest of ScriptForge. */
+const FEATURE_SMART_RECOMMEND = true;
+
+const SCRIPT_TYPE_RECOMMENDATIONS = {
+  "Short Movie Script": {
+    writingKey: "anthropic", writingLabel: "Anthropic Claude",
+    writingReason: "Strong structure and pacing for scripted scenes.",
+    videoTip: "Veo 3.1 usually gives the most realistic camera work and lighting for this style.",
+    voiceTip: "A clear, expressive narrator voice works well here."
+  },
+  "Short Documentary": {
+    writingKey: "anthropic", writingLabel: "Anthropic Claude",
+    writingReason: "Best suited for documentary narration with strong logical flow.",
+    videoTip: "Veo 3.1 usually gives the most realistic camera work and lighting for this style.",
+    voiceTip: "Aim for a confident, authoritative narration tone."
+  },
+  "Short Advert": {
+    writingKey: "gemini", writingLabel: "Google Gemini",
+    writingReason: "Fast, punchy copy suited to short commercial pacing.",
+    videoTip: "Veo 3.1 or HeyGen both work well — HeyGen if you want one consistent on-camera presenter.",
+    voiceTip: "An upbeat, energetic tone usually performs best for ads."
+  },
+  "Podcast": {
+    writingKey: "anthropic", writingLabel: "Anthropic Claude",
+    writingReason: "Handles natural, continuous conversation well.",
+    videoTip: "Veo 3.1 handles the varied camera angles this format needs; HeyGen suits a fixed presenter instead.",
+    voiceTip: "Conversational, relaxed energy fits this format best."
+  }
+};
+
+let recommendDismissedFor = null;
+
+function estimateRoughCostTime(n) {
+  const videoLow = n * 0.35, videoHigh = n * 0.85;
+  const costLow = (videoLow + 0.05).toFixed(2), costHigh = (videoHigh + 0.20).toFixed(2);
+  const timeLow = Math.max(2, Math.round(n * 0.6)), timeHigh = Math.max(3, Math.round(n * 1.4));
+  return { cost: `$${costLow}–$${costHigh}`, time: `~${timeLow}–${timeHigh} min` };
+}
+
+function renderRecommendation() {
+  if (!FEATURE_SMART_RECOMMEND || !els.recommendCard) return;
+  const stype = els.scriptType.value;
+  const rec = SCRIPT_TYPE_RECOMMENDATIONS[stype];
+  if (!rec || recommendDismissedFor === stype) { els.recommendCard.style.display = "none"; return; }
+  els.recWritingLabel.textContent = rec.writingLabel;
+  els.recWritingReason.textContent = rec.writingReason;
+  els.recVideoTip.textContent = rec.videoTip;
+  els.recVoiceTip.textContent = rec.voiceTip;
+  const est = estimateRoughCostTime(+els.segCount.value || 3);
+  els.recCostTime.textContent = `${est.cost} · ${est.time}`;
+  els.recommendCard.style.display = "";
+}
+
+if (FEATURE_SMART_RECOMMEND && els.recommendCard) {
+  els.scriptType.addEventListener("change", () => { recommendDismissedFor = null; renderRecommendation(); });
+  els.segCount.addEventListener("change", renderRecommendation);
+  els.btnRecommendUse.addEventListener("click", () => {
+    const rec = SCRIPT_TYPE_RECOMMENDATIONS[els.scriptType.value];
+    if (!rec) return;
+    els.formatProvider.value = rec.writingKey;
+    switchFormatProvider();
+    setStatus("info", `Writing provider set to ${rec.writingLabel}.`);
+  });
+  els.btnRecommendDismiss.addEventListener("click", () => {
+    recommendDismissedFor = els.scriptType.value;
+    els.recommendCard.style.display = "none";
+  });
+  renderRecommendation();
+}
 
 /* remember video-provider keys — each provider gets its own localStorage slot so
    switching between them never overwrites another provider's saved key */
