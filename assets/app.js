@@ -1003,10 +1003,11 @@ const PRO_MONTHLY_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_1dj4mZuMYRipiLEH
 const PRO_ANNUAL_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_wcCONu3qcjnaWOHKBvRkKmHyZdrisOFdIQtpm2F0e8c";
 const LIFETIME_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_yZ9zCvMx2U09IWhar3iZ4M6sa29MivL8EqeRN4c1Ilv";
 let user = null, tier = "free";
+let trial = { available: false, active: false, endsAt: null };
 
 const els2 = {};
 ["btnAccount","authOverlay","btnAuthClose","authTitle","upsell","viewSignedOut","viewSignedIn",
- "authEmail","authPass","btnLogin","btnSignup","btnMagic","btnForgotPw","authStatus","acctInfo",
+ "authEmail","authPass","btnLogin","btnSignup","btnMagic","btnForgotPw","authStatus","acctInfo","trialBox",
  "btnCheckoutMonthly","btnCheckoutAnnual","btnCheckoutLifetime",
  "licKey","btnRedeem","btnChangePw","changePwBox","newPw","btnSetNewPw",
  "btnSignOut","btnDeleteAcct","deleteConfirm","delPass","btnDeleteFinal",
@@ -1039,20 +1040,59 @@ function applyTier(){
   if (els.segCount.selectedOptions[0] && els.segCount.selectedOptions[0].disabled) {
     els.segCount.value = String(FREE_MAX_SEGS); updateLengthUI();
   }
-  els2.btnAccount.textContent = user ? (tier === "pro" ? "👤 Account · Pro" : "👤 Account · Free") : "Sign in";
-  // Pro subscribers no longer need the marketing/about blurb once they have paid access.
+  els2.btnAccount.textContent = user ? (tier === "pro" ? (trial.active ? "👤 Account · Trial" : "👤 Account · Pro") : "👤 Account · Free") : "Sign in";
+  // Pro subscribers (paid OR on an active trial) no longer need the marketing/about blurb.
   const aboutSection = document.getElementById("aboutSection");
   if (aboutSection) aboutSection.style.display = tier === "pro" ? "none" : "";
   if (user) {
-    els2.acctInfo.textContent = `Signed in as: ${user.email}\nPlan: ${tier === "pro" ? "Pro (active)" : "Free"}`;
-    els2.upgradeBox.style.display = tier === "pro" ? "none" : "block";
+    const planLabel = tier === "pro" ? (trial.active ? `Pro trial (${trialDaysLeft()} day${trialDaysLeft() === 1 ? "" : "s"} left)` : "Pro (active)") : "Free";
+    els2.acctInfo.textContent = `Signed in as: ${user.email}\nPlan: ${planLabel}`;
+    // Real paid Pro hides the upgrade cards entirely. An active trial keeps them visible —
+    // trialers can subscribe early any time instead of waiting for the trial to lapse.
+    els2.upgradeBox.style.display = (tier === "pro" && !trial.active) ? "none" : "block";
   }
+  renderTrialBox();
+}
+
+function trialDaysLeft(){
+  if (!trial.endsAt) return 0;
+  return Math.max(0, Math.ceil((new Date(trial.endsAt).getTime() - Date.now()) / 86400000));
+}
+
+/* Three mutually exclusive states, matching exactly what's visible in the account panel:
+   1. Never claimed a trial, not currently paying  -> "CLAIM YOUR TRIAL" button.
+   2. Trial claimed and still within its window     -> status line with days remaining.
+   3. Trial claimed and its window has passed, still not paying -> "Choose a subscription"
+      button that jumps down to the existing plan cards (already visible below it). */
+function renderTrialBox(){
+  if (!user || (tier === "pro" && !trial.active)) { els2.trialBox.style.display = "none"; els2.trialBox.innerHTML = ""; return; }
+  els2.trialBox.style.display = "block";
+  if (trial.active) {
+    const days = trialDaysLeft();
+    els2.trialBox.innerHTML = `<div class="lib-note">🎁 Pro trial active — ${days} day${days === 1 ? "" : "s"} left (ends ${new Date(trial.endsAt).toLocaleString()}). Full Pro access until then — subscribe any time below to keep it going.</div>`;
+  } else if (trial.available) {
+    els2.trialBox.innerHTML = `<button class="btn-primary" id="btnClaimTrial" style="width:100%">🎁 CLAIM YOUR TRIAL — 7 days full Pro access</button>`;
+    document.getElementById("btnClaimTrial").addEventListener("click", claimTrial);
+  } else {
+    els2.trialBox.innerHTML = `<button class="btn-primary" id="btnChooseSub" style="width:100%">Choose a subscription</button>`;
+    document.getElementById("btnChooseSub").addEventListener("click", () => els2.upgradeBox.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+}
+
+async function claimTrial(){
+  setAuthStatus(els2.acctStatus, "info", '<span class="spin"></span>Activating your trial…');
+  const r = await api("claim-trial", {});
+  if (r.ok) { setAuthStatus(els2.acctStatus, "ok", "✓ 7-day Pro trial activated — enjoy full access!"); await refreshMe(); }
+  else setAuthStatus(els2.acctStatus, "err", (r.data && r.data.error) || "Could not start trial.");
 }
 
 async function refreshMe(){
   const r = await api("me");
-  if (r.ok && r.data && r.data.email) { user = r.data; tier = (r.data.tier === "pro" && r.data.status === "active") ? "pro" : "free"; }
-  else { user = null; tier = "free"; }
+  if (r.ok && r.data && r.data.email) {
+    user = r.data;
+    tier = (r.data.tier === "pro" && r.data.status === "active") ? "pro" : "free";
+    trial = { available: !!r.data.trialAvailable, active: !!r.data.trialActive, endsAt: r.data.trialEndsAt || null };
+  } else { user = null; tier = "free"; trial = { available: false, active: false, endsAt: null }; }
   applyTier();
   els2.viewSignedOut.style.display = user ? "none" : "block";
   els2.viewSignedIn.style.display  = user ? "block" : "none";
