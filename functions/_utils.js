@@ -136,8 +136,19 @@ export async function openSession(env, userId) {
    so a stale expired-trial timestamp can never be mistaken for the reason a genuine paying
    customer loses access. */
 export async function getSubscription(env, userId) {
-  const r = await db(env, "GET", `subscriptions?user_id=eq.${userId}&select=status,tier,trial_ends_at,trial_claimed_at`);
-  const row = (r.ok && r.data && r.data[0]) ? r.data[0] : null;
+  let r = await db(env, "GET", `subscriptions?user_id=eq.${userId}&select=status,tier,trial_ends_at,trial_claimed_at`);
+  if (!r.ok) {
+    // The trial_ends_at/trial_claimed_at columns don't exist on this database yet (the
+    // supabase-schema.sql migration hasn't been run) — fall back to the original columns so
+    // real subscription status (paid Pro, free) keeps working exactly as before. Trial claiming
+    // just stays unavailable (trialAvailable: false) until the migration is applied; nothing
+    // here can mistake a missing migration for "this account has no subscription."
+    const fallback = await db(env, "GET", `subscriptions?user_id=eq.${userId}&select=status,tier`);
+    const row = (fallback.ok && fallback.data && fallback.data[0]) ? fallback.data[0] : null;
+    if (!row) return { status: "inactive", tier: "free", trialAvailable: false, trialActive: false, trialEndsAt: null };
+    return { status: row.status, tier: row.tier, trialAvailable: false, trialActive: false, trialEndsAt: null };
+  }
+  const row = (r.data && r.data[0]) ? r.data[0] : null;
   if (!row) return { status: "inactive", tier: "free", trialAvailable: true, trialActive: false, trialEndsAt: null };
 
   const trialEndsMs = row.trial_ends_at ? new Date(row.trial_ends_at).getTime() : null;
