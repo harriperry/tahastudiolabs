@@ -138,6 +138,42 @@
     <textarea id="techSpecs" rows="2">1080p · SRT captions · flux-realism for B-roll</textarea>
   </div>
 
+  <!-- Smart Recommendation card — additive only, gated by FEATURE_SMART_RECOMMEND in app.js.
+       Set that flag to false (and redeploy) to hide this card instantly without touching any
+       other logic; nothing else on the page depends on it. Populated by renderRecommendation()
+       whenever Script Type or segment count changes. Hidden by default until a real script
+       type is picked. */ -->
+  <div class="card" id="recommendCard" style="display:none;border-color:var(--accent)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <h2 style="margin:0">Recommended for you</h2>
+      <span style="background:var(--panel2);color:var(--accent2);font-size:.68rem;padding:3px 8px;border-radius:6px">Beta</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:.85rem;color:var(--text)">Writing · <span id="recWritingLabel">—</span></div>
+        <div style="font-size:.74rem;color:var(--muted);margin-top:2px" id="recWritingReason"></div>
+      </div>
+      <div style="font-size:.68rem;color:var(--ok);white-space:nowrap;margin-left:10px">Excellent</div>
+    </div>
+    <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:.85rem;color:var(--text)">Video</div>
+      <div style="font-size:.74rem;color:var(--muted);margin-top:2px" id="recVideoTip"></div>
+    </div>
+    <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:.85rem;color:var(--text)">Voice</div>
+      <div style="font-size:.74rem;color:var(--muted);margin-top:2px" id="recVoiceTip"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 4px">
+      <span style="font-size:.7rem;color:var(--muted)">Rough estimate</span>
+      <span style="font-size:.82rem;color:var(--text)" id="recCostTime">—</span>
+    </div>
+    <p style="color:var(--muted);font-size:.66rem;margin-top:2px">Estimate only — not a live balance check. Verify against each provider's own pricing page.</p>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn-primary" id="btnRecommendUse" style="flex:1;padding:9px">Use writing pick</button>
+      <button class="btn-ghost" id="btnRecommendDismiss" style="flex:1;padding:9px">Not now</button>
+    </div>
+  </div>
+
   <div class="card">
     <h2>4 · Paste Full Script</h2>
     <textarea id="script" rows="12" placeholder="[PASTE YOUR FULL SCRIPT HERE]"></textarea>
@@ -328,7 +364,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
   © 2026 TAHA Production Studio · <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a> · <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> · Your scripts and API key are never stored or logged — see our Privacy Policy for details.
 </footer>
 
-<script src="/assets/app.js?v=video16" defer></script>
+<script src="/assets/app.js?v=video17" defer></script>
 <script src="/assets/visit-tracker.js" defer></script>
 </body>
 </html>
