@@ -201,6 +201,33 @@ const SCRIPT_TYPE_RECOMMENDATIONS = {
 
 let recommendDismissedFor = null;
 
+/* Per-type ElevenLabs voice lock — for these three script types, the voice picker
+   auto-selects a fixed voice from the account's real ElevenLabs library so the same voice
+   is used every time without re-picking it. Still fully editable afterward: this only sets
+   the default value and fires the picker's normal change handler (which persists it exactly
+   like a manual pick), it never disables the dropdown. Voice IDs confirmed against the
+   account's actual /api/elevenlabs-voices list. */
+const SCRIPT_TYPE_VOICE_LOCK = {
+  "Short Advert": { id: "hpp4J3VqNfWAUOO0d1Us", name: "Bella - Professional, Bright, Warm" },
+  "Short Documentary": { id: "gfMQcPgc2SSNR1n6epAr", name: "Kali - AfroGirl authoritative voice" },
+  "Public Address": { id: "W4313LXSiFqY7647gYqb", name: "Milan voice clone" }
+};
+
+function applyVoiceLock(stype) {
+  const lock = SCRIPT_TYPE_VOICE_LOCK[stype];
+  if (!lock || !els.elevenLabsVoice) return;
+  let opt = [...els.elevenLabsVoice.options].find(o => o.value === lock.id);
+  if (!opt) {
+    opt = document.createElement("option");
+    opt.value = lock.id;
+    opt.textContent = lock.name;
+    opt.dataset.name = lock.name;
+    els.elevenLabsVoice.appendChild(opt);
+  }
+  els.elevenLabsVoice.value = lock.id;
+  els.elevenLabsVoice.dispatchEvent(new Event("change"));
+}
+
 /* Per-second provider rates, sourced from each provider's published API pricing (checked
    July 2026): Veo 3.1 standard ~$0.40/s, Grok Imagine ~$0.05/s, HeyGen Video Agent ~$0.033/s
    (roughly $2/min). Earlier version of this estimate used one flat rate for every provider,
@@ -234,7 +261,7 @@ function renderRecommendation() {
 }
 
 if (FEATURE_SMART_RECOMMEND && els.recommendCard) {
-  els.scriptType.addEventListener("change", () => { recommendDismissedFor = null; renderRecommendation(); });
+  els.scriptType.addEventListener("change", () => { recommendDismissedFor = null; renderRecommendation(); applyVoiceLock(els.scriptType.value); });
   els.segCount.addEventListener("change", renderRecommendation);
   els.btnRecommendUse.addEventListener("click", () => {
     const rec = SCRIPT_TYPE_RECOMMENDATIONS[els.scriptType.value];
@@ -248,6 +275,7 @@ if (FEATURE_SMART_RECOMMEND && els.recommendCard) {
     els.recommendCard.style.display = "none";
   });
   renderRecommendation();
+  applyVoiceLock(els.scriptType.value);
 }
 
 /* remember video-provider keys — each provider gets its own localStorage slot so
