@@ -165,24 +165,28 @@ const SCRIPT_TYPE_RECOMMENDATIONS = {
   "Short Movie Script": {
     writingKey: "anthropic", writingLabel: "Anthropic Claude",
     writingReason: "Strong structure and pacing for scripted scenes.",
+    videoKey: "veo",
     videoTip: "Veo 3.1 usually gives the most realistic camera work and lighting for this style.",
     voiceTip: "A clear, expressive narrator voice works well here."
   },
   "Short Documentary": {
     writingKey: "anthropic", writingLabel: "Anthropic Claude",
     writingReason: "Best suited for documentary narration with strong logical flow.",
+    videoKey: "veo",
     videoTip: "Veo 3.1 usually gives the most realistic camera work and lighting for this style.",
     voiceTip: "Aim for a confident, authoritative narration tone."
   },
   "Short Advert": {
     writingKey: "gemini", writingLabel: "Google Gemini",
     writingReason: "Fast, punchy copy suited to short commercial pacing.",
+    videoKey: "veo",
     videoTip: "Veo 3.1 or HeyGen both work well — HeyGen if you want one consistent on-camera presenter.",
     voiceTip: "An upbeat, energetic tone usually performs best for ads."
   },
   "Podcast": {
     writingKey: "anthropic", writingLabel: "Anthropic Claude",
     writingReason: "Handles natural, continuous conversation well.",
+    videoKey: "veo",
     videoTip: "Veo 3.1 handles the varied camera angles this format needs; HeyGen suits a fixed presenter instead.",
     voiceTip: "Conversational, relaxed energy fits this format best."
   }
@@ -190,8 +194,19 @@ const SCRIPT_TYPE_RECOMMENDATIONS = {
 
 let recommendDismissedFor = null;
 
-function estimateRoughCostTime(n) {
-  const videoLow = n * 0.35, videoHigh = n * 0.85;
+/* Per-second provider rates, sourced from each provider's published API pricing (checked
+   July 2026): Veo 3.1 standard ~$0.40/s, Grok Imagine ~$0.05/s, HeyGen Video Agent ~$0.033/s
+   (roughly $2/min). Earlier version of this estimate used one flat rate for every provider,
+   which understated Veo-recommended projects by 3-4x since Veo is the priciest of the three —
+   this keeps the number honest per the actual provider being recommended. DEFAULT_CLIP_SECONDS
+   matches video-start.js's own default durationSeconds (8) for a single generated clip. */
+const VIDEO_COST_PER_SECOND = { veo: 0.40, grok: 0.05, heygen: 0.033 };
+const DEFAULT_CLIP_SECONDS = 8;
+
+function estimateRoughCostTime(n, videoKey) {
+  const rate = VIDEO_COST_PER_SECOND[videoKey] || VIDEO_COST_PER_SECOND.veo;
+  const perSegment = rate * DEFAULT_CLIP_SECONDS;
+  const videoLow = n * perSegment * 0.85, videoHigh = n * perSegment * 1.15;
   const costLow = (videoLow + 0.05).toFixed(2), costHigh = (videoHigh + 0.20).toFixed(2);
   const timeLow = Math.max(2, Math.round(n * 0.6)), timeHigh = Math.max(3, Math.round(n * 1.4));
   return { cost: `$${costLow}–$${costHigh}`, time: `~${timeLow}–${timeHigh} min` };
@@ -206,7 +221,7 @@ function renderRecommendation() {
   els.recWritingReason.textContent = rec.writingReason;
   els.recVideoTip.textContent = rec.videoTip;
   els.recVoiceTip.textContent = rec.voiceTip;
-  const est = estimateRoughCostTime(+els.segCount.value || 3);
+  const est = estimateRoughCostTime(+els.segCount.value || 3, rec.videoKey);
   els.recCostTime.textContent = `${est.cost} · ${est.time}`;
   els.recommendCard.style.display = "";
 }
