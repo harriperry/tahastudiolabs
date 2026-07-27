@@ -57,11 +57,18 @@ async function startVeo(apiKey, prompt, params) {
       };
     });
   }
+  /* personGeneration is NOT a fixed value across all Veo 3.1 call types — Google's own docs
+     (ai.google.dev/gemini-api/docs/video#veo-api-parameters) require different values per mode:
+     text-to-video (no reference image) only accepts "allow_all", while reference-images /
+     image-to-video calls only accept "allow_adult". Sending "allow_adult" unconditionally (the
+     previous behavior here) broke every plain text-to-video Veo call with:
+     "allow_adult for personGeneration is currently not supported" — this was silently correct
+     only for the reference-image/frame-chaining path. */
   const parameters = {
     aspectRatio: params.aspectRatio || "16:9",
     durationSeconds: Number(params.durationSeconds || 8),
     resolution: params.resolution || "720p",
-    personGeneration: "allow_adult"
+    personGeneration: instance.referenceImages ? "allow_adult" : "allow_all"
   };
   const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning", {
     method: "POST",
