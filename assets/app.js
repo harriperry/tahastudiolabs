@@ -1464,7 +1464,26 @@ window.genClip = async function (num, btn) {
        labeled `Scene / Visual / VO/Script: "..." / Duration` structure specifically to force
        verbatim spoken narration — a bare unlabeled string (the round-1 fix) doesn't clearly
        signal "this must be spoken by an on-camera presenter," so the planner could reasonably
-       render silent B-roll instead, which matches what was seen. */
+       render silent B-roll instead, which matches what was seen.
+
+     Round 2 fix (appending a bare `. Audio: ${seg.audioNote}` tag to the end of the prompt for
+     all three providers) shipped, but real-world testing (user-reported, every generation)
+     showed the sound-design cue itself — bells, ambient swells, music fades, etc. — was still
+     being dropped even though dialogue now worked correctly. Root cause is the same pattern as
+     round 1: a short, unlabeled, non-imperative tag buried at the very end of an already-long
+     prompt gets deprioritized against the much more forcefully worded visual/dialogue
+     instructions right next to it ("must speak... verbatim, aloud" vs. a bare "Audio: X").
+     ROUND 3 FIX: give the audio note the same treatment dialogue already gets — labeled,
+     quoted, and explicitly imperative ("must be present", "do not omit"), not a passive tag.
+     buildAudioDirective() below is shared across all three providers so this only needs to be
+     fixed in one place. ROLLBACK: revert to a bare `Audio: ${seg.audioNote}` append by removing
+     the buildAudioDirective() calls below and restoring the tag inline — no other code depends
+     on this function. */
+  function buildAudioDirective(note) {
+    if (!note) return "";
+    return `Sound design — the finished audio track must clearly include the following, layered in with any dialogue and not replaced by generic ambience: "${note}". Do not omit these specific sound cues.`;
+  }
+
   let prompt;
   if (provider === "heygen") {
     if (!seg.ttsScript) { vidSetStatus(num, "err", "No TTS Script found for this segment — HeyGen needs the spoken script text to generate voice."); return; }
@@ -1472,13 +1491,13 @@ window.genClip = async function (num, btn) {
       + `Visual: ${buildVisualDescription(seg) || "A presenter speaking directly to camera"}\n`
       + `VO/Script: "${seg.ttsScript}"\n`
       + `Instruction: this is a talking-presenter video, not silent B-roll — an on-camera avatar must speak the VO/Script line above verbatim, aloud, in a natural human voice.`
-      + (seg.audioNote ? `\nAudio/Tone: ${seg.audioNote}` : "")
+      + (seg.audioNote ? `\nAudio Instruction: ${buildAudioDirective(seg.audioNote)}` : "")
       + `\nDuration: ~${requestedDuration} seconds`;
   } else if (provider === "grok") {
     if (!seg.t2iPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
     let p = buildVisualDescription(seg);
     if (seg.ttsScript) p += `. The on-camera subject speaks: "${seg.ttsScript}"`;
-    if (seg.audioNote) p += `. Audio: ${seg.audioNote}`;
+    if (seg.audioNote) p += `. ${buildAudioDirective(seg.audioNote)}`;
     prompt = p;
   } else {
     // Veo 3.1 — natively supports dialogue/SFX/ambience in the same prompt (per Google's own
@@ -1486,7 +1505,7 @@ window.genClip = async function (num, btn) {
     if (!seg.t2iPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
     let p = buildVisualDescription(seg);
     if (seg.ttsScript) p += `. A character on screen says: "${seg.ttsScript}"`;
-    if (seg.audioNote) p += `. Audio: ${seg.audioNote}`;
+    if (seg.audioNote) p += `. ${buildAudioDirective(seg.audioNote)}`;
     prompt = p;
   }
 
