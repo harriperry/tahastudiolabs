@@ -101,7 +101,7 @@ heygenAvatarId: $("heygenAvatarId"),
   btnFetchVoices: $("btnFetchVoices"), elevenLabsVoice: $("elevenLabsVoice"), elevenLabsStatus: $("elevenLabsStatus"),
   recommendCard: $("recommendCard"), recWritingLabel: $("recWritingLabel"), recWritingReason: $("recWritingReason"),
   recVideoTip: $("recVideoTip"), recVoiceTip: $("recVoiceTip"), recCostTime: $("recCostTime"),
-  recConfidence: $("recConfidence"),
+  recConfidence: $("recConfidence"), apiConfigAutoNote: $("apiConfigAutoNote"),
   btnRecommendUse: $("btnRecommendUse"), btnRecommendDismiss: $("btnRecommendDismiss")
 };
 let lastRaw = "";
@@ -354,11 +354,24 @@ function estimateRoughCostTime(n, videoKey) {
   return { cost: `$${costLow}–$${costHigh}`, time: `~${timeLow}–${timeHigh} min` };
 }
 
+function applyScorePick(score, opts) {
+  opts = opts || {};
+  els.formatProvider.value = score.provider;
+  switchFormatProvider();
+  const modelField = PROVIDER_MODEL_FIELD[score.provider];
+  if (modelField && els[modelField]) els[modelField].value = score.model;
+  if (opts.announce) setStatus("info", `Provider set to ${score.providerLabel}, model set to ${score.modelLabel}.`);
+}
+
 function renderRecommendation() {
   if (!FEATURE_SMART_RECOMMEND || !els.recommendCard) return;
   const stype = els.scriptType.value;
   const legacy = SCRIPT_TYPE_RECOMMENDATIONS[stype];
-  if (!legacy || recommendDismissedFor === stype) { els.recommendCard.style.display = "none"; return; }
+  if (!legacy || recommendDismissedFor === stype) {
+    els.recommendCard.style.display = "none";
+    if (els.apiConfigAutoNote) els.apiConfigAutoNote.textContent = "";
+    return;
+  }
 
   const score = SCORE_MODE ? computeScoreRecommendation(stype) : null;
   if (score) {
@@ -380,21 +393,48 @@ function renderRecommendation() {
   els.recommendCard.style.display = "";
 }
 
+/* Auto-apply: as soon as Production Type is picked, the API Configuration card's provider
+   (and matching model) jumps straight to the recommended pick — still just a normal dropdown
+   the user can change afterward, this only sets its starting value. Fires once per Production
+   Type change only (not on every key-input re-render), and never overwrites a provider the
+   user has since picked manually for this same script-type selection. ROLLBACK: this whole
+   block is additive UI convenience on top of computeScoreRecommendation — deleting it, or
+   setting SCORE_MODE to false, leaves renderRecommendation()'s legacy path fully intact. */
+let autoAppliedFor = null;
+function autoApplyRecommendedProvider(stype) {
+  if (!SCORE_MODE) { if (els.apiConfigAutoNote) els.apiConfigAutoNote.textContent = ""; return; }
+  const score = computeScoreRecommendation(stype);
+  if (els.apiConfigAutoNote) els.apiConfigAutoNote.textContent = "";
+  if (!score || autoAppliedFor === stype) return;
+  applyScorePick(score, { announce: false });
+  autoAppliedFor = stype;
+  if (els.apiConfigAutoNote) {
+    els.apiConfigAutoNote.textContent = `— auto-set to ${score.providerLabel} for this production type, change anytime`;
+  }
+}
+
 if (FEATURE_SMART_RECOMMEND && els.recommendCard) {
-  els.scriptType.addEventListener("change", () => { recommendDismissedFor = null; renderRecommendation(); applyVoiceLock(els.scriptType.value); });
+  els.scriptType.addEventListener("change", () => {
+    recommendDismissedFor = null;
+    renderRecommendation();
+    applyVoiceLock(els.scriptType.value);
+    autoApplyRecommendedProvider(els.scriptType.value);
+  });
   els.segCount.addEventListener("change", renderRecommendation);
   ["apiKey", "apiKeyGemini", "apiKeyGroq", "apiKeyDeepseek"].forEach(id => {
     if (els[id]) els[id].addEventListener("input", () => SCORE_MODE && renderRecommendation());
+  });
+  els.formatProvider.addEventListener("change", () => {
+    // user took manual control — stop treating the current script type as auto-applied
+    autoAppliedFor = null;
+    if (els.apiConfigAutoNote) els.apiConfigAutoNote.textContent = "";
   });
   els.btnRecommendUse.addEventListener("click", () => {
     const stype = els.scriptType.value;
     const score = SCORE_MODE ? computeScoreRecommendation(stype) : null;
     if (score) {
-      els.formatProvider.value = score.provider;
-      switchFormatProvider();
-      const modelField = PROVIDER_MODEL_FIELD[score.provider];
-      if (modelField && els[modelField]) els[modelField].value = score.model;
-      setStatus("info", `Provider set to ${score.providerLabel}, model set to ${score.modelLabel}.`);
+      applyScorePick(score, { announce: true });
+      autoAppliedFor = stype;
       return;
     }
     const legacy = SCRIPT_TYPE_RECOMMENDATIONS[stype];
@@ -409,6 +449,7 @@ if (FEATURE_SMART_RECOMMEND && els.recommendCard) {
   });
   renderRecommendation();
   applyVoiceLock(els.scriptType.value);
+  autoApplyRecommendedProvider(els.scriptType.value);
 }
 
 /* remember video-provider keys — each provider gets its own localStorage slot so
