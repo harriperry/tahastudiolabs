@@ -101,6 +101,7 @@ heygenAvatarId: $("heygenAvatarId"),
   btnFetchVoices: $("btnFetchVoices"), elevenLabsVoice: $("elevenLabsVoice"), elevenLabsStatus: $("elevenLabsStatus"),
   recommendCard: $("recommendCard"), recWritingLabel: $("recWritingLabel"), recWritingReason: $("recWritingReason"),
   recVideoTip: $("recVideoTip"), recVoiceTip: $("recVoiceTip"), recCostTime: $("recCostTime"),
+  recConfidence: $("recConfidence"),
   btnRecommendUse: $("btnRecommendUse"), btnRecommendDismiss: $("btnRecommendDismiss")
 };
 let lastRaw = "";
@@ -170,6 +171,104 @@ switchFormatProvider();
    with zero effect on the rest of ScriptForge. */
 const FEATURE_SMART_RECOMMEND = true;
 
+/* SCORE upgrade (Model Advisory & Intelligent Routing) — layered on top of the same
+   FEATURE_SMART_RECOMMEND card above, additive-only, same rollback contract.
+   ROLLBACK (two levels):
+     1. Set SCORE_MODE to false below and redeploy — falls straight back to the exact
+        provider-only pick this app already shipped with (SCRIPT_TYPE_RECOMMENDATIONS,
+        untouched below). Nothing else changes.
+     2. Set FEATURE_SMART_RECOMMEND to false above — hides the whole card, exactly as
+        before this upgrade existed.
+   MODEL_CAPABILITIES / PRODUCTION_TYPE_WEIGHTS are a static, hand-maintained lookup —
+   no live API calls, no new server endpoints, no extra key exposure. Scores are 0–10,
+   hand-assigned per each model's real-world strengths; update this table by hand
+   whenever a provider ships a new model, same rhythm as VIDEO_COST_PER_SECOND above. */
+const SCORE_MODE = true;
+
+const MODEL_CAPABILITIES = [
+  { provider: "anthropic", providerLabel: "Anthropic Claude", model: "claude-sonnet-5", modelLabel: "claude-sonnet-5",
+    scores: { creative: 9, reasoning: 9, dialogue: 9, storytelling: 9, marketing: 7, coding: 9, education: 8, research: 9, longContext: 9 },
+    speed: "fast", cost: "medium" },
+  { provider: "anthropic", providerLabel: "Anthropic Claude", model: "claude-haiku-4-5-20251001", modelLabel: "claude-haiku-4-5",
+    scores: { creative: 7, reasoning: 7, dialogue: 7, storytelling: 7, marketing: 6, coding: 7, education: 7, research: 6, longContext: 7 },
+    speed: "very_fast", cost: "low" },
+  { provider: "anthropic", providerLabel: "Anthropic Claude", model: "claude-opus-4-8", modelLabel: "claude-opus-4-8",
+    scores: { creative: 10, reasoning: 10, dialogue: 9, storytelling: 10, marketing: 7, coding: 10, education: 9, research: 10, longContext: 10 },
+    speed: "slow", cost: "high" },
+  { provider: "gemini", providerLabel: "Google Gemini", model: "gemini-2.5-flash", modelLabel: "gemini-2.5-flash",
+    scores: { creative: 7, reasoning: 7, dialogue: 7, storytelling: 7, marketing: 7, coding: 7, education: 7, research: 7, longContext: 9 },
+    speed: "very_fast", cost: "low" },
+  { provider: "gemini", providerLabel: "Google Gemini", model: "gemini-3.6-flash", modelLabel: "gemini-3.6-flash",
+    scores: { creative: 8, reasoning: 8, dialogue: 7, storytelling: 8, marketing: 7, coding: 8, education: 7, research: 8, longContext: 9 },
+    speed: "very_fast", cost: "low" },
+  { provider: "groq", providerLabel: "Groq", model: "llama-3.3-70b-versatile", modelLabel: "llama-3.3-70b-versatile",
+    scores: { creative: 10, reasoning: 8, dialogue: 10, storytelling: 10, marketing: 10, coding: 7, education: 7, research: 7, longContext: 8 },
+    speed: "very_fast", cost: "low" },
+  { provider: "groq", providerLabel: "Groq", model: "openai/gpt-oss-120b", modelLabel: "openai/gpt-oss-120b",
+    scores: { creative: 7, reasoning: 9, dialogue: 7, storytelling: 7, marketing: 6, coding: 8, education: 8, research: 8, longContext: 8 },
+    speed: "fast", cost: "low" },
+  { provider: "deepseek", providerLabel: "DeepSeek", model: "deepseek-v4-flash", modelLabel: "deepseek-v4-flash",
+    scores: { creative: 7, reasoning: 8, dialogue: 7, storytelling: 7, marketing: 6, coding: 8, education: 7, research: 7, longContext: 7 },
+    speed: "very_fast", cost: "low" },
+  { provider: "deepseek", providerLabel: "DeepSeek", model: "deepseek-v4-pro", modelLabel: "deepseek-v4-pro",
+    scores: { creative: 8, reasoning: 9, dialogue: 7, storytelling: 8, marketing: 6, coding: 9, education: 8, research: 9, longContext: 8 },
+    speed: "medium", cost: "medium" }
+];
+
+const PRODUCTION_TYPE_WEIGHTS = {
+  "Short Movie Script": { dialogue: .3, storytelling: .3, creative: .2, reasoning: .2 },
+  "Short Documentary": { reasoning: .3, longContext: .25, research: .25, education: .2 },
+  "Short Advert": { creative: .3, marketing: .3, dialogue: .2, reasoning: .2 },
+  "Podcast": { dialogue: .3, longContext: .3, reasoning: .2, creative: .2 },
+  "Public Address": { reasoning: .35, education: .25, storytelling: .2, longContext: .2 }
+};
+
+const SPEED_RANK = { very_fast: 4, fast: 3, medium: 2, slow: 1 };
+const PROVIDER_KEY_FIELD = { anthropic: "apiKey", gemini: "apiKeyGemini", groq: "apiKeyGroq", deepseek: "apiKeyDeepseek" };
+const PROVIDER_MODEL_FIELD = { anthropic: "model", gemini: "modelGemini", groq: "modelGroq", deepseek: "modelDeepseek" };
+
+function providerHasKey(provider) {
+  const field = PROVIDER_KEY_FIELD[provider];
+  const el = field && els[field];
+  return !!(el && el.value && el.value.trim().length > 0);
+}
+
+/* Weighted dot-product of a model's capability scores against a production type's
+   priorities. Weights per type sum to 1 and scores max at 10, so the raw result is
+   already a clean 0–10 — confidence is just that number times 10. */
+function scoreModel(entry, weights) {
+  let total = 0;
+  for (const key in weights) total += (entry.scores[key] || 0) * weights[key];
+  return total;
+}
+
+function computeScoreRecommendation(stype) {
+  const weights = PRODUCTION_TYPE_WEIGHTS[stype];
+  if (!weights) return null;
+  const anyKeyPresent = Object.keys(PROVIDER_KEY_FIELD).some(providerHasKey);
+  const pool = anyKeyPresent ? MODEL_CAPABILITIES.filter(m => providerHasKey(m.provider)) : MODEL_CAPABILITIES;
+  let best = null, bestScore = -1;
+  for (const entry of pool) {
+    const s = scoreModel(entry, weights);
+    if (s > bestScore || (s === bestScore && SPEED_RANK[entry.speed] > SPEED_RANK[best.speed])) {
+      best = entry; bestScore = s;
+    }
+  }
+  if (!best) return null;
+  return {
+    provider: best.provider, providerLabel: best.providerLabel,
+    model: best.model, modelLabel: best.modelLabel,
+    confidence: Math.min(99, Math.round(bestScore * 10)),
+    speed: best.speed, cost: best.cost,
+    keyMissing: !providerHasKey(best.provider)
+  };
+}
+
+const SPEED_TEXT = { very_fast: "Very fast", fast: "Fast", medium: "Medium", slow: "Slower, higher quality" };
+const COST_TEXT = { low: "Low", medium: "Medium", high: "Higher" };
+
+/* Legacy fallback — exactly what this card showed before the SCORE upgrade. Kept
+   verbatim so SCORE_MODE=false is a true, zero-surprise rollback. */
 const SCRIPT_TYPE_RECOMMENDATIONS = {
   "Short Movie Script": {
     writingKey: "anthropic", writingLabel: "Anthropic Claude",
@@ -258,26 +357,51 @@ function estimateRoughCostTime(n, videoKey) {
 function renderRecommendation() {
   if (!FEATURE_SMART_RECOMMEND || !els.recommendCard) return;
   const stype = els.scriptType.value;
-  const rec = SCRIPT_TYPE_RECOMMENDATIONS[stype];
-  if (!rec || recommendDismissedFor === stype) { els.recommendCard.style.display = "none"; return; }
-  els.recWritingLabel.textContent = rec.writingLabel;
-  els.recWritingReason.textContent = rec.writingReason;
-  els.recVideoTip.textContent = rec.videoTip;
-  els.recVoiceTip.textContent = rec.voiceTip;
-  const est = estimateRoughCostTime(+els.segCount.value || 3, rec.videoKey);
-  els.recCostTime.textContent = `${est.cost} · ${est.time}`;
+  const legacy = SCRIPT_TYPE_RECOMMENDATIONS[stype];
+  if (!legacy || recommendDismissedFor === stype) { els.recommendCard.style.display = "none"; return; }
+
+  const score = SCORE_MODE ? computeScoreRecommendation(stype) : null;
+  if (score) {
+    els.recWritingLabel.textContent = `${score.providerLabel} — ${score.modelLabel}`;
+    els.recWritingReason.textContent = score.keyMissing
+      ? `Best match for this production type. Enter your ${score.providerLabel} key above to use it.`
+      : legacy.writingReason;
+    if (els.recConfidence) els.recConfidence.textContent = `${score.confidence}% match`;
+  } else {
+    els.recWritingLabel.textContent = legacy.writingLabel;
+    els.recWritingReason.textContent = legacy.writingReason;
+    if (els.recConfidence) els.recConfidence.textContent = "Excellent";
+  }
+  els.recVideoTip.textContent = legacy.videoTip;
+  els.recVoiceTip.textContent = legacy.voiceTip;
+  const est = estimateRoughCostTime(+els.segCount.value || 3, legacy.videoKey);
+  const speedCost = score ? ` · ${SPEED_TEXT[score.speed]} · ${COST_TEXT[score.cost]} cost` : "";
+  els.recCostTime.textContent = `${est.cost} · ${est.time}${speedCost}`;
   els.recommendCard.style.display = "";
 }
 
 if (FEATURE_SMART_RECOMMEND && els.recommendCard) {
   els.scriptType.addEventListener("change", () => { recommendDismissedFor = null; renderRecommendation(); applyVoiceLock(els.scriptType.value); });
   els.segCount.addEventListener("change", renderRecommendation);
+  ["apiKey", "apiKeyGemini", "apiKeyGroq", "apiKeyDeepseek"].forEach(id => {
+    if (els[id]) els[id].addEventListener("input", () => SCORE_MODE && renderRecommendation());
+  });
   els.btnRecommendUse.addEventListener("click", () => {
-    const rec = SCRIPT_TYPE_RECOMMENDATIONS[els.scriptType.value];
-    if (!rec) return;
-    els.formatProvider.value = rec.writingKey;
+    const stype = els.scriptType.value;
+    const score = SCORE_MODE ? computeScoreRecommendation(stype) : null;
+    if (score) {
+      els.formatProvider.value = score.provider;
+      switchFormatProvider();
+      const modelField = PROVIDER_MODEL_FIELD[score.provider];
+      if (modelField && els[modelField]) els[modelField].value = score.model;
+      setStatus("info", `Provider set to ${score.providerLabel}, model set to ${score.modelLabel}.`);
+      return;
+    }
+    const legacy = SCRIPT_TYPE_RECOMMENDATIONS[stype];
+    if (!legacy) return;
+    els.formatProvider.value = legacy.writingKey;
     switchFormatProvider();
-    setStatus("info", `Writing provider set to ${rec.writingLabel}.`);
+    setStatus("info", `Writing provider set to ${legacy.writingLabel}.`);
   });
   els.btnRecommendDismiss.addEventListener("click", () => {
     recommendDismissedFor = els.scriptType.value;
