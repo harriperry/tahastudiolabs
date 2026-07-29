@@ -102,7 +102,17 @@ heygenAvatarId: $("heygenAvatarId"),
   recommendCard: $("recommendCard"), recWritingLabel: $("recWritingLabel"), recWritingReason: $("recWritingReason"),
   recVideoTip: $("recVideoTip"), recVoiceTip: $("recVoiceTip"), recCostTime: $("recCostTime"),
   recConfidence: $("recConfidence"), apiConfigAutoNote: $("apiConfigAutoNote"),
-  btnRecommendUse: $("btnRecommendUse"), btnRecommendDismiss: $("btnRecommendDismiss")
+  btnRecommendUse: $("btnRecommendUse"), btnRecommendDismiss: $("btnRecommendDismiss"),
+  btnCharLib: $("btnCharLib"), charOverlay: $("charOverlay"), btnCharClose: $("btnCharClose"),
+  btnCharNew: $("btnCharNew"), charListView: $("charListView"), charList: $("charList"),
+  charFormView: $("charFormView"), btnCharBack: $("btnCharBack"), charId: $("charId"),
+  charDisplayName: $("charDisplayName"), charType: $("charType"), charAge: $("charAge"),
+  charHair: $("charHair"), charTone: $("charTone"), charElevenVoiceId: $("charElevenVoiceId"),
+  charOutfitDefault: $("charOutfitDefault"), charOutfitExtra: $("charOutfitExtra"),
+  btnCharAddOutfit: $("btnCharAddOutfit"), charImgFront: $("charImgFront"), charImgFrontPrev: $("charImgFrontPrev"),
+  charImgThreeQuarter: $("charImgThreeQuarter"), charImgThreeQuarterPrev: $("charImgThreeQuarterPrev"),
+  charImgProfile: $("charImgProfile"), charImgProfilePrev: $("charImgProfilePrev"),
+  charAnchorPreview: $("charAnchorPreview"), btnCharSave: $("btnCharSave"), btnCharDelete: $("btnCharDelete")
 };
 let lastRaw = "";
 let lastMeta = null;
@@ -595,6 +605,103 @@ function fileToDataUri(file) {
   });
 }
 
+/* ═══════════════ CHARACTER LIBRARY (Phase 1) ═══════════════
+   Persistent, client-side-only record per recurring character (age, hair, tone, outfit looks,
+   reference images, a compiled anchor phrase) so identity stays locked across segments and
+   across generators, instead of being regenerated fresh — and drifting — every segment.
+
+   STORAGE: IndexedDB, not localStorage. The rest of this app's "remember on this device"
+   features (API keys, saved scripts in Script Library) use localStorage, but that's typically
+   capped around 5-10MB per origin, shared across every key already stored there. A handful of
+   characters with 2-3 reference images each can easily reach 1-2MB per character, so this would
+   fill or exceed that cap fast — today's fallback for hitting it is a bare "storage full" alert
+   (see setLib() above), not something to build an image-heavy feature on top of. IndexedDB has
+   no such practical ceiling for this use case. Same guarantee as everything else in this app:
+   nothing here is ever sent to or stored on any server.
+
+   PHASE 1 SCOPE NOTE: the original brief for this feature described an auto-generate step that
+   would call "the existing T2I generation pathway" to produce reference images from typed
+   descriptors. That pathway doesn't exist — ScriptForge has video generation (Veo/Grok/HeyGen)
+   but no standalone image-only generation endpoint anywhere in functions/api/. Reference images
+   in Phase 1 are manually uploaded, using the same file-to-data-URI pattern already used for the
+   segment reference-image inputs above. Auto-generation would need a new server relay (following
+   the same no-storage relay pattern as video-start.js) and is left as a clearly separate future
+   step, not silently half-built here.
+
+   ROLLBACK: this entire block, the charOverlay/charModal markup in index.html, and the
+   "🎭 Characters" button are additive — nothing else in the app reads characterLibrary data
+   unless a segment explicitly has library characters selected (see genClip() below). Deleting
+   this block, the button, and the modal markup removes the feature with zero effect on anything
+   else, exactly like FEATURE_SMART_RECOMMEND's rollback contract elsewhere in this file. */
+
+const CHAR_DB_NAME = "sf_character_library", CHAR_DB_STORE = "characters";
+function charDbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(CHAR_DB_NAME, 1);
+    req.onupgradeneeded = () => { req.result.createObjectStore(CHAR_DB_STORE, { keyPath: "id" }); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function charGetAll() {
+  try {
+    const db = await charDbOpen();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(CHAR_DB_STORE, "readonly");
+      const req = tx.objectStore(CHAR_DB_STORE).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) { return []; }
+}
+async function charGet(id) {
+  try {
+    const db = await charDbOpen();
+    return await new Promise((resolve, reject) => {
+      const req = db.transaction(CHAR_DB_STORE, "readonly").objectStore(CHAR_DB_STORE).get(id);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) { return null; }
+}
+async function charPut(record) {
+  const db = await charDbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(CHAR_DB_STORE, "readwrite");
+    tx.objectStore(CHAR_DB_STORE).put(record);
+    tx.oncomplete = () => resolve(record);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function charDelete(id) {
+  const db = await charDbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(CHAR_DB_STORE, "readwrite");
+    tx.objectStore(CHAR_DB_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+function charSlug(displayName) {
+  const base = (displayName || "character").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "character";
+  return `${base}-${Math.random().toString(16).slice(2, 6)}`;
+}
+/* Compiles the single stable identity sentence appended into every T2I/I2V prompt alongside
+   this character's reference image(s) — the reference-image-plus-text-anchor pattern the video
+   generators already respond to (same principle as FIRST_FRAME_ANCHOR in genClip() below).
+   Regenerated whenever base descriptors or the active outfit look change; never rewritten
+   per-segment, so it stays a stable, short anchor rather than drifting text. */
+function buildAnchorPhrase(c) {
+  const outfitKey = c.activeOutfitKey && c.outfitOverride && c.outfitOverride[c.activeOutfitKey] ? c.activeOutfitKey : "default";
+  const outfit = (c.outfitOverride && c.outfitOverride[outfitKey]) || "";
+  const parts = [];
+  if (c.age) parts.push(c.age);
+  if (c.hair) parts.push(c.hair);
+  if (outfit) parts.push(`wearing ${outfit}`);
+  if (c.tone) parts.push(`(${c.tone})`);
+  return parts.length ? `${c.displayName || "character"}: ${parts.join(", ")}` : (c.displayName || "");
+}
+
 /* CHARACTER CONTINUITY + ELEVENLABS AUDIO HELPERS (see genClip() below for where these are
 used). extractLastFrame grabs the final frame of a just-finished Veo/Grok clip client-side —
 Cloudflare's Workers runtime (where every /api/* relay in this app runs) has no video codec
@@ -857,6 +964,7 @@ function renderOutput(raw){
              <button class="btn-copy" data-action="gen-clip" data-num="${num}">🎬 Generate clip</button>
            </div>
            <div class="status" id="vidStatus${num}"></div>
+<div id="charPickWrap${num}"></div>
 <label id="chainWrap${num}" style="display:none;align-items:center;gap:6px;font-size:.72rem;margin-top:6px;cursor:pointer"><input type="checkbox" id="chainUse${num}" checked style="width:auto"> 🔗 Use Segment ${Number(num)-1}'s final frame as this segment's character reference (Veo/Grok)</label>
 <div id="chainThumb${num}"></div>
            <div id="vidResult${num}" style="margin-top:8px"></div>
@@ -868,6 +976,7 @@ function renderOutput(raw){
   els.output.innerHTML = found
     ? html.join("")
     : `<div class="specs-block"><div class="fl">Raw output</div>${esc(raw)}</div>`;
+  if (found && window.populateSegmentCharPickers) window.populateSegmentCharPickers();
 }
 
 /* Delegated click handling for the output panel. The site's Content-Security-Policy is
@@ -1024,6 +1133,202 @@ window.libLoad = function(id){
   els.libOverlay.classList.remove("open");
   setStatus("ok", "✓ Loaded from Library: " + esc(item.title));
 };
+/* ═══════════════ CHARACTER LIBRARY UI (Phase 1) ═══════════════
+   List/form controller for the modal built in index.html. Storage functions (charGetAll/
+   charGet/charPut/charDelete) and buildAnchorPhrase() are defined earlier in this file. */
+let charDraft = null; // in-memory record being edited, including any newly-uploaded image data URIs
+
+async function renderCharList() {
+  const chars = await charGetAll();
+  if (!chars.length) {
+    els.charList.innerHTML = '<div class="lib-empty">No characters saved yet.<br>Click "+ New Character" to add one.</div>';
+    return;
+  }
+  els.charList.innerHTML = chars.map(c => `
+    <div class="lib-item">
+      ${c.referenceImages && c.referenceImages.front ? `<img src="${c.referenceImages.front}" style="width:44px;height:44px;object-fit:cover;border-radius:6px">` : `<div style="width:44px;height:44px;border-radius:6px;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:1.2rem">🎭</div>`}
+      <div class="meta">
+        <div class="t">${esc(c.displayName || "Untitled")}</div>
+        <div class="d">${esc(c.characterType || "unspecified")}${c.productionTypes && c.productionTypes.length ? " · " + esc(c.productionTypes.join(", ")) : ""}</div>
+      </div>
+      <button class="btn-copy" data-action="char-edit" data-id="${c.id}">Edit</button>
+    </div>`).join("");
+}
+els.charList.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  if (btn.dataset.action === "char-edit") openCharForm(btn.dataset.id);
+});
+
+function outfitExtraRowHtml(key, val) {
+  return `<div class="row outfit-extra-row" style="gap:6px;margin-bottom:6px">
+    <input type="text" class="outfit-key" placeholder="look name, e.g. flashback_scene2" value="${esc(key)}" style="flex:1">
+    <input type="text" class="outfit-val" placeholder="description" value="${esc(val)}" style="flex:2">
+    <button class="btn-ghost outfit-del" type="button" style="color:var(--err);padding:0 10px">✕</button>
+  </div>`;
+}
+els.btnCharAddOutfit.addEventListener("click", () => {
+  els.charOutfitExtra.insertAdjacentHTML("beforeend", outfitExtraRowHtml("", ""));
+  updateAnchorPreview();
+});
+els.charOutfitExtra.addEventListener("click", (e) => {
+  if (e.target.classList.contains("outfit-del")) { e.target.closest(".outfit-extra-row").remove(); updateAnchorPreview(); }
+});
+els.charOutfitExtra.addEventListener("input", updateAnchorPreview);
+
+function readDraftFromForm() {
+  const outfitOverride = { default: els.charOutfitDefault.value.trim() };
+  els.charOutfitExtra.querySelectorAll(".outfit-extra-row").forEach(row => {
+    const k = row.querySelector(".outfit-key").value.trim();
+    const v = row.querySelector(".outfit-val").value.trim();
+    if (k && v) outfitOverride[k] = v;
+  });
+  const productionTypes = [...els.charProdTypesEls()].filter(cb => cb.checked).map(cb => cb.value);
+  return {
+    id: els.charId.value || charSlug(els.charDisplayName.value),
+    displayName: els.charDisplayName.value.trim(),
+    characterType: els.charType.value,
+    productionTypes,
+    age: els.charAge.value.trim(),
+    hair: els.charHair.value.trim(),
+    tone: els.charTone.value.trim(),
+    elevenLabsVoiceId: els.charElevenVoiceId.value.trim(),
+    referenceImages: (charDraft && charDraft.referenceImages) || {},
+    outfitOverride,
+    activeOutfitKey: "default",
+    anchorPhrase: "",
+    lastUpdated: new Date().toISOString().slice(0, 10)
+  };
+}
+els.charProdTypesEls = () => document.querySelectorAll(".char-prodtype");
+function updateAnchorPreview() {
+  const draft = readDraftFromForm();
+  els.charAnchorPreview.textContent = buildAnchorPhrase(draft) || "—";
+}
+["charDisplayName", "charAge", "charHair", "charTone", "charOutfitDefault"].forEach(id => {
+  els[id].addEventListener("input", updateAnchorPreview);
+});
+
+function wireCharImageInput(inputEl, prevEl, slot) {
+  inputEl.addEventListener("change", async () => {
+    const f = inputEl.files[0];
+    if (!f) return;
+    const dataUri = await fileToDataUri(f);
+    if (!charDraft) charDraft = { referenceImages: {} };
+    if (!charDraft.referenceImages) charDraft.referenceImages = {};
+    charDraft.referenceImages[slot] = dataUri;
+    prevEl.src = dataUri;
+    prevEl.style.display = "block";
+  });
+}
+wireCharImageInput(els.charImgFront, els.charImgFrontPrev, "front");
+wireCharImageInput(els.charImgThreeQuarter, els.charImgThreeQuarterPrev, "threeQuarter");
+wireCharImageInput(els.charImgProfile, els.charImgProfilePrev, "profile");
+
+function resetCharForm() {
+  charDraft = { referenceImages: {} };
+  els.charId.value = "";
+  els.charDisplayName.value = ""; els.charType.value = ""; els.charAge.value = "";
+  els.charHair.value = ""; els.charTone.value = ""; els.charElevenVoiceId.value = "";
+  els.charOutfitDefault.value = ""; els.charOutfitExtra.innerHTML = "";
+  document.querySelectorAll(".char-prodtype").forEach(cb => cb.checked = false);
+  [els.charImgFrontPrev, els.charImgThreeQuarterPrev, els.charImgProfilePrev].forEach(p => { p.style.display = "none"; p.src = ""; });
+  els.btnCharDelete.style.display = "none";
+  updateAnchorPreview();
+}
+async function openCharForm(id) {
+  resetCharForm();
+  if (id) {
+    const c = await charGet(id);
+    if (c) {
+      charDraft = c;
+      els.charId.value = c.id;
+      els.charDisplayName.value = c.displayName || "";
+      els.charType.value = c.characterType || "";
+      els.charAge.value = c.age || "";
+      els.charHair.value = c.hair || "";
+      els.charTone.value = c.tone || "";
+      els.charElevenVoiceId.value = c.elevenLabsVoiceId || "";
+      els.charOutfitDefault.value = (c.outfitOverride && c.outfitOverride.default) || "";
+      document.querySelectorAll(".char-prodtype").forEach(cb => { cb.checked = (c.productionTypes || []).includes(cb.value); });
+      if (c.outfitOverride) {
+        Object.keys(c.outfitOverride).filter(k => k !== "default").forEach(k => {
+          els.charOutfitExtra.insertAdjacentHTML("beforeend", outfitExtraRowHtml(k, c.outfitOverride[k]));
+        });
+      }
+      if (c.referenceImages) {
+        [["front", els.charImgFrontPrev], ["threeQuarter", els.charImgThreeQuarterPrev], ["profile", els.charImgProfilePrev]].forEach(([slot, prev]) => {
+          if (c.referenceImages[slot]) { prev.src = c.referenceImages[slot]; prev.style.display = "block"; }
+        });
+      }
+      els.btnCharDelete.style.display = "inline-block";
+    }
+  }
+  updateAnchorPreview();
+  els.charListView.style.display = "none";
+  els.charFormView.style.display = "block";
+}
+els.btnCharNew.addEventListener("click", () => openCharForm(null));
+els.btnCharBack.addEventListener("click", () => { els.charFormView.style.display = "none"; els.charListView.style.display = "block"; renderCharList(); });
+els.btnCharSave.addEventListener("click", async () => {
+  const record = readDraftFromForm();
+  if (!record.displayName) { alert("Enter a display name before saving."); return; }
+  record.anchorPhrase = buildAnchorPhrase(record);
+  await charPut(record);
+  els.charFormView.style.display = "none";
+  els.charListView.style.display = "block";
+  renderCharList();
+  populateSegmentCharPickers();
+});
+els.btnCharDelete.addEventListener("click", async () => {
+  if (!els.charId.value) return;
+  if (!confirm("Delete this character? This cannot be undone.")) return;
+  await charDelete(els.charId.value);
+  els.charFormView.style.display = "none";
+  els.charListView.style.display = "block";
+  renderCharList();
+  populateSegmentCharPickers();
+});
+els.btnCharLib.addEventListener("click", () => { els.charFormView.style.display = "none"; els.charListView.style.display = "block"; renderCharList(); els.charOverlay.classList.add("open"); });
+els.btnCharClose.addEventListener("click", () => els.charOverlay.classList.remove("open"));
+els.charOverlay.addEventListener("click", e => { if (e.target === els.charOverlay) els.charOverlay.classList.remove("open"); });
+
+/* Per-segment character picker — shown under every generated segment that has a Text-to-Image
+   Prompt (same condition as the video-generation controls). Auto-preselects any saved character
+   whose displayName appears (case-insensitive) in that segment's Type/TTS Script/T2I/I2V text,
+   capped at 3 to match the reference-image slot limit Veo and Grok both support — the user can
+   freely add/remove selections before generating. Selection is stored directly on the segment's
+   window.__segPrompts entry (seg.libraryCharacterIds), read by genClip() below. */
+async function populateSegmentCharPickers() {
+  const chars = await charGetAll();
+  if (!window.__segPrompts) return;
+  for (const num of Object.keys(window.__segPrompts)) {
+    const wrap = document.getElementById("charPickWrap" + num);
+    if (!wrap) continue;
+    const seg = window.__segPrompts[num];
+    if (!chars.length) { wrap.innerHTML = ""; continue; }
+    const haystack = [seg.segType, seg.ttsScript, seg.t2iPrompt, seg.i2vPrompt].filter(Boolean).join(" ").toLowerCase();
+    const preselected = seg.libraryCharacterIds || chars.filter(c => c.displayName && haystack.includes(c.displayName.toLowerCase())).map(c => c.id).slice(0, 3);
+    seg.libraryCharacterIds = preselected;
+    wrap.innerHTML = `<div style="font-size:.72rem;color:var(--muted);margin-top:6px">🎭 Characters in this segment (up to 3, each keeps its own locked reference image + identity):</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+        ${chars.map(c => `<label style="display:flex;align-items:center;gap:4px;font-size:.72rem;cursor:pointer;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:3px 8px">
+          <input type="checkbox" class="char-pick" data-num="${num}" data-id="${c.id}" ${preselected.includes(c.id) ? "checked" : ""} style="width:auto"> ${esc(c.displayName)}
+        </label>`).join("")}
+      </div>`;
+  }
+}
+window.populateSegmentCharPickers = populateSegmentCharPickers;
+els.output.addEventListener("change", (e) => {
+  if (!e.target.classList.contains("char-pick")) return;
+  const num = e.target.dataset.num;
+  const seg = window.__segPrompts && window.__segPrompts[num];
+  if (!seg) return;
+  const checked = [...document.querySelectorAll(`.char-pick[data-num="${num}"]:checked`)];
+  if (checked.length > 3) { e.target.checked = false; alert("Up to 3 characters per segment — matches the reference-image slot limit."); return; }
+  seg.libraryCharacterIds = checked.map(cb => cb.dataset.id);
+});
+
 window.libDel = function(id){ setLib(getLib().filter(x => x.id !== id)); renderLib(); };
 window.libPdf = function(id){
   if (tier !== "pro") { showUpgrade("PDF export is a Pro feature."); return; }
@@ -1429,6 +1734,17 @@ window.genClip = async function (num, btn) {
   const seg = window.__segPrompts && window.__segPrompts[num];
   if (!seg) { vidSetStatus(num, "err", "No segment data found."); return; }
 
+  /* Character Library (Phase 1) — if this segment has one or more saved characters selected
+     (see populateSegmentCharPickers() above), their reference images and compiled anchor
+     phrases take priority over both frame-chaining and any manually-attached reference images
+     for Veo/Grok, and get named into the prompt for all three providers. This is the actual
+     fix for cross-segment identity drift (frame-chaining alone only carries forward whatever
+     the previous clip happened to render, with no anchor to what a character is actually
+     supposed to look like). */
+  const libChars = (seg.libraryCharacterIds && seg.libraryCharacterIds.length)
+    ? (await Promise.all(seg.libraryCharacterIds.map(charGet))).filter(Boolean)
+    : [];
+
   const provider = $("vidGen" + num).value;
   const providerMeta = VIDEO_PROVIDERS[provider];
   const apiKey = els[providerMeta.keyEl].value.trim();
@@ -1491,6 +1807,7 @@ window.genClip = async function (num, btn) {
       + `Visual: ${buildVisualDescription(seg) || "A presenter speaking directly to camera"}\n`
       + `VO/Script: "${seg.ttsScript}"\n`
       + `Instruction: this is a talking-presenter video, not silent B-roll — an on-camera avatar must speak the VO/Script line above verbatim, aloud, in a natural human voice.`
+      + (libChars.length ? `\nCharacter(s) (Character Library — keep exactly as described, do not invent a different appearance): ${libChars.map(c => `${c.displayName || "character"} — ${c.anchorPhrase || buildAnchorPhrase(c)}`).join("; ")}` : "")
       + (seg.audioNote ? `\nAudio Instruction: ${buildAudioDirective(seg.audioNote)}` : "")
       + `\nDuration: ~${requestedDuration} seconds`;
   } else if (provider === "grok") {
@@ -1515,9 +1832,26 @@ window.genClip = async function (num, btn) {
 
   try {
     const chainCheckbox = $("chainUse" + num);
-const useChain = !!(chainFrames[num] && chainCheckbox && chainCheckbox.checked);
-const slot1 = useChain ? new File([chainFrames[num]], `segment${num}-chained-ref.png`, { type: "image/png" }) : els.refImg1?.files?.[0];
-const refFiles = [slot1, els.refImg2?.files?.[0], els.refImg3?.files?.[0]].filter(Boolean);
+    /* Library characters (if any are selected for this segment) take priority over both
+       frame-chaining and manually-attached reference images — mixing an identity-locked
+       character photo with a frame-chained "whatever rendered last time" photo in the same
+       request would give the model two competing ideas of what the same reference slot should
+       show. useChain is forced off whenever libChars is non-empty. */
+    const useChain = !!(chainFrames[num] && chainCheckbox && chainCheckbox.checked) && !libChars.length;
+    let refFiles;
+    if (libChars.length) {
+      refFiles = (await Promise.all(libChars.slice(0, 3).map(async c => {
+        const img = c.referenceImages && (c.referenceImages.front || c.referenceImages.threeQuarter || c.referenceImages.profile);
+        if (!img) return null;
+        try {
+          const blob = await (await fetch(img)).blob();
+          return new File([blob], `${c.id}-ref.png`, { type: blob.type || "image/png" });
+        } catch (e) { return null; }
+      }))).filter(Boolean);
+    } else {
+      const slot1 = useChain ? new File([chainFrames[num]], `segment${num}-chained-ref.png`, { type: "image/png" }) : els.refImg1?.files?.[0];
+      refFiles = [slot1, els.refImg2?.files?.[0], els.refImg3?.files?.[0]].filter(Boolean);
+    }
     const aspectRatio = els.vidAspectRatio?.value || "16:9";
     const resolutionSel = els.vidResolution?.value || "720p";
 
@@ -1578,15 +1912,32 @@ const refFiles = [slot1, els.refImg2?.files?.[0], els.refImg3?.files?.[0]].filte
        chained scenes worked. Fixed to describe "every person visible" rather than assuming a
        headcount of one, so it correctly covers both the single-headshot case and the
        chained-multi-person-frame case with the same wording. */
+    /* NAMED-CHARACTER ROLE NOTE (Character Library): when libChars is populated, each reference
+       image slot maps to one specific saved character rather than an anonymous "person" — the
+       prompt names them and states their compiled anchor phrase (age/hair/outfit/tone) per slot,
+       so the model isn't just shown a face, it's told whose face it is and what's supposed to
+       stay consistent about them. This is the direct multi-character fix: two named women can
+       each get their own tagged slot instead of sharing one generic "the person(s)" instruction. */
+    function buildCharacterRoleNote(chars, providerName) {
+      const lines = chars.map((c, i) => {
+        const tag = providerName === "grok" ? `<IMAGE_${i + 1}>` : `Reference image ${i + 1}`;
+        const anchor = c.anchorPhrase || buildAnchorPhrase(c);
+        return `${tag} shows ${c.displayName || "a character"}${anchor ? ` — ${anchor}` : ""}. This exact person must appear in the scene, keeping their face and identity recognizable and distinct from any other character present.`;
+      });
+      return lines.join(" ") + (chars.length > 1 ? " All named characters above must appear together in this scene exactly as described, each one distinct from the others — do not merge, swap, or invent different people." : "");
+    }
     if (provider === "veo" || provider === "grok") {
       if (refFiles.length) {
         vidSetStatus(num, "info", '<span class="spin"></span>Encoding reference image(s)…');
         if (provider === "veo") {
           const encoded = await Promise.all(refFiles.map(fileToBase64));
           params.referenceImages = encoded.map(img => ({ image: img, referenceType: "asset" }));
-          prompt = (refFiles.length > 1
-            ? "The first reference image shows the required on-camera character(s) for this scene — whether it shows one person or several, every one of them must keep their exact face and identity recognizable and distinct from the others, while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud. Any other reference images show additional supporting participants or objects that may also appear, but must not replace anyone already shown in the first reference image. "
-            : "The reference image shows the required on-camera character(s) for this scene — whether it shows one person or several, every one of them must keep their exact face and identity recognizable and distinct from the others, while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud. "
+          prompt = (libChars.length
+            ? buildCharacterRoleNote(libChars, "veo") + " "
+            : (refFiles.length > 1
+              ? "The first reference image shows the required on-camera character(s) for this scene — whether it shows one person or several, every one of them must keep their exact face and identity recognizable and distinct from the others, while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud. Any other reference images show additional supporting participants or objects that may also appear, but must not replace anyone already shown in the first reference image. "
+              : "The reference image shows the required on-camera character(s) for this scene — whether it shows one person or several, every one of them must keep their exact face and identity recognizable and distinct from the others, while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud. "
+            )
           ) + prompt;
         } else {
           const dataUris = await Promise.all(refFiles.map(fileToDataUri));
@@ -1597,8 +1948,13 @@ const refFiles = [slot1, els.refImg2?.files?.[0], els.refImg3?.files?.[0]].filte
             params.duration = 10;
             vidSetStatus(num, "info", '<span class="spin"></span>Reference image attached — Grok caps clips with a reference image at 10s, adjusting…');
           }
-          let roleNote = "<IMAGE_1> shows the required on-camera character(s) for this scene — whether it shows one person or several, every one of them must keep their exact face and identity recognizable and distinct from the others, while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud.";
-          if (refFiles.length > 1) roleNote += ` <IMAGE_2>${refFiles.length > 2 ? " and <IMAGE_3>" : ""} show additional supporting participants or objects that may also appear in the shot, but must not replace anyone already shown in <IMAGE_1>.`;
+          let roleNote;
+          if (libChars.length) {
+            roleNote = buildCharacterRoleNote(libChars, "grok");
+          } else {
+            roleNote = "<IMAGE_1> shows the required on-camera character(s) for this scene — whether it shows one person or several, every one of them must keep their exact face and identity recognizable and distinct from the others, while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud.";
+            if (refFiles.length > 1) roleNote += ` <IMAGE_2>${refFiles.length > 2 ? " and <IMAGE_3>" : ""} show additional supporting participants or objects that may also appear in the shot, but must not replace anyone already shown in <IMAGE_1>.`;
+          }
           prompt = roleNote + " " + prompt;
         }
         vidSetStatus(num, "info", '<span class="spin"></span>Submitting…');
