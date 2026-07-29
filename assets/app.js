@@ -107,12 +107,16 @@ heygenAvatarId: $("heygenAvatarId"),
   btnCharNew: $("btnCharNew"), charListView: $("charListView"), charList: $("charList"),
   charFormView: $("charFormView"), btnCharBack: $("btnCharBack"), charId: $("charId"),
   charDisplayName: $("charDisplayName"), charType: $("charType"), charAge: $("charAge"),
+  charAppearance: $("charAppearance"),
   charHair: $("charHair"), charTone: $("charTone"), charElevenVoiceId: $("charElevenVoiceId"),
   charOutfitDefault: $("charOutfitDefault"), charOutfitExtra: $("charOutfitExtra"),
   btnCharAddOutfit: $("btnCharAddOutfit"), charImgFront: $("charImgFront"), charImgFrontPrev: $("charImgFrontPrev"),
   charImgThreeQuarter: $("charImgThreeQuarter"), charImgThreeQuarterPrev: $("charImgThreeQuarterPrev"),
   charImgProfile: $("charImgProfile"), charImgProfilePrev: $("charImgProfilePrev"),
-  charAnchorPreview: $("charAnchorPreview"), btnCharSave: $("btnCharSave"), btnCharDelete: $("btnCharDelete")
+  charAnchorPreview: $("charAnchorPreview"), btnCharSave: $("btnCharSave"), btnCharDelete: $("btnCharDelete"),
+  btnCharImportOpen: $("btnCharImportOpen"), charImportView: $("charImportView"), btnCharImportBack: $("btnCharImportBack"),
+  charImportText: $("charImportText"), btnCharImportParse: $("btnCharImportParse"), charImportPreview: $("charImportPreview"),
+  charImportSaveRow: $("charImportSaveRow"), btnCharImportSave: $("btnCharImportSave")
 };
 let lastRaw = "";
 let lastMeta = null;
@@ -696,10 +700,114 @@ function buildAnchorPhrase(c) {
   const outfit = (c.outfitOverride && c.outfitOverride[outfitKey]) || "";
   const parts = [];
   if (c.age) parts.push(c.age);
+  if (c.appearance) parts.push(c.appearance);
   if (c.hair) parts.push(c.hair);
   if (outfit) parts.push(`wearing ${outfit}`);
   if (c.tone) parts.push(`(${c.tone})`);
   return parts.length ? `${c.displayName || "character"}: ${parts.join(", ")}` : (c.displayName || "");
+}
+
+/* ═══════════════ CHARACTER BRIEF IMPORT (bulk parse) ═══════════════
+   Deterministic text parser, no API key/server call needed — chosen over routing through the
+   user's own AI provider key because the target format (a structured "character bible" brief,
+   e.g. from a writers' room doc) is well-structured and self-consistent enough for plain
+   regex/string parsing to be fast, free, and reliable. Expects blocks shaped like:
+     CHARACTER 1: NAME (Type)
+     1. Reference Images
+     Image Description
+     [appearance paragraph, may contain "NN years old"]
+     2. Additional Named Looks
+     Look Name
+     [description line]
+     3. Voice/Tone
+     * bullet
+     * bullet
+     4. Default Outfit
+     [paragraph]
+     5. Hair
+     [paragraph, may be multiple lines]
+     6. Anchor Phrase
+     [paragraph]
+   Section numbers/order are read dynamically (matched by label text, not position), so briefs
+   that omit a section or reorder them still parse — missing sections just leave that field
+   blank rather than parseCharacterBrief() throwing. ROLLBACK: this whole block plus the
+   charImportView wiring further below are additive only — deleting them removes the "Import
+   from text" button and view with zero effect on manual character add/edit. */
+function titleCaseName(s) {
+  return (s || "").toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+function collapseBlockLines(s) {
+  return (s || "").split("\n").map(l => l.trim()).filter(Boolean).join(" ");
+}
+function bulletsToList(s) {
+  return (s || "").split("\n").map(l => l.trim().replace(/^[*\-•]\s*/, "")).filter(Boolean).join(", ");
+}
+function extractAfterLabel(sectionBody, label) {
+  const lines = (sectionBody || "").split("\n");
+  const idx = lines.findIndex(l => l.trim().toLowerCase() === label.toLowerCase());
+  if (idx === -1) return "";
+  return lines.slice(idx + 1).join(" ").replace(/\s+/g, " ").trim();
+}
+function parseNamedLooks(s) {
+  const lines = (s || "").split("\n").map(l => l.trim()).filter(Boolean);
+  const looks = {};
+  let i = 0;
+  while (i < lines.length) {
+    const nameLine = lines[i], descLine = lines[i + 1];
+    if (descLine) {
+      const key = nameLine.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+      looks[key || `look_${i}`] = descLine.replace(/\.$/, "");
+      i += 2;
+    } else { i += 1; }
+  }
+  return looks;
+}
+function splitNumberedSections(text) {
+  const lines = text.split("\n");
+  const idxs = [];
+  lines.forEach((line, i) => { if (/^\s*\d+\.\s+\S/.test(line)) idxs.push(i); });
+  const sections = {};
+  for (let i = 0; i < idxs.length; i++) {
+    const start = idxs[i], end = i + 1 < idxs.length ? idxs[i + 1] : lines.length;
+    const label = lines[start].replace(/^\s*\d+\.\s+/, "").trim().toLowerCase();
+    sections[label] = lines.slice(start + 1, end).join("\n").trim();
+  }
+  return sections;
+}
+function parseCharacterBlock(name, type, blockText) {
+  const sections = splitNumberedSections(blockText);
+  const refSection = sections["reference images"] || "";
+  const appearance = extractAfterLabel(refSection, "Image Description") || collapseBlockLines(refSection);
+  const ageMatch = appearance.match(/\d{1,3}\s*years?\s*old/i);
+  const age = ageMatch ? ageMatch[0] : "";
+  const hair = collapseBlockLines(sections["hair"] || "");
+  const tone = bulletsToList(sections["voice/tone"] || sections["voice / tone"] || "");
+  const outfitDefault = collapseBlockLines(sections["default outfit"] || "");
+  const outfitExtra = parseNamedLooks(sections["additional named looks"] || "");
+  const anchorPhrase = collapseBlockLines(sections["anchor phrase"] || "");
+  const outfitOverride = Object.assign({ default: outfitDefault }, outfitExtra);
+  return {
+    id: charSlug(name), displayName: name, characterType: type, productionTypes: [],
+    age, appearance, hair, tone, elevenLabsVoiceId: "", referenceImages: {},
+    outfitOverride, activeOutfitKey: "default", anchorPhrase,
+    lastUpdated: new Date().toISOString().slice(0, 10)
+  };
+}
+function parseCharacterBrief(text) {
+  const lines = (text || "").replace(/\r\n/g, "\n").split("\n");
+  const headerIdxs = [], headerMatches = [];
+  lines.forEach((line, i) => {
+    const m = line.match(/^CHARACTER\s+\d+\s*:\s*([^\(]+?)\s*(?:\(([^)]*)\))?\s*$/i);
+    if (m) { headerIdxs.push(i); headerMatches.push(m); }
+  });
+  const chars = [];
+  for (let b = 0; b < headerIdxs.length; b++) {
+    const start = headerIdxs[b], end = b + 1 < headerIdxs.length ? headerIdxs[b + 1] : lines.length;
+    const name = titleCaseName(headerMatches[b][1].trim());
+    const type = (headerMatches[b][2] || "").trim();
+    chars.push(parseCharacterBlock(name, type, lines.slice(start + 1, end).join("\n")));
+  }
+  return chars;
 }
 
 /* CHARACTER CONTINUITY + ELEVENLABS AUDIO HELPERS (see genClip() below for where these are
@@ -1187,25 +1295,34 @@ function readDraftFromForm() {
   return {
     id: els.charId.value || charSlug(els.charDisplayName.value),
     displayName: els.charDisplayName.value.trim(),
-    characterType: els.charType.value,
+    characterType: els.charType.value.trim(),
     productionTypes,
     age: els.charAge.value.trim(),
+    appearance: els.charAppearance.value.trim(),
     hair: els.charHair.value.trim(),
     tone: els.charTone.value.trim(),
     elevenLabsVoiceId: els.charElevenVoiceId.value.trim(),
     referenceImages: (charDraft && charDraft.referenceImages) || {},
     outfitOverride,
     activeOutfitKey: "default",
-    anchorPhrase: "",
+    anchorPhrase: els.charAnchorPreview.value.trim(),
     lastUpdated: new Date().toISOString().slice(0, 10)
   };
 }
 els.charProdTypesEls = () => document.querySelectorAll(".char-prodtype");
+/* Anchor phrase is now a directly editable field (was a read-only compiled preview). It still
+   auto-fills as the descriptor fields below it change, but only until the user types or pastes
+   into it directly — anchorManuallyEdited then blocks further auto-overwrite so a
+   hand-written or imported anchor phrase never gets silently clobbered by a later field edit.
+   Reset per form open (new character or edit) in resetCharForm(). */
+let anchorManuallyEdited = false;
 function updateAnchorPreview() {
+  if (anchorManuallyEdited) return;
   const draft = readDraftFromForm();
-  els.charAnchorPreview.textContent = buildAnchorPhrase(draft) || "—";
+  els.charAnchorPreview.value = buildAnchorPhrase(draft) || "";
 }
-["charDisplayName", "charAge", "charHair", "charTone", "charOutfitDefault"].forEach(id => {
+els.charAnchorPreview.addEventListener("input", () => { anchorManuallyEdited = true; });
+["charDisplayName", "charAge", "charAppearance", "charHair", "charTone", "charOutfitDefault"].forEach(id => {
   els[id].addEventListener("input", updateAnchorPreview);
 });
 
@@ -1227,10 +1344,13 @@ wireCharImageInput(els.charImgProfile, els.charImgProfilePrev, "profile");
 
 function resetCharForm() {
   charDraft = { referenceImages: {} };
+  anchorManuallyEdited = false;
   els.charId.value = "";
   els.charDisplayName.value = ""; els.charType.value = ""; els.charAge.value = "";
+  els.charAppearance.value = "";
   els.charHair.value = ""; els.charTone.value = ""; els.charElevenVoiceId.value = "";
   els.charOutfitDefault.value = ""; els.charOutfitExtra.innerHTML = "";
+  els.charAnchorPreview.value = "";
   document.querySelectorAll(".char-prodtype").forEach(cb => cb.checked = false);
   [els.charImgFrontPrev, els.charImgThreeQuarterPrev, els.charImgProfilePrev].forEach(p => { p.style.display = "none"; p.src = ""; });
   els.btnCharDelete.style.display = "none";
@@ -1246,6 +1366,7 @@ async function openCharForm(id) {
       els.charDisplayName.value = c.displayName || "";
       els.charType.value = c.characterType || "";
       els.charAge.value = c.age || "";
+      els.charAppearance.value = c.appearance || "";
       els.charHair.value = c.hair || "";
       els.charTone.value = c.tone || "";
       els.charElevenVoiceId.value = c.elevenLabsVoiceId || "";
@@ -1261,10 +1382,15 @@ async function openCharForm(id) {
           if (c.referenceImages[slot]) { prev.src = c.referenceImages[slot]; prev.style.display = "block"; }
         });
       }
+      // An existing saved character already has a considered anchor phrase (hand-written,
+      // imported, or a prior auto-compile) — load it verbatim and treat it as authoritative
+      // rather than silently recomputing over it the moment resetCharForm's updateAnchorPreview
+      // ran above.
+      els.charAnchorPreview.value = c.anchorPhrase || buildAnchorPhrase(c) || "";
+      anchorManuallyEdited = true;
       els.btnCharDelete.style.display = "inline-block";
     }
   }
-  updateAnchorPreview();
   els.charListView.style.display = "none";
   els.charFormView.style.display = "block";
 }
@@ -1273,7 +1399,7 @@ els.btnCharBack.addEventListener("click", () => { els.charFormView.style.display
 els.btnCharSave.addEventListener("click", async () => {
   const record = readDraftFromForm();
   if (!record.displayName) { alert("Enter a display name before saving."); return; }
-  record.anchorPhrase = buildAnchorPhrase(record);
+  if (!record.anchorPhrase) record.anchorPhrase = buildAnchorPhrase(record);
   await charPut(record);
   els.charFormView.style.display = "none";
   els.charListView.style.display = "block";
@@ -1289,9 +1415,62 @@ els.btnCharDelete.addEventListener("click", async () => {
   renderCharList();
   populateSegmentCharPickers();
 });
-els.btnCharLib.addEventListener("click", () => { els.charFormView.style.display = "none"; els.charListView.style.display = "block"; renderCharList(); els.charOverlay.classList.add("open"); });
+els.btnCharLib.addEventListener("click", () => { els.charFormView.style.display = "none"; els.charImportView.style.display = "none"; els.charListView.style.display = "block"; renderCharList(); els.charOverlay.classList.add("open"); });
 els.btnCharClose.addEventListener("click", () => els.charOverlay.classList.remove("open"));
 els.charOverlay.addEventListener("click", e => { if (e.target === els.charOverlay) els.charOverlay.classList.remove("open"); });
+
+/* ═══════════════ CHARACTER BRIEF IMPORT UI ═══════════════
+   "Paste a brief -> review queue -> bulk save" flow described in the task brief. Parsing itself
+   (parseCharacterBrief) lives earlier in this file, near buildAnchorPhrase. Nothing here is
+   auto-saved: every parsed candidate is shown in a checkbox review list (default all checked)
+   and only written to IndexedDB when the user clicks "Import selected". */
+let importCandidates = [];
+els.btnCharImportOpen.addEventListener("click", () => {
+  els.charListView.style.display = "none";
+  els.charImportView.style.display = "block";
+  els.charImportText.value = "";
+  els.charImportPreview.innerHTML = "";
+  els.charImportSaveRow.style.display = "none";
+  importCandidates = [];
+});
+els.btnCharImportBack.addEventListener("click", () => {
+  els.charImportView.style.display = "none";
+  els.charListView.style.display = "block";
+});
+els.btnCharImportParse.addEventListener("click", () => {
+  const text = els.charImportText.value;
+  if (!text.trim()) { alert("Paste a character brief first."); return; }
+  importCandidates = parseCharacterBrief(text);
+  if (!importCandidates.length) {
+    els.charImportPreview.innerHTML = '<div class="lib-empty">No characters detected. Expected a block per character starting with "CHARACTER 1: NAME (Type)" followed by numbered sections (Reference Images, Hair, Voice/Tone, etc).</div>';
+    els.charImportSaveRow.style.display = "none";
+    return;
+  }
+  els.charImportPreview.innerHTML = importCandidates.map((c, i) => `
+    <div class="lib-item" style="align-items:flex-start">
+      <input type="checkbox" class="import-pick" data-idx="${i}" checked style="margin-top:6px">
+      <div class="meta">
+        <div class="t">${esc(c.displayName || "Untitled")}${c.characterType ? " (" + esc(c.characterType) + ")" : ""}</div>
+        <div class="d">${esc([c.age, c.hair].filter(Boolean).join(" · ")) || "—"}</div>
+        <div class="d">${esc(c.anchorPhrase || buildAnchorPhrase(c) || "")}</div>
+      </div>
+    </div>`).join("");
+  els.charImportSaveRow.style.display = "block";
+});
+els.btnCharImportSave.addEventListener("click", async () => {
+  const checked = [...els.charImportPreview.querySelectorAll(".import-pick:checked")].map(cb => +cb.dataset.idx);
+  if (!checked.length) { alert("Select at least one character to import."); return; }
+  for (const idx of checked) {
+    const c = importCandidates[idx];
+    if (!c.anchorPhrase) c.anchorPhrase = buildAnchorPhrase(c);
+    await charPut(c);
+  }
+  els.charImportView.style.display = "none";
+  els.charListView.style.display = "block";
+  renderCharList();
+  populateSegmentCharPickers();
+  setStatus("ok", `✓ Imported ${checked.length} character(s) into the Library.`);
+});
 
 /* Per-segment character picker — shown under every generated segment that has a Text-to-Image
    Prompt (same condition as the video-generation controls). Auto-preselects any saved character
