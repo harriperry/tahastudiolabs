@@ -277,6 +277,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     <button class="btn-copy" id="btnCopyAll" style="display:none">📋 Copy full output</button>
     <button class="btn-copy" id="btnSaveLib" style="display:none">💾 Save to Library</button>
     <button class="btn-copy" id="btnPdf" style="display:none">⬇ Download PDF</button>
+    <button class="btn-copy" id="btnCharLib">🎭 Characters</button>
     <button class="btn-copy" id="btnLibrary">📚 Library</button>
   </div>
   <div id="output"><div class="empty">Formatted segments will appear here.<br><br>Paste your script, pick your settings, and hit <b>Format</b>.</div></div>
@@ -315,6 +316,92 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     <div class="lib-note">⚠ Your saved scripts live only in this browser, on this device — clearing browser data erases them, and we keep no copy on any server. Use Export JSON for backups or to move scripts to another device.</div>
     <input type="file" id="libFile" accept="application/json" style="display:none">
     <div id="libList"></div>
+  </div>
+</div>
+
+<!-- Character Library — additive only (see the block comment above buildAnchorPhrase() in
+     assets/app.js for the full rollback contract). Separate from both the Option 5 provider-key
+     settings and the Script Library above. List view and add/edit form live in the same panel,
+     toggled by JS (#charListView / #charFormView), matching this app's existing no-framework
+     show/hide convention rather than introducing routing or a component library. -->
+<div class="lib-overlay" id="charOverlay">
+  <div class="lib-panel" style="max-width:640px">
+    <h2>Character Library <span style="display:flex;gap:8px"><button class="btn-copy" id="btnCharNew">+ New Character</button><button class="btn-copy" id="btnCharClose">✕ Close</button></span></h2>
+    <div class="lib-note">⚠ Characters live only in this browser, on this device — clearing browser data erases them, and we keep no copy on any server. Reference images are uploaded manually in this version; nothing is auto-generated.</div>
+
+    <div id="charListView">
+      <div id="charList"></div>
+    </div>
+
+    <div id="charFormView" style="display:none">
+      <button class="btn-ghost" id="btnCharBack" style="margin-bottom:12px">← Back to list</button>
+      <input type="hidden" id="charId">
+      <label>Display name</label>
+      <input type="text" id="charDisplayName" placeholder="e.g. Grandma Rosa">
+      <div class="row" style="gap:10px">
+        <div style="flex:1">
+          <label>Character type</label>
+          <select id="charType">
+            <option value="">— unspecified —</option>
+            <option value="narrator">Narrator</option>
+            <option value="host">Host</option>
+            <option value="protagonist">Protagonist</option>
+            <option value="historical">Historical</option>
+            <option value="interviewee">Interviewee</option>
+            <option value="voiceover">Voiceover</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div style="flex:1">
+          <label>Age</label>
+          <input type="text" id="charAge" placeholder="e.g. 70s">
+        </div>
+      </div>
+      <label>Production types <span style="color:var(--muted);font-weight:400">(which script types this character applies to)</span></label>
+      <div id="charProdTypes" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:400;cursor:pointer"><input type="checkbox" value="Short Movie Script" class="char-prodtype" style="width:auto"> Short Movie Script</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:400;cursor:pointer"><input type="checkbox" value="Short Documentary" class="char-prodtype" style="width:auto"> Short Documentary</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:400;cursor:pointer"><input type="checkbox" value="Short Advert" class="char-prodtype" style="width:auto"> Short Advert</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:400;cursor:pointer"><input type="checkbox" value="Podcast" class="char-prodtype" style="width:auto"> Podcast</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:400;cursor:pointer"><input type="checkbox" value="Public Address" class="char-prodtype" style="width:auto"> Public Address</label>
+      </div>
+      <label>Hair</label>
+      <input type="text" id="charHair" placeholder="e.g. silver, tied in a low bun">
+      <label>Tone / voice</label>
+      <input type="text" id="charTone" placeholder="e.g. warm, slow speech, slight rasp">
+      <label>ElevenLabs Voice ID <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+      <input type="text" id="charElevenVoiceId" placeholder="voice ID from elevenlabs.io">
+
+      <label>Default outfit</label>
+      <input type="text" id="charOutfitDefault" placeholder="e.g. faded floral housedress, shawl">
+      <label>Additional named looks <span style="color:var(--muted);font-weight:400">(optional — e.g. for a flashback or a different scene)</span></label>
+      <div id="charOutfitExtra"></div>
+      <button class="btn-ghost" id="btnCharAddOutfit" style="margin-top:6px;margin-bottom:12px">+ Add another look</button>
+
+      <label>Reference images <span style="color:var(--muted);font-weight:400">(upload front, three-quarter, and/or profile — at least one recommended)</span></label>
+      <div class="row" style="gap:10px;margin-bottom:12px">
+        <div style="flex:1;text-align:center">
+          <input type="file" id="charImgFront" accept="image/*" style="display:none">
+          <label for="charImgFront" style="cursor:pointer;display:block"><img id="charImgFrontPrev" style="max-width:100%;border-radius:6px;display:none;margin-bottom:4px"><span class="btn-ghost" style="display:block;padding:6px">Front</span></label>
+        </div>
+        <div style="flex:1;text-align:center">
+          <input type="file" id="charImgThreeQuarter" accept="image/*" style="display:none">
+          <label for="charImgThreeQuarter" style="cursor:pointer;display:block"><img id="charImgThreeQuarterPrev" style="max-width:100%;border-radius:6px;display:none;margin-bottom:4px"><span class="btn-ghost" style="display:block;padding:6px">Three-quarter</span></label>
+        </div>
+        <div style="flex:1;text-align:center">
+          <input type="file" id="charImgProfile" accept="image/*" style="display:none">
+          <label for="charImgProfile" style="cursor:pointer;display:block"><img id="charImgProfilePrev" style="max-width:100%;border-radius:6px;display:none;margin-bottom:4px"><span class="btn-ghost" style="display:block;padding:6px">Profile</span></label>
+        </div>
+      </div>
+
+      <label>Anchor phrase <span style="color:var(--muted);font-weight:400">(auto-compiled preview — this is what gets added to every prompt)</span></label>
+      <div class="lib-note" id="charAnchorPreview" style="color:var(--text);background:var(--panel2);border-color:var(--border)">—</div>
+
+      <div class="row" style="margin-top:14px">
+        <button class="btn-primary" id="btnCharSave">Save character</button>
+        <button class="btn-ghost" id="btnCharDelete" style="display:none;color:var(--err)">Delete</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -390,7 +477,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
   © 2026 TAHA Production Studio · <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a> · <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> · Your scripts and API key are never stored or logged — see our Privacy Policy for details.
 </footer>
 
-<script src="/assets/app.js?v=score4" defer></script>
+<script src="/assets/app.js?v=charlib1" defer></script>
 <script src="/assets/visit-tracker.js" defer></script>
 </body>
 </html>
