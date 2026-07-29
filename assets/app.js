@@ -52,7 +52,7 @@ Follow this exact structure for EVERY segment. Keep wording clear and concise, m
 > [Overall emotional tone and atmosphere of the shot, in a few words]
 
 **Audio Note**:
-> [Music level / voice clarity instruction if needed]
+> [MANDATORY — never leave this generic, vague, or empty. Describe the ambient environmental soundscape that actually belongs in this shot's setting, based on what the Text-to-Image Prompt above describes. No real-world location is ever acoustically silent: an outdoor/forest/nature setting needs wind through leaves, birdsong, distant animal sounds, or rustling underbrush; a city street or urban setting needs traffic hum, distant horns, footsteps, or crowd/pedestrian ambience; a market or crowded space needs overlapping voices and bustle; an indoor room needs quiet room tone and any appliance/HVAC hum; rain, wind, or weather visible in the shot needs its own audible layer. Layer this ambience under any dialogue or music, at a level that supports rather than competes with the TTS Script. Also note music level or voice clarity guidance here if relevant]
 
 ---
 
@@ -68,7 +68,9 @@ Additional rules:
 9. Camera Movement must always be single-axis only for every segment: pure pan, pure tilt, or pure dolly in/out. Never combine axes in one segment, and never use a fully static or locked-off shot, the camera must always be doing something, however subtle. Vary the axis and direction across segments so the camera never repeats the same move twice in a row. Use background motion for kinetic energy instead of a complex camera path
 10. The Image-to-Video Prompt must never include descriptive adjectives about character appearance, clothing, environment, or target objects/products — describe only the kinetic action and camera path. All visual detail comes from the reference image, not the prompt
 11. B-Roll handling: ${allowBRoll ? "Voiceover + B-Roll segments are allowed and encouraged where they suit the content, use them for cutaway shots that support the narration." : "B-Roll is DISABLED for this script. Every segment's Type must be On-Camera or On-Camera + Brand Close only, never Voiceover + B-Roll. Every Text-to-Image and Image-to-Video prompt must keep the on-camera presenter/subject directly in frame at all times, never a cutaway B-roll-only shot."}
-12. Output ONLY the formatted blocks. No preamble, no commentary, no closing remarks.`;
+12. Audio Note is never optional and never generic: every single segment's Audio Note must name the specific ambient environmental sound that setting would realistically have (see the Audio Note field description above for examples). A forest is never silent. A city center is never silent. Judge the correct ambience from that segment's own Text-to-Image Prompt setting, not from a single blanket assumption applied to every segment
+13. Before writing any segment, read and fully understand the ENTIRE script provided below, start to finish, including scenes and details near the end. Every segment's content, tone, and continuity must reflect full awareness of the whole script, not just the portion nearest that segment. Do not treat any part of the input as optional to read
+14. Output ONLY the formatted blocks. No preamble, no commentary, no closing remarks.`;
 }
 
 /* ─────────────────────────  DOM  ───────────────────────── */
@@ -907,6 +909,33 @@ const FORMAT_PROVIDER_META = {
   deepseek:  { label: "DeepSeek",  keyEl: "apiKeyDeepseek",  modelEl: "modelDeepseek", keyUrl: "platform.deepseek.com/api_keys" }
 };
 
+/* Output-token ceiling, per provider (and per model where a provider's models differ). Long
+   pasted scripts were never actually being truncated on the way IN — script text always went
+   through format.js to the upstream provider verbatim (confirmed by re-reading the relay: it
+   only strips em dashes from the response, nothing touches the request body). The real risk was
+   on the way OUT: this used to be one flat `Math.min(1500 + n*800, 16000)` for every provider,
+   which for large segment counts (up to 21) could sit right at or above what a given provider's
+   API actually allows, or simply not leave the model enough room to finish every segment's 7
+   fields without the response getting cut off mid-generation. Ceilings below are each provider's
+   real published max output tokens (checked July 2026): Anthropic Claude Sonnet 5 = 64k, Gemini
+   2.5/3.6 Flash = ~65.5k, Groq llama-3.3-70b-versatile = 32,768 / openai/gpt-oss-120b = 65,536,
+   DeepSeek's standard (non-beta) chat completions endpoint is far more limited than its 384k
+   model ceiling implies, so it's kept conservative to avoid a 400 from requesting more than the
+   endpoint actually accepts. Requested tokens still scale with segment count so small jobs don't
+   over-ask, they just aren't clamped down below what a large job legitimately needs anymore. */
+const PROVIDER_MAX_OUTPUT_TOKENS = {
+  anthropic: 64000,
+  gemini: 65000,
+  groq: { default: 32000, "openai/gpt-oss-120b": 65000 },
+  deepseek: 8000
+};
+function computeMaxTokens(n, provider, model) {
+  const requested = 2000 + n * 900;
+  let ceiling = PROVIDER_MAX_OUTPUT_TOKENS[provider];
+  if (ceiling && typeof ceiling === "object") ceiling = ceiling[model] || ceiling.default;
+  return Math.min(requested, ceiling || 16000);
+}
+
 els.btnFormat.addEventListener("click", async () => {
   const provider = els.formatProvider.value;
   const pmeta = FORMAT_PROVIDER_META[provider];
@@ -955,7 +984,7 @@ els.btnFormat.addEventListener("click", async () => {
         provider,
         apiKey: key,
         model: els[pmeta.modelEl].value,
-        max_tokens: Math.min(1500 + n*800, 16000),
+        max_tokens: computeMaxTokens(n, provider, els[pmeta.modelEl].value),
         system: buildSystemPrompt(n, ratio, allowBRoll),
         messages: [{ role: "user", content: userMsg }]
       })
@@ -1974,9 +2003,22 @@ window.genClip = async function (num, btn) {
      fixed in one place. ROLLBACK: revert to a bare `Audio: ${seg.audioNote}` append by removing
      the buildAudioDirective() calls below and restoring the tag inline — no other code depends
      on this function. */
-  function buildAudioDirective(note) {
-    if (!note) return "";
-    return `Sound design — the finished audio track must clearly include the following, layered in with any dialogue and not replaced by generic ambience: "${note}". Do not omit these specific sound cues.`;
+  /* ROUND 4 FIX: takes the whole segment now, not just the note string, and NEVER returns "" —
+     the three call sites below used to skip this entirely (`seg.audioNote ? ... : ""`) whenever
+     a segment had no Audio Note, which meant a video generator got zero ambience guidance and
+     could render a scene as acoustically dead silent. User-reported: a rain-soaked market scene
+     and a forest scene both came back with no environmental sound at all. No real-world location
+     is ever silent, so this always emits something: the formatter-written Audio Note when present
+     (buildSystemPrompt now requires every segment to have one), or a scene-derived fallback built
+     from the segment's own Text-to-Image Prompt/Type when it's missing (e.g. a manually-edited or
+     older pre-fix segment), rather than silently contributing nothing. */
+  function buildAudioDirective(seg) {
+    const note = seg && seg.audioNote;
+    if (note) {
+      return `Sound design — the finished audio track must clearly include the following, layered in with any dialogue and not replaced by generic ambience: "${note}". Do not omit these specific sound cues. No real-world location is ever acoustically silent, so this ambience must be audibly present under any dialogue or music, never dropped in favor of silence.`;
+    }
+    const scene = ((seg && (seg.t2iPrompt || seg.segType)) || "").replace(/\s+/g, " ").trim().slice(0, 140);
+    return `Sound design — no Audio Note was specified for this segment, but no real-world location is ever acoustically silent. Include ambient environmental sound appropriate to this scene's actual setting${scene ? ` ("${scene}")` : ""}: wind, birdsong, or nature sounds for outdoor/forest settings, traffic and city hum for urban settings, crowd bustle for markets or crowds, quiet room tone for interiors. Layer this under any dialogue or music, do not render the scene as silent.`;
   }
 
   let prompt;
@@ -1987,13 +2029,13 @@ window.genClip = async function (num, btn) {
       + `VO/Script: "${seg.ttsScript}"\n`
       + `Instruction: this is a talking-presenter video, not silent B-roll — an on-camera avatar must speak the VO/Script line above verbatim, aloud, in a natural human voice.`
       + (libChars.length ? `\nCharacter(s) (Character Library — keep exactly as described, do not invent a different appearance): ${libChars.map(c => `${c.displayName || "character"} — ${c.anchorPhrase || buildAnchorPhrase(c)}`).join("; ")}` : "")
-      + (seg.audioNote ? `\nAudio Instruction: ${buildAudioDirective(seg.audioNote)}` : "")
+      + `\nAudio Instruction: ${buildAudioDirective(seg)}`
       + `\nDuration: ~${requestedDuration} seconds`;
   } else if (provider === "grok") {
     if (!seg.t2iPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
     let p = buildVisualDescription(seg);
     if (seg.ttsScript) p += `. The on-camera subject speaks: "${seg.ttsScript}"`;
-    if (seg.audioNote) p += `. ${buildAudioDirective(seg.audioNote)}`;
+    p += `. ${buildAudioDirective(seg)}`;
     prompt = p;
   } else {
     // Veo 3.1 — natively supports dialogue/SFX/ambience in the same prompt (per Google's own
@@ -2001,7 +2043,7 @@ window.genClip = async function (num, btn) {
     if (!seg.t2iPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
     let p = buildVisualDescription(seg);
     if (seg.ttsScript) p += `. A character on screen says: "${seg.ttsScript}"`;
-    if (seg.audioNote) p += `. ${buildAudioDirective(seg.audioNote)}`;
+    p += `. ${buildAudioDirective(seg)}`;
     prompt = p;
   }
 
