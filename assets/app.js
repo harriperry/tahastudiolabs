@@ -1565,7 +1565,19 @@ const refFiles = [slot1, els.refImg2?.files?.[0], els.refImg3?.files?.[0]].filte
          on-camera narrator — via Grok's documented <IMAGE_n> tags for Grok, and via plain
          descriptive instruction for Veo (which has no numbered-tag convention) — and slots 2-3
          are described as supporting participants, matching how each provider actually expects
-         multi-image intent to be communicated. */
+         multi-image intent to be communicated.
+
+       MULTI-CHARACTER FIX (real-world testing, user-reported): the wording above assumed slot 1
+       always shows exactly ONE person ("The person shown... keep their exact face"). That's true
+       for a manually-uploaded headshot, but slot 1 can also be a frame-chained image (see
+       extractLastFrame() above) — the actual last frame of a multi-character scene, e.g. two
+       people in frame together. Telling the model "the person... their exact face" about an
+       image that shows two people is a direct mismatch: it gives the model no instruction to
+       preserve the second person at all, which plausibly explains why chained multi-character
+       scenes were coming back with different people each segment even though single-character
+       chained scenes worked. Fixed to describe "every person visible" rather than assuming a
+       headcount of one, so it correctly covers both the single-headshot case and the
+       chained-multi-person-frame case with the same wording. */
     if (provider === "veo" || provider === "grok") {
       if (refFiles.length) {
         vidSetStatus(num, "info", '<span class="spin"></span>Encoding reference image(s)…');
@@ -1573,8 +1585,8 @@ const refFiles = [slot1, els.refImg2?.files?.[0], els.refImg3?.files?.[0]].filte
           const encoded = await Promise.all(refFiles.map(fileToBase64));
           params.referenceImages = encoded.map(img => ({ image: img, referenceType: "asset" }));
           prompt = (refFiles.length > 1
-            ? "The person shown in the first reference image is the required on-camera character for this scene — keep their exact face and identity recognizable while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud. Any other reference images show supporting participants or objects that may also appear, but must not replace the first image's subject as the speaker. "
-            : "The person shown in the reference image is the required on-camera character for this scene — keep their exact face and identity recognizable while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud. "
+            ? "The first reference image shows the required on-camera character(s) for this scene — whether it shows one person or several, every one of them must keep their exact face and identity recognizable and distinct from the others, while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud. Any other reference images show additional supporting participants or objects that may also appear, but must not replace anyone already shown in the first reference image. "
+            : "The reference image shows the required on-camera character(s) for this scene — whether it shows one person or several, every one of them must keep their exact face and identity recognizable and distinct from the others, while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud. "
           ) + prompt;
         } else {
           const dataUris = await Promise.all(refFiles.map(fileToDataUri));
@@ -1585,8 +1597,8 @@ const refFiles = [slot1, els.refImg2?.files?.[0], els.refImg3?.files?.[0]].filte
             params.duration = 10;
             vidSetStatus(num, "info", '<span class="spin"></span>Reference image attached — Grok caps clips with a reference image at 10s, adjusting…');
           }
-          let roleNote = "The person shown in <IMAGE_1> is the required on-camera character for this scene — keep their exact face and identity recognizable while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud.";
-          if (refFiles.length > 1) roleNote += ` <IMAGE_2>${refFiles.length > 2 ? " and <IMAGE_3>" : ""} show supporting participants or objects that may also appear in the shot, but must not replace the speaker from <IMAGE_1>.`;
+          let roleNote = "<IMAGE_1> shows the required on-camera character(s) for this scene — whether it shows one person or several, every one of them must keep their exact face and identity recognizable and distinct from the others, while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud.";
+          if (refFiles.length > 1) roleNote += ` <IMAGE_2>${refFiles.length > 2 ? " and <IMAGE_3>" : ""} show additional supporting participants or objects that may also appear in the shot, but must not replace anyone already shown in <IMAGE_1>.`;
           prompt = roleNote + " " + prompt;
         }
         vidSetStatus(num, "info", '<span class="spin"></span>Submitting…');
