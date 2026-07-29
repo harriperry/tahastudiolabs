@@ -97,7 +97,13 @@ async function formatAnthropic(apiKey, model, max_tokens, system, messages) {
    generateContent still fully supports a plain system_instruction + contents +
    generationConfig.maxOutputTokens request with none of the deprecated-sampling-parameter
    churn that only affects the newest 3.6/3.5 models — and we never send temperature/top_p/
-   top_k anyway, so this is the lower-risk, more stable integration point. */
+   top_k anyway, so this is the lower-risk, more stable integration point.
+   thinkingConfig.thinkingBudget: 0 — Gemini 2.5/3.6 Flash have "thinking" turned on by default,
+   and those thinking tokens are deducted from the SAME maxOutputTokens budget as the visible
+   response (confirmed via Google's own developer forum reports of exactly this causing silently
+   truncated/empty responses on plain formatting calls like this one). This task is a mechanical
+   reformatting job with no need for a hidden reasoning pass, so thinking is explicitly disabled
+   to keep the entire token budget available for the actual segment output. */
 async function formatGemini(apiKey, model, max_tokens, system, messages) {
   const userText = messages.map(m => m.content).join("\n\n");
   let res;
@@ -108,7 +114,7 @@ async function formatGemini(apiKey, model, max_tokens, system, messages) {
       body: JSON.stringify({
         system_instruction: { parts: [{ text: system || "" }] },
         contents: [{ role: "user", parts: [{ text: userText }] }],
-        generationConfig: { maxOutputTokens: Number(max_tokens || 4096) }
+        generationConfig: { maxOutputTokens: Number(max_tokens || 4096), thinkingConfig: { thinkingBudget: 0 } }
       })
     });
   } catch (e) {
