@@ -34,7 +34,7 @@ Follow this exact structure for EVERY segment. Keep wording clear and concise, m
 **Type**: [${allowBRoll ? "On-Camera / Voiceover + B-Roll / On-Camera + Brand Close" : "On-Camera / On-Camera + Brand Close"}]
 
 **TTS Script**:
-> [Full spoken text for this exact segment duration (10 seconds for segments 1-3, 15 seconds for segment 4 onward, per the timing list in rule 1). Write this like a working screenwriter, not a summary of one: real spoken rhythm, contractions, natural interruption or trailing off where it fits, never a tidy expository paragraph. Weave in sensory-grounded environmental detail, sound, light, texture, temperature, movement in the space, so the setting feels occupied and specific rather than a bare location label. Build mood through word choice, pacing, and what gets noticed or left unsaid, rather than naming the mood outright. If more than one character speaks anywhere in this script, give each one a distinct, identifiable voice in rhythm and vocabulary, never interchangeable lines with a different name attached. Show what the moment looks, sounds, and feels like rather than stating a conclusion about it, and avoid dialogue that exists only to inform the audience of facts the characters would already know. Include short connecting phrases to flow smoothly between segments, keep it perfectly timed for that duration]
+> [Full spoken text for this exact segment duration (10 seconds for segments 1-3, 15 seconds for segment 4 onward, per the timing list in rule 1). HARD WORD-COUNT CEILING (rule 6): roughly 22-28 words for a 10-second segment, roughly 33-42 words for a 15-second segment, this is a physical speaking-time limit, not a suggestion, staying inside it always takes priority over adding more descriptive richness. Write this like a working screenwriter, not a summary of one: real spoken rhythm, contractions, natural interruption or trailing off where it fits, never a tidy expository paragraph. Weave in sensory-grounded environmental detail economically, a phrase or two, not a paragraph, so the setting feels occupied and specific without blowing the word count. Build mood through word choice, pacing, and what gets noticed or left unsaid, rather than naming the mood outright. If more than one character speaks anywhere in this script, give each one a distinct, identifiable voice in rhythm and vocabulary, never interchangeable lines with a different name attached. Show what the moment looks, sounds, and feels like rather than stating a conclusion about it, and avoid dialogue that exists only to inform the audience of facts the characters would already know. Include short connecting phrases to flow smoothly between segments, keep it perfectly timed for that duration]
 
 **Text-to-Image Prompt**:
 > [Detailed, photorealistic ${ratio} still-frame prompt describing the opening composition of this shot: subject, setting, wardrobe or props, framing, and style, specific enough to generate a single reference still image on its own]
@@ -75,7 +75,8 @@ Additional rules:
 16. Dialogue must sound spoken, not written. Real people interrupt, trail off, use contractions, and rarely speak in complete tidy paragraphs. Avoid expository dialogue that only exists to inform the audience of facts the characters would already know (no "as you know..." exposition), let information and emotion come through naturally instead
 17. Every speaking character must have a distinct, identifiable voice, rhythm, vocabulary, and tone that differ from every other character, never interchangeable script blocks distinguished only by the name attached to them
 18. Show, don't summarize. Render what a moment looks like, sounds like, and feels like rather than stating a conclusion about it. This is the single biggest lever for writing that reads as vivid and specific rather than flat and generic
-19. Output ONLY the formatted blocks. No preamble, no commentary, no closing remarks.`;
+19. Whenever a segment's Type is On-Camera or On-Camera + Brand Close, the on-screen subject is the one delivering the TTS Script, out loud, directly to camera, this is a spoken-to-camera moment, not narration played over unrelated footage of that person. Write the TTS Script as a line that person would actually say on camera (first person is fine, but it must read as dialogue delivered to the viewer, not a diary-style travelogue caption). The Image-to-Video Prompt's physical action must stay compatible with speaking: a person cannot naturally talk with their mouth full or while mid-drink, so if the moment includes eating, drinking, or anything else that occupies the mouth, stage it as a distinct beat clearly before or after the spoken line, never simultaneous with it
+20. Output ONLY the formatted blocks. No preamble, no commentary, no closing remarks.`;
 }
 
 /* ─────────────────────────  DOM  ───────────────────────── */
@@ -988,7 +989,7 @@ els.btnFormat.addEventListener("click", async () => {
   const CRAFT_BLOCKS = {
     "Short Movie Script": `SHORT MOVIE SCRIPT — CRAFT INSTRUCTIONS: write this like a produced screenplay, not a plot summary. Action and scene description (carried in the TTS Script/narration where a segment is not pure dialogue) should read cinematically: specific, visual, and economical, never padded or generic. Favor subtext over exposition, characters should rarely say exactly what they mean, let intention come through behavior, word choice, and what's left unsaid. Every scene should feel deliberately staged with real atmosphere, not a flat account of what happens in it.\n\n`,
     "Short Documentary": `SHORT DOCUMENTARY — CRAFT INSTRUCTIONS: narration should carry literary weight without losing its informational job, it still has to teach the viewer something true. Voiceover + B-Roll segments should paint the environment richly enough that the described visual and the narration reinforce each other rather than repeating the same idea twice in different words. On-camera or interview-style segments should preserve natural human speech patterns, hesitation, emphasis, real phrasing, rather than reading like a scripted announcement, even when the speaker is a reconstructed or composite figure.\n\n`,
-    "Short Advert": `SHORT ADVERT — CRAFT INSTRUCTIONS: every single word must earn its place given the tight runtime. Atmosphere and mood still apply but must be compressed into a tight emotional hook rather than a slow build, and must always serve the advertised brand or product, never replace it. The specific brand or product named in the input must be clearly present and named on screen or in the TTS Script starting from the very first segment, not saved for a reveal at the end and not diluted into generic unbranded scenery, a viewer should know exactly what is being advertised within the first few seconds. Every Image-to-Video Prompt must give the subject and product real physical energy and kinetic specificity, a confident dynamic gesture, a satisfying dynamic product action like a pour, a fizzy open, or a decisive stride, genuine movement with momentum, never a passive static beat like a slow sip and a smile. An advert has to feel alive and kinetic on screen, not posed or still, that energy is what makes it memorable, not just the visual composition. End on a clear, resonant closing line or call to action that names the brand and lands with real impact, never trail off or fade out on scenery without landing on something.\n\n`,
+    "Short Advert": `SHORT ADVERT — CRAFT INSTRUCTIONS: every single word must earn its place given the tight runtime. Atmosphere and mood still apply but must be compressed into a tight emotional hook rather than a slow build, and must always serve the advertised brand or product, never replace it. The specific brand or product named in the input must be clearly present and named on screen or in the TTS Script starting from the very first segment, not saved for a reveal at the end and not diluted into generic unbranded scenery, a viewer should know exactly what is being advertised within the first few seconds. If the Type is On-Camera or On-Camera + Brand Close, the subject actually speaks the line to camera, per the shared On-Camera rule, most short adverts should use this direct-to-camera spokesperson delivery since it is the most persuasive and memorable option, favor it unless the input clearly calls for pure voiceover instead. Every Image-to-Video Prompt must still give the subject and product real physical energy and kinetic specificity, a confident dynamic gesture, a satisfying dynamic product action like a pour, a fizzy open, or a decisive stride, genuine movement with momentum, never a passive static beat, but stage that product action as its own beat before or after the spoken line rather than layered on top of it, since a person cannot speak clearly while their mouth is on the product. An advert has to feel alive and kinetic on screen, not posed or still, that energy is what makes it memorable, not just the visual composition. End on a clear, resonant closing line or call to action that names the brand and lands with real impact, never trail off or fade out on scenery without landing on something.\n\n`,
     "Public Address": `PUBLIC ADDRESS — CRAFT INSTRUCTIONS: write with real rhetorical craft, deliberate repetition, escalating structure, and a clear emotional through-line that builds to a climactic point, the way a speechwriter paces a delivered speech. Vary sentence length and rhythm intentionally rather than using uniform sentence structure throughout, short sentences for impact, longer ones to build momentum.\n\n`
   };
   const craftBlock = CRAFT_BLOCKS[stype] || "";
@@ -2048,6 +2049,24 @@ window.genClip = async function (num, btn) {
     return `Sound design — no Audio Note was specified for this segment, but no real-world location is ever acoustically silent. Include ambient environmental sound appropriate to this scene's actual setting${scene ? ` ("${scene}")` : ""}: wind, birdsong, or nature sounds for outdoor/forest settings, traffic and city hum for urban settings, crowd bustle for markets or crowds, quiet room tone for interiors. Layer this under any dialogue or music, do not render the scene as silent.`;
   }
 
+  /* User-reported bug (real production test, Coca-Cola advert): Veo/Grok were always told "a
+     character on screen says X" regardless of segment Type, even for Voiceover + B-Roll shots
+     that may show no person at all (a statue, a street, a product on its own), which is a
+     mismatched instruction the video generator has to silently reconcile however it can. Also
+     surfaced a second, related issue: an On-Camera segment's TTS Script got treated as narration
+     played over unrelated action (a woman drinking, never speaking) instead of a line she
+     actually delivers to camera. This mirrors the same fix now in buildSystemPrompt()'s rule 19
+     at the generation layer: On-Camera/On-Camera + Brand Close gets an explicit "speaks aloud,
+     directly to camera" instruction; Voiceover + B-Roll gets "narration plays over this shot"
+     instead, since there may be no one on screen to lip-sync to. */
+  function dialogueDirective(seg) {
+    if (!seg || !seg.ttsScript) return "";
+    const isVO = ((seg.segType || "").toLowerCase()).includes("voiceover");
+    return isVO
+      ? `Voiceover narration plays over this shot, not lip-synced to anyone on screen: "${seg.ttsScript}"`
+      : `The on-camera subject speaks this line aloud, directly to camera, mouth movement matching the words: "${seg.ttsScript}"`;
+  }
+
   let prompt;
   if (provider === "heygen") {
     if (!seg.ttsScript) { vidSetStatus(num, "err", "No TTS Script found for this segment — HeyGen needs the spoken script text to generate voice."); return; }
@@ -2061,7 +2080,8 @@ window.genClip = async function (num, btn) {
   } else if (provider === "grok") {
     if (!seg.t2iPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
     let p = buildVisualDescription(seg);
-    if (seg.ttsScript) p += `. The on-camera subject speaks: "${seg.ttsScript}"`;
+    const dd = dialogueDirective(seg);
+    if (dd) p += `. ${dd}`;
     p += `. ${buildAudioDirective(seg)}`;
     prompt = p;
   } else {
@@ -2069,7 +2089,8 @@ window.genClip = async function (num, btn) {
     // prompting guide), using quotes for speech, so pass TTS Script/Audio Note through too.
     if (!seg.t2iPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
     let p = buildVisualDescription(seg);
-    if (seg.ttsScript) p += `. A character on screen says: "${seg.ttsScript}"`;
+    const dd = dialogueDirective(seg);
+    if (dd) p += `. ${dd}`;
     p += `. ${buildAudioDirective(seg)}`;
     prompt = p;
   }
