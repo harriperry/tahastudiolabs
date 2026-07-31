@@ -101,6 +101,67 @@ async function anthropicJSON(res) {
   }
   return json;
 }
+
+/* ── Multi-provider AI call ───────────────────────────────────────────────
+   ScriptEngine supports Anthropic Claude and xAI Grok as interchangeable
+   text-generation providers. callAI() takes a system prompt + user message
+   and returns plain text, branching on whichever provider is active so the
+   four call sites (generate, addTwoScenes, regenScene, FBGen) don't each
+   need their own provider-switch logic. */
+const GROK_MODEL = "grok-4-fast";
+async function callAI({
+  provider,
+  anthropicKey,
+  grokKey
+}, system, userText, maxTokens) {
+  if (provider === "grok") {
+    if (!grokKey) throw new Error("Add your Grok (xAI) API key in Settings first.");
+    const res = await fetch("https://api.x.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${grokKey}`
+      },
+      body: JSON.stringify({
+        model: GROK_MODEL,
+        max_tokens: maxTokens,
+        messages: [{
+          role: "system",
+          content: system
+        }, {
+          role: "user",
+          content: userText
+        }]
+      })
+    });
+    let json;
+    try {
+      json = await res.json();
+    } catch (e) {
+      throw new Error(`Grok returned an unreadable response (HTTP ${res.status}).`);
+    }
+    if (!res.ok || json?.error) {
+      throw new Error(json?.error?.message || json?.error || `Grok API error (HTTP ${res.status}).`);
+    }
+    return json.choices?.[0]?.message?.content || "";
+  }
+  if (!anthropicKey) throw new Error("Add your Anthropic API key in Settings first.");
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: ANTHROPIC_HEADERS(anthropicKey),
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: maxTokens,
+      system,
+      messages: [{
+        role: "user",
+        content: userText
+      }]
+    })
+  });
+  const json = await anthropicJSON(res);
+  return json.content?.find(b => b.type === "text")?.text || "";
+}
 const buildSystemPrompt = (context, chars) => {
   const charBlock = chars?.length ? `\n## CHARACTER REGISTRY — USE CONSISTENTLY IN ALL SCENES\n${chars.map(c => `- ${c.name} (${c.role}): ${c.appearance}. Voice: ${c.voiceTone}. Accent: ${c.accent}. Personality: ${c.personality}.`).join("\n")}\n` : "";
   return `You are an elite story writer, cinematographer, and AI video production expert specialising in short-form Facebook video content. ${charBlock}${context ? `\n## ESTABLISHED STORY WORLD — TREAT AS CANON\n${context}\n` : ""}
@@ -498,36 +559,19 @@ const SceneCard = ({
 // ── Facebook Generator ────────────────────────────────────────────────────────
 const FBGen = ({
   data,
-  anthropicKey
+  ai
 }) => {
   const [open, setOpen] = useState(false);
   const [res, setRes] = useState(null);
   const [loading, setLoading] = useState(false);
   const gen = async () => {
-    if (!anthropicKey) {
-      alert("Add your Anthropic API key in Settings (⚙️) first.");
-      setOpen(false);
-      return;
-    }
     setLoading(true);
     try {
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: ANTHROPIC_HEADERS(anthropicKey),
-        body: JSON.stringify({
-          model: ANTHROPIC_MODEL,
-          max_tokens: 1000,
-          system: `You are a Facebook viral content strategist. Return ONLY valid JSON (no markdown): {"hook":"Single scroll-stopping opening line — max 12 words, pure emotion or curiosity, no hashtags","caption":"3-4 short paragraphs, emotional storytelling tone, ends with a question to drive comments","cta":"One strong call-to-action line","hashtags":"10 relevant hashtags as a single string"}`,
-          messages: [{
-            role: "user",
-            content: `Story: "${data.title}" (${data.genre})\nSynopsis: ${data.synopsis}\n\nWrite a viral Facebook video post.`
-          }]
-        })
-      });
-      const j = await anthropicJSON(r);
-      setRes(JSON.parse(j.content?.find(b => b.type === "text")?.text.replace(/```json|```/g, "").trim()));
+      const text = await callAI(ai, `You are a Facebook viral content strategist. Return ONLY valid JSON (no markdown): {"hook":"Single scroll-stopping opening line — max 12 words, pure emotion or curiosity, no hashtags","caption":"3-4 short paragraphs, emotional storytelling tone, ends with a question to drive comments","cta":"One strong call-to-action line","hashtags":"10 relevant hashtags as a single string"}`, `Story: "${data.title}" (${data.genre})\nSynopsis: ${data.synopsis}\n\nWrite a viral Facebook video post.`, 1000);
+      setRes(JSON.parse(text.replace(/```json|```/g, "").trim()));
     } catch (e) {
       alert("Failed: " + e.message);
+      setOpen(false);
     }
     setLoading(false);
   };
@@ -662,7 +706,7 @@ const StoryView = ({
   onSave,
   elApiKey,
   elVoiceId,
-  anthropicKey,
+  ai,
   tracker,
   onStageChange
 }) => {
@@ -672,6 +716,7 @@ const StoryView = ({
   const [saved, setSaved] = useState(false);
   const [adding, setAdding] = useState(false);
   const [addMsg, setAddMsg] = useState("");
+  const [rawView, setRawView] = useState(false);
   const enterEdit = () => {
     const d = {};
     data.scenes?.forEach(s => {
@@ -695,32 +740,14 @@ const StoryView = ({
     setEditMode(false);
   };
   const addTwoScenes = async () => {
-    if (!anthropicKey) {
-      setAddMsg("⚠️ Add your Anthropic API key in Settings first.");
-      setTimeout(() => setAddMsg(""), 4000);
-      return;
-    }
     setAdding(true);
     setAddMsg("✍️ Writing 2 new scenes...");
     const sum = data.scenes.map(s => `Scene ${s.scene_number} — ${s.scene_title}: ${s.scene_description}`).join("\n");
     const last = data.scenes[data.scenes.length - 1];
     const next = (last?.scene_number || data.scenes.length) + 1;
     try {
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: ANTHROPIC_HEADERS(anthropicKey),
-        body: JSON.stringify({
-          model: ANTHROPIC_MODEL,
-          max_tokens: 3000,
-          system: `Write exactly 2 continuation scenes. Return ONLY a JSON array of 2 objects (no markdown): [{"scene_number":${next},"scene_title":"...","scene_description":"...","dialogue":"[Name] said *(tone)* TTS: (msg). [Name] replied *(tone)*: (reply).","i2v_prompt":"...","kinetic_prompt":"...","continuity_prompt":"..."}] Numbers start at ${next}. Match story's arc and visual style exactly.`,
-          messages: [{
-            role: "user",
-            content: `Story: "${data.title}" (${data.genre})\nSynopsis: ${data.synopsis}\n\nScenes:\n${sum}\n\nLast continuity: ${last?.continuity_prompt || "N/A"}`
-          }]
-        })
-      });
-      const j = await anthropicJSON(r);
-      const ns = JSON.parse(j.content?.find(b => b.type === "text")?.text.replace(/```json|```/g, "").trim());
+      const text = await callAI(ai, `Write exactly 2 continuation scenes. Return ONLY a JSON array of 2 objects (no markdown): [{"scene_number":${next},"scene_title":"...","scene_description":"...","dialogue":"[Name] said *(tone)* TTS: (msg). [Name] replied *(tone)*: (reply).","i2v_prompt":"...","kinetic_prompt":"...","continuity_prompt":"..."}] Numbers start at ${next}. Match story's arc and visual style exactly.`, `Story: "${data.title}" (${data.genre})\nSynopsis: ${data.synopsis}\n\nScenes:\n${sum}\n\nLast continuity: ${last?.continuity_prompt || "N/A"}`, 3000);
+      const ns = JSON.parse(text.replace(/```json|```/g, "").trim());
       await onSave({
         ...data,
         scenes: [...data.scenes, ...ns]
@@ -734,28 +761,11 @@ const StoryView = ({
     setAdding(false);
   };
   const regenScene = async num => {
-    if (!anthropicKey) {
-      alert("Add your Anthropic API key in Settings first.");
-      return;
-    }
     const s = data.scenes.find(x => x.scene_number === num);
     const prev = data.scenes.find(x => x.scene_number === num - 1);
     try {
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: ANTHROPIC_HEADERS(anthropicKey),
-        body: JSON.stringify({
-          model: ANTHROPIC_MODEL,
-          max_tokens: 1500,
-          system: `Rewrite ONE scene. Return ONLY a single JSON scene object (no markdown, no array): {"scene_number":${num},"scene_title":"...","scene_description":"...","dialogue":"[Name] said *(tone)* TTS: (msg). [Name] replied *(tone)*: (reply).","i2v_prompt":"...","kinetic_prompt":"...","continuity_prompt":"..."}`,
-          messages: [{
-            role: "user",
-            content: `Story: "${data.title}" (${data.genre})\nSynopsis: ${data.synopsis}\nPrev continuity: ${prev?.continuity_prompt || "N/A"}\n\nRewrite scene ${num}: "${s?.scene_title}" — fresh approach, same story position.`
-          }]
-        })
-      });
-      const j = await anthropicJSON(r);
-      const ns = JSON.parse(j.content?.find(b => b.type === "text")?.text.replace(/```json|```/g, "").trim());
+      const text = await callAI(ai, `Rewrite ONE scene. Return ONLY a single JSON scene object (no markdown, no array): {"scene_number":${num},"scene_title":"...","scene_description":"...","dialogue":"[Name] said *(tone)* TTS: (msg). [Name] replied *(tone)*: (reply).","i2v_prompt":"...","kinetic_prompt":"...","continuity_prompt":"..."}`, `Story: "${data.title}" (${data.genre})\nSynopsis: ${data.synopsis}\nPrev continuity: ${prev?.continuity_prompt || "N/A"}\n\nRewrite scene ${num}: "${s?.scene_title}" — fresh approach, same story position.`, 1500);
+      const ns = JSON.parse(text.replace(/```json|```/g, "").trim());
       await onSave({
         ...data,
         scenes: data.scenes.map(x => x.scene_number === num ? ns : x)
@@ -869,7 +879,19 @@ const StoryView = ({
       padding: "4px 9px",
       cursor: "pointer"
     }
-  }, "Cancel")), !editMode && /*#__PURE__*/React.createElement(CopyBtn, {
+  }, "Cancel")), !editMode && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setRawView(v => !v),
+    style: {
+      background: rawView ? "#1e3a5f" : "#1f2937",
+      border: `1px solid ${rawView ? "#3b82f6" : "#374151"}`,
+      borderRadius: 8,
+      color: rawView ? "#60a5fa" : "#9ca3af",
+      fontSize: 11,
+      fontWeight: 700,
+      padding: "5px 11px",
+      cursor: "pointer"
+    }
+  }, rawView ? "🎨 View Formatted" : "📄 View Raw Markdown"), !editMode && /*#__PURE__*/React.createElement(CopyBtn, {
     text: fullScript,
     label: "📋 Full Script",
     ok: "✓ Copied!"
@@ -999,8 +1021,45 @@ const StoryView = ({
     }));
   })), /*#__PURE__*/React.createElement(FBGen, {
     data: data,
-    anthropicKey: anthropicKey
-  }), /*#__PURE__*/React.createElement("div", {
+    ai: ai
+  }), rawView ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#070d1a",
+      border: "1px solid #374151",
+      borderRadius: 14,
+      padding: 18,
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#9ca3af",
+      fontWeight: 800,
+      fontSize: 12,
+      textTransform: "uppercase",
+      letterSpacing: 1
+    }
+  }, "📄 Raw Markdown"), /*#__PURE__*/React.createElement(CopyBtn, {
+    text: fullScript,
+    label: "📋 Copy",
+    ok: "✓!"
+  })), /*#__PURE__*/React.createElement("pre", {
+    style: {
+      color: "#d1d5db",
+      fontSize: 12.5,
+      lineHeight: 1.7,
+      whiteSpace: "pre-wrap",
+      wordBreak: "break-word",
+      margin: 0,
+      fontFamily: "'Segoe UI',system-ui,monospace"
+    }
+  }, fullScript)) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#070d1a",
       border: "1px solid #f59e0b44",
@@ -1070,7 +1129,7 @@ const StoryView = ({
       color: "#6ee7b7",
       fontSize: 12
     }
-  }, "MidJourney → Runway / Kling → ElevenLabs → CapCut / Premiere")));
+  }, "MidJourney → Runway / Kling → ElevenLabs → CapCut / Premiere"))));
 };
 
 // ── Character Registry ────────────────────────────────────────────────────────
@@ -1395,11 +1454,15 @@ const Settings = ({
   elApiKey,
   elVoiceId,
   anthropicKey,
+  grokKey,
+  provider,
   onSave
 }) => {
   const [key, setKey] = useState(elApiKey || "");
   const [voice, setVoice] = useState(elVoiceId || "");
   const [aKey, setAKey] = useState(anthropicKey || "");
+  const [gKey, setGKey] = useState(grokKey || "");
+  const [prov, setProv] = useState(provider || "anthropic");
   const [saved, setSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [customVoices, setCustomVoices] = useState([]);
@@ -1443,6 +1506,8 @@ const Settings = ({
           if (s.voiceId) setVoice(s.voiceId);
           if (s.customVoices) setCustomVoices(s.customVoices);
           if (s.anthropicKey) setAKey(s.anthropicKey);
+          if (s.grokKey) setGKey(s.grokKey);
+          if (s.provider) setProv(s.provider);
         }
       } catch {}
     })();
@@ -1464,7 +1529,9 @@ const Settings = ({
       key,
       voiceId: newId.trim(),
       customVoices: updated,
-      anthropicKey: aKey
+      anthropicKey: aKey,
+      grokKey: gKey,
+      provider: prov
     }));
   };
   const removeCustomVoice = async id => {
@@ -1475,7 +1542,9 @@ const Settings = ({
       key,
       voiceId: voice,
       customVoices: updated,
-      anthropicKey: aKey
+      anthropicKey: aKey,
+      grokKey: gKey,
+      provider: prov
     }));
   };
   const save = async () => {
@@ -1483,9 +1552,11 @@ const Settings = ({
       key: key.trim(),
       voiceId: voice,
       customVoices,
-      anthropicKey: aKey.trim()
+      anthropicKey: aKey.trim(),
+      grokKey: gKey.trim(),
+      provider: prov
     }));
-    onSave(key.trim(), voice, aKey.trim());
+    onSave(key.trim(), voice, aKey.trim(), gKey.trim(), prov);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -1519,11 +1590,57 @@ const Settings = ({
     }
   }, "✅ Settings loaded from this browser"), /*#__PURE__*/React.createElement("div", {
     style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      color: "#9ca3af",
+      fontSize: 11,
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      display: "block",
+      marginBottom: 6
+    }
+  }, "AI Provider (used to generate scripts, regens, and Facebook posts)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setProv("anthropic"),
+    style: {
+      flex: 1,
+      background: prov === "anthropic" ? "#1e3a5f" : "#111827",
+      border: `1px solid ${prov === "anthropic" ? "#3b82f6" : "#374151"}`,
+      borderRadius: 8,
+      color: prov === "anthropic" ? "#60a5fa" : "#9ca3af",
+      fontSize: 13,
+      fontWeight: 700,
+      padding: "8px 0",
+      cursor: "pointer"
+    }
+  }, "🔶 Anthropic Claude"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setProv("grok"),
+    style: {
+      flex: 1,
+      background: prov === "grok" ? "#1e3a5f" : "#111827",
+      border: `1px solid ${prov === "grok" ? "#3b82f6" : "#374151"}`,
+      borderRadius: 8,
+      color: prov === "grok" ? "#60a5fa" : "#9ca3af",
+      fontSize: 13,
+      fontWeight: 700,
+      padding: "8px 0",
+      cursor: "pointer"
+    }
+  }, "✖️ Grok (xAI)"))), /*#__PURE__*/React.createElement("div", {
+    style: {
       background: "#0a1020",
-      border: "1px solid #f59e0b44",
+      border: `1px solid ${prov === "anthropic" ? "#f59e0b44" : "#37415144"}`,
       borderRadius: 12,
       padding: 16,
-      marginBottom: 18
+      marginBottom: 18,
+      opacity: prov === "anthropic" ? 1 : 0.6
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1534,7 +1651,7 @@ const Settings = ({
       letterSpacing: 1,
       marginBottom: 4
     }
-  }, "🔑 Anthropic API Key (required to generate)"), /*#__PURE__*/React.createElement("div", {
+  }, "🔑 Anthropic API Key ", prov === "anthropic" && "(active provider)"), /*#__PURE__*/React.createElement("div", {
     style: {
       color: "#6b7280",
       fontSize: 11,
@@ -1554,6 +1671,52 @@ const Settings = ({
       width: "100%",
       background: "#0f172a",
       border: `1px solid ${aKey ? "#f59e0b66" : "#374151"}`,
+      borderRadius: 8,
+      color: "#e5e7eb",
+      fontSize: 13,
+      padding: "9px 12px",
+      outline: "none",
+      boxSizing: "border-box",
+      fontFamily: "inherit"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#0a1020",
+      border: `1px solid ${prov === "grok" ? "#a855f744" : "#37415144"}`,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 18,
+      opacity: prov === "grok" ? 1 : 0.6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#c4b5fd",
+      fontWeight: 800,
+      fontSize: 12,
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      marginBottom: 4
+    }
+  }, "✖️ Grok (xAI) API Key ", prov === "grok" && "(active provider)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#6b7280",
+      fontSize: 11,
+      marginBottom: 10,
+      lineHeight: 1.6
+    }
+  }, "Alternative to Anthropic — same features, different model. Stored only in this browser, never sent anywhere except xAI. Get one at ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: "#9ca3af"
+    }
+  }, "console.x.ai"), "."), /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: gKey,
+    onChange: e => setGKey(e.target.value),
+    placeholder: "xai-...",
+    style: {
+      width: "100%",
+      background: "#0f172a",
+      border: `1px solid ${gKey ? "#a855f766" : "#374151"}`,
       borderRadius: 8,
       color: "#e5e7eb",
       fontSize: 13,
@@ -1936,6 +2099,50 @@ const AccountModal = ({
     setPass("");
     await onAuthed();
   };
+  const sendMagicLink = async () => {
+    if (!email.trim()) {
+      setMsg({
+        ok: false,
+        text: "Enter your email first."
+      });
+      return;
+    }
+    setBusy(true);
+    setMsg(null);
+    const r = await api("magic", {
+      email: email.trim()
+    });
+    setBusy(false);
+    setMsg(r.ok ? {
+      ok: true,
+      text: "Check your inbox — we sent a sign-in link to " + email.trim() + "."
+    } : {
+      ok: false,
+      text: r.data?.error || "Could not send sign-in link."
+    });
+  };
+  const sendForgotPassword = async () => {
+    if (!email.trim()) {
+      setMsg({
+        ok: false,
+        text: "Enter your email first."
+      });
+      return;
+    }
+    setBusy(true);
+    setMsg(null);
+    const r = await api("forgot-password", {
+      email: email.trim()
+    });
+    setBusy(false);
+    setMsg(r.ok ? {
+      ok: true,
+      text: "If that email has an account, a password reset link is on its way."
+    } : {
+      ok: false,
+      text: r.data?.error || "Something went wrong."
+    });
+  };
   const signOut = async () => {
     setBusy(true);
     await api("logout");
@@ -2162,6 +2369,37 @@ const AccountModal = ({
     }
   }, busy && mode === "signup" ? "Creating..." : "Create account")), /*#__PURE__*/React.createElement("div", {
     style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: sendMagicLink,
+    disabled: busy,
+    style: {
+      flex: 1,
+      background: "transparent",
+      border: "1px solid #374151",
+      borderRadius: 8,
+      color: "#9ca3af",
+      fontSize: 12,
+      padding: "7px 0",
+      cursor: "pointer"
+    }
+  }, "✉ Email me a sign-in link instead"), /*#__PURE__*/React.createElement("button", {
+    onClick: sendForgotPassword,
+    disabled: busy,
+    style: {
+      background: "transparent",
+      border: "none",
+      color: "#60a5fa",
+      fontSize: 12,
+      padding: "7px 10px",
+      cursor: "pointer",
+      whiteSpace: "nowrap"
+    }
+  }, "Forgot password?")), /*#__PURE__*/React.createElement("div", {
+    style: {
       color: "#4b5563",
       fontSize: 11,
       lineHeight: 1.6
@@ -2239,6 +2477,8 @@ function App() {
   const [elApiKey, setElApiKey] = useState("");
   const [elVoiceId, setElVoiceId] = useState("21m00Tcm4TlvDq8ikWAM");
   const [anthropicKey, setAnthropicKey] = useState("");
+  const [grokKey, setGrokKey] = useState("");
+  const [provider, setProvider] = useState("anthropic");
   const [trackers, setTrackers] = useState({});
   const [user, setUser] = useState(null);
   const [tier, setTier] = useState("free");
@@ -2273,6 +2513,8 @@ function App() {
           setElApiKey(s.key || "");
           setElVoiceId(s.voiceId || "21m00Tcm4TlvDq8ikWAM");
           setAnthropicKey(s.anthropicKey || "");
+          setGrokKey(s.grokKey || "");
+          setProvider(s.provider || "anthropic");
         }
       } catch {}
       await refreshMe();
@@ -2283,10 +2525,17 @@ function App() {
     await window.storage.set("char_registry", JSON.stringify(u));
     setCharacters(u);
   };
-  const saveElSettings = async (k, v, ak) => {
+  const saveElSettings = async (k, v, ak, gk, prov) => {
     setElApiKey(k);
     setElVoiceId(v);
     setAnthropicKey(ak);
+    setGrokKey(gk);
+    setProvider(prov);
+  };
+  const aiConfig = {
+    provider,
+    anthropicKey,
+    grokKey
   };
   const getTracker = async id => {
     if (trackers[id]) return trackers[id];
@@ -2412,30 +2661,17 @@ function App() {
   };
   const generate = async () => {
     if (!idea.trim()) return;
-    if (!anthropicKey.trim()) {
-      setError("Add your Anthropic API key in Settings (⚙️) first.");
+    const activeKey = provider === "grok" ? grokKey : anthropicKey;
+    if (!activeKey.trim()) {
+      setError(`Add your ${provider === "grok" ? "Grok (xAI)" : "Anthropic"} API key in Settings (⚙️) first.`);
       return;
     }
     setLoading(true);
     setError("");
     setProg("✍️ Crafting your story...");
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: ANTHROPIC_HEADERS(anthropicKey),
-        body: JSON.stringify({
-          model: ANTHROPIC_MODEL,
-          max_tokens: 8000,
-          system: buildSystemPrompt(context.trim(), characters),
-          messages: [{
-            role: "user",
-            content: `Story idea / production brief:\n\n${idea}`
-          }]
-        })
-      });
+      const raw = await callAI(aiConfig, buildSystemPrompt(context.trim(), characters), `Story idea / production brief:\n\n${idea}`, 8000);
       setProg("🎬 Building scenes...");
-      const json = await anthropicJSON(res);
-      const raw = json.content?.find(b => b.type === "text")?.text || "";
       let clean = raw.replace(/```json|```/g, "").trim();
       let parsed;
       try {
@@ -2617,6 +2853,8 @@ function App() {
     elApiKey: elApiKey,
     elVoiceId: elVoiceId,
     anthropicKey: anthropicKey,
+    grokKey: grokKey,
+    provider: provider,
     onSave: saveElSettings
   }), view === "write" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2721,7 +2959,7 @@ function App() {
       boxSizing: "border-box",
       fontFamily: "inherit"
     }
-  }))), !anthropicKey.trim() && /*#__PURE__*/React.createElement("div", {
+  }))), !(provider === "grok" ? grokKey : anthropicKey).trim() && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 11,
       padding: "8px 12px",
@@ -2731,7 +2969,7 @@ function App() {
       color: "#fcd34d",
       fontSize: 12
     }
-  }, "🔑 Add your Anthropic API key in ", /*#__PURE__*/React.createElement("strong", null, "⚙️ Settings"), " before generating."), /*#__PURE__*/React.createElement("div", {
+  }, "🔑 Add your ", provider === "grok" ? "Grok (xAI)" : "Anthropic", " API key in ", /*#__PURE__*/React.createElement("strong", null, "⚙️ Settings"), " before generating."), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -2834,7 +3072,7 @@ function App() {
     data: activeStory,
     elApiKey: elApiKey,
     elVoiceId: elVoiceId,
-    anthropicKey: anthropicKey,
+    ai: aiConfig,
     tracker: activeTracker,
     onStageChange: (sn, si) => updateStage(activeId, sn, si),
     onSave: async u => {
