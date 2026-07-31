@@ -57,7 +57,7 @@ const ANTHROPIC_MODEL = "claude-sonnet-5";
    one login, cookie-based session, same Supabase project. Tier is a single
    pro/free flag per account, so a paid ScriptEngine subscription also
    unlocks ScriptForge Pro and vice versa (one TAHA account, every product). */
-const SE_PRO_MONTHLY_CHECKOUT_URL = "https://buy.polar.sh/REPLACE_WITH_SCRIPTENGINE_MONTHLY_LINK";
+const SE_PRO_MONTHLY_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_iPXfCYT9TLO24z43QQcIkIe7ODOa145blAGYT3iOYaa";
 async function api(path, body) {
   try {
     const res = await fetch("/api/" + path, {
