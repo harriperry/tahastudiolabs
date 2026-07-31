@@ -50,6 +50,23 @@ const ANTHROPIC_HEADERS = key => ({
   "anthropic-version": "2023-06-01",
   "anthropic-dangerous-direct-browser-access": "true"
 });
+const ANTHROPIC_MODEL = "claude-sonnet-5";
+
+// Anthropic returns a JSON error object (no "content" field) on auth failures,
+// bad model names, rate limits, etc. Surface that message instead of letting
+// JSON.parse blow up on an empty/unexpected body with a cryptic error.
+async function anthropicJSON(res) {
+  let json;
+  try {
+    json = await res.json();
+  } catch (e) {
+    throw new Error(`Anthropic returned an unreadable response (HTTP ${res.status}).`);
+  }
+  if (!res.ok || json?.type === "error") {
+    throw new Error(json?.error?.message || `Anthropic API error (HTTP ${res.status}).`);
+  }
+  return json;
+}
 const buildSystemPrompt = (context, chars) => {
   const charBlock = chars?.length ? `\n## CHARACTER REGISTRY — USE CONSISTENTLY IN ALL SCENES\n${chars.map(c => `- ${c.name} (${c.role}): ${c.appearance}. Voice: ${c.voiceTone}. Accent: ${c.accent}. Personality: ${c.personality}.`).join("\n")}\n` : "";
   return `You are an elite story writer, cinematographer, and AI video production expert specialising in short-form Facebook video content. ${charBlock}${context ? `\n## ESTABLISHED STORY WORLD — TREAT AS CANON\n${context}\n` : ""}
@@ -464,7 +481,7 @@ const FBGen = ({
         method: "POST",
         headers: ANTHROPIC_HEADERS(anthropicKey),
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: ANTHROPIC_MODEL,
           max_tokens: 1000,
           system: `You are a Facebook viral content strategist. Return ONLY valid JSON (no markdown): {"hook":"Single scroll-stopping opening line — max 12 words, pure emotion or curiosity, no hashtags","caption":"3-4 short paragraphs, emotional storytelling tone, ends with a question to drive comments","cta":"One strong call-to-action line","hashtags":"10 relevant hashtags as a single string"}`,
           messages: [{
@@ -473,7 +490,7 @@ const FBGen = ({
           }]
         })
       });
-      const j = await r.json();
+      const j = await anthropicJSON(r);
       setRes(JSON.parse(j.content?.find(b => b.type === "text")?.text.replace(/```json|```/g, "").trim()));
     } catch (e) {
       alert("Failed: " + e.message);
@@ -659,7 +676,7 @@ const StoryView = ({
         method: "POST",
         headers: ANTHROPIC_HEADERS(anthropicKey),
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: ANTHROPIC_MODEL,
           max_tokens: 3000,
           system: `Write exactly 2 continuation scenes. Return ONLY a JSON array of 2 objects (no markdown): [{"scene_number":${next},"scene_title":"...","scene_description":"...","dialogue":"[Name] said *(tone)* TTS: (msg). [Name] replied *(tone)*: (reply).","i2v_prompt":"...","kinetic_prompt":"...","continuity_prompt":"..."}] Numbers start at ${next}. Match story's arc and visual style exactly.`,
           messages: [{
@@ -668,7 +685,7 @@ const StoryView = ({
           }]
         })
       });
-      const j = await r.json();
+      const j = await anthropicJSON(r);
       const ns = JSON.parse(j.content?.find(b => b.type === "text")?.text.replace(/```json|```/g, "").trim());
       await onSave({
         ...data,
@@ -694,7 +711,7 @@ const StoryView = ({
         method: "POST",
         headers: ANTHROPIC_HEADERS(anthropicKey),
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: ANTHROPIC_MODEL,
           max_tokens: 1500,
           system: `Rewrite ONE scene. Return ONLY a single JSON scene object (no markdown, no array): {"scene_number":${num},"scene_title":"...","scene_description":"...","dialogue":"[Name] said *(tone)* TTS: (msg). [Name] replied *(tone)*: (reply).","i2v_prompt":"...","kinetic_prompt":"...","continuity_prompt":"..."}`,
           messages: [{
@@ -703,7 +720,7 @@ const StoryView = ({
           }]
         })
       });
-      const j = await r.json();
+      const j = await anthropicJSON(r);
       const ns = JSON.parse(j.content?.find(b => b.type === "text")?.text.replace(/```json|```/g, "").trim());
       await onSave({
         ...data,
@@ -2026,7 +2043,7 @@ function App() {
         method: "POST",
         headers: ANTHROPIC_HEADERS(anthropicKey),
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: ANTHROPIC_MODEL,
           max_tokens: 8000,
           system: buildSystemPrompt(context.trim(), characters),
           messages: [{
@@ -2036,7 +2053,7 @@ function App() {
         })
       });
       setProg("🎬 Building scenes...");
-      const json = await res.json();
+      const json = await anthropicJSON(res);
       const raw = json.content?.find(b => b.type === "text")?.text || "";
       let clean = raw.replace(/```json|```/g, "").trim();
       let parsed;
@@ -2120,7 +2137,7 @@ function App() {
       WebkitBackgroundClip: "text",
       WebkitTextFillColor: "transparent"
     }
-  }, "🎬 Story & Script Production Studio"), /*#__PURE__*/React.createElement("p", {
+  }, "🎬 STORY SCRIPTENGINE"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: "#6b7280",
       margin: "2px 0 0",
