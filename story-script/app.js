@@ -146,10 +146,16 @@ async function callAI({
     return json.choices?.[0]?.message?.content || "";
   }
   if (!anthropicKey) throw new Error("Add your Anthropic API key in Settings first.");
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  // Anthropic blocks direct cross-origin browser fetches from third-party sites,
+  // so this goes through our own same-origin relay function instead (the key is
+  // forwarded for this one request only — never stored or logged server-side).
+  const res = await fetch("/api/ai-relay", {
     method: "POST",
-    headers: ANTHROPIC_HEADERS(anthropicKey),
+    headers: {
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify({
+      apiKey: anthropicKey,
       model: ANTHROPIC_MODEL,
       max_tokens: maxTokens,
       system,
@@ -159,8 +165,14 @@ async function callAI({
       }]
     })
   });
-  const json = await anthropicJSON(res);
-  return json.content?.find(b => b.type === "text")?.text || "";
+  let json;
+  try {
+    json = await res.json();
+  } catch (e) {
+    throw new Error(`Relay returned an unreadable response (HTTP ${res.status}).`);
+  }
+  if (!res.ok || !json?.ok) throw new Error(json?.error || `Anthropic API error (HTTP ${res.status}).`);
+  return json.text || "";
 }
 const buildSystemPrompt = (context, chars) => {
   const charBlock = chars?.length ? `\n## CHARACTER REGISTRY — USE CONSISTENTLY IN ALL SCENES\n${chars.map(c => `- ${c.name} (${c.role}): ${c.appearance}. Voice: ${c.voiceTone}. Accent: ${c.accent}. Personality: ${c.personality}.`).join("\n")}\n` : "";
