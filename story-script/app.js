@@ -52,6 +52,40 @@ const ANTHROPIC_HEADERS = key => ({
 });
 const ANTHROPIC_MODEL = "claude-sonnet-5";
 
+/* ── Accounts & Pro gating ────────────────────────────────────────────────
+   Reuses the same shared TAHA Studio Labs account system as ScriptForge —
+   one login, cookie-based session, same Supabase project. Tier is a single
+   pro/free flag per account, so a paid ScriptEngine subscription also
+   unlocks ScriptForge Pro and vice versa (one TAHA account, every product). */
+const SE_PRO_MONTHLY_CHECKOUT_URL = "https://buy.polar.sh/REPLACE_WITH_SCRIPTENGINE_MONTHLY_LINK";
+async function api(path, body) {
+  try {
+    const res = await fetch("/api/" + path, {
+      method: body === undefined ? "GET" : "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    let data = null;
+    try {
+      data = await res.json();
+    } catch (e) {}
+    return {
+      ok: res.ok,
+      status: res.status,
+      data
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      status: 0,
+      data: null
+    };
+  }
+}
+
 // Anthropic returns a JSON error object (no "content" field) on auth failures,
 // bad model names, rate limits, etc. Surface that message instead of letting
 // JSON.parse blow up on an empty/unexpected body with a cryptic error.
@@ -1857,6 +1891,337 @@ const LibraryCard = ({
   }, "🗑 Delete")));
 };
 
+// ── Account Modal ─────────────────────────────────────────────────────────────
+const AccountModal = ({
+  open,
+  onClose,
+  user,
+  tier,
+  onAuthed,
+  onSignedOut
+}) => {
+  const [mode, setMode] = useState("signin"); // signin | signup
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null); // {ok, text}
+
+  if (!open) return null;
+  const submit = async () => {
+    if (!email.trim() || pass.length < 8) {
+      setMsg({
+        ok: false,
+        text: "Enter an email and a password of at least 8 characters."
+      });
+      return;
+    }
+    setBusy(true);
+    setMsg(null);
+    const r = await api(mode === "signup" ? "signup" : "login", {
+      email: email.trim(),
+      password: pass
+    });
+    setBusy(false);
+    if (!r.ok) {
+      setMsg({
+        ok: false,
+        text: r.data?.error || "Something went wrong."
+      });
+      return;
+    }
+    setMsg({
+      ok: true,
+      text: mode === "signup" ? "Account created." : "Signed in."
+    });
+    setPass("");
+    await onAuthed();
+  };
+  const signOut = async () => {
+    setBusy(true);
+    await api("logout");
+    setBusy(false);
+    await onSignedOut();
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "#000000aa",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 50,
+      padding: 16
+    },
+    onClick: onClose
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "#111827",
+      border: "1px solid #374151",
+      borderRadius: 16,
+      padding: 22,
+      width: "100%",
+      maxWidth: 420,
+      maxHeight: "90vh",
+      overflowY: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#f9fafb",
+      fontWeight: 900,
+      fontSize: 16
+    }
+  }, "Account"), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      background: "transparent",
+      border: "1px solid #374151",
+      borderRadius: 8,
+      color: "#9ca3af",
+      fontSize: 12,
+      padding: "4px 10px",
+      cursor: "pointer"
+    }
+  }, "✕ Close")), user ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#0f172a",
+      border: "1px solid #374151",
+      borderRadius: 10,
+      padding: "12px 14px",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#e5e7eb",
+      fontSize: 13,
+      fontWeight: 700
+    }
+  }, user.email), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4,
+      color: tier === "pro" ? "#34d399" : "#9ca3af",
+      fontSize: 12,
+      fontWeight: 700
+    }
+  }, tier === "pro" ? "✅ Pro — thanks for subscribing" : "Free tier")), tier !== "pro" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "linear-gradient(135deg,#78350f,#92400e)",
+      border: "1px solid #f59e0b55",
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#fcd34d",
+      fontWeight: 800,
+      fontSize: 13,
+      marginBottom: 6
+    }
+  }, "Upgrade to Pro — $3.99/mo"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#fde68a",
+      fontSize: 12,
+      marginBottom: 10,
+      lineHeight: 1.6
+    }
+  }, "One TAHA Studio Labs account, every product. Removes the About section below and unlocks Pro across ScriptForge too."), /*#__PURE__*/React.createElement("a", {
+    href: SE_PRO_MONTHLY_CHECKOUT_URL,
+    target: "_blank",
+    rel: "noopener noreferrer"
+  }, /*#__PURE__*/React.createElement("button", {
+    style: {
+      background: "linear-gradient(135deg,#f59e0b,#ef4444)",
+      border: "none",
+      borderRadius: 8,
+      color: "#fff",
+      fontWeight: 800,
+      fontSize: 13,
+      padding: "9px 18px",
+      cursor: "pointer",
+      width: "100%"
+    }
+  }, "⚡ Upgrade — $3.99/month"))), /*#__PURE__*/React.createElement("button", {
+    onClick: signOut,
+    disabled: busy,
+    style: {
+      background: "transparent",
+      border: "1px solid #374151",
+      borderRadius: 8,
+      color: "#9ca3af",
+      fontSize: 12,
+      padding: "7px 14px",
+      cursor: "pointer",
+      width: "100%"
+    }
+  }, busy ? "Signing out..." : "Sign out")) : /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      color: "#9ca3af",
+      fontSize: 11,
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      display: "block",
+      marginBottom: 5
+    }
+  }, "Email"), /*#__PURE__*/React.createElement("input", {
+    type: "email",
+    value: email,
+    onChange: e => setEmail(e.target.value),
+    placeholder: "you@example.com",
+    autoComplete: "email",
+    style: {
+      width: "100%",
+      background: "#0f172a",
+      border: "1px solid #374151",
+      borderRadius: 8,
+      color: "#e5e7eb",
+      fontSize: 13,
+      padding: "9px 12px",
+      outline: "none",
+      boxSizing: "border-box",
+      fontFamily: "inherit",
+      marginBottom: 12
+    }
+  }), /*#__PURE__*/React.createElement("label", {
+    style: {
+      color: "#9ca3af",
+      fontSize: 11,
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      display: "block",
+      marginBottom: 5
+    }
+  }, "Password"), /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: pass,
+    onChange: e => setPass(e.target.value),
+    placeholder: "••••••••",
+    autoComplete: "current-password",
+    style: {
+      width: "100%",
+      background: "#0f172a",
+      border: "1px solid #374151",
+      borderRadius: 8,
+      color: "#e5e7eb",
+      fontSize: 13,
+      padding: "9px 12px",
+      outline: "none",
+      boxSizing: "border-box",
+      fontFamily: "inherit",
+      marginBottom: 14
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setMode("signin");
+      submit();
+    },
+    disabled: busy,
+    style: {
+      flex: 1,
+      background: "linear-gradient(135deg,#7c3aed,#4338ca)",
+      border: "none",
+      borderRadius: 8,
+      color: "#fff",
+      fontWeight: 700,
+      fontSize: 13,
+      padding: "9px 0",
+      cursor: "pointer"
+    }
+  }, busy && mode === "signin" ? "Signing in..." : "Sign in"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setMode("signup");
+      submit();
+    },
+    disabled: busy,
+    style: {
+      flex: 1,
+      background: "transparent",
+      border: "1px solid #374151",
+      borderRadius: 8,
+      color: "#9ca3af",
+      fontWeight: 700,
+      fontSize: 13,
+      padding: "9px 0",
+      cursor: "pointer"
+    }
+  }, busy && mode === "signup" ? "Creating..." : "Create account")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#4b5563",
+      fontSize: 11,
+      lineHeight: 1.6
+    }
+  }, "By creating an account you agree to the Terms of Service and Privacy Policy. We store only your email, login credential, and subscription status — your stories and API key never leave this browser.")), msg && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      padding: "8px 12px",
+      background: msg.ok ? "#064e3b" : "#7f1d1d",
+      border: `1px solid ${msg.ok ? "#10b98155" : "#ef444455"}`,
+      borderRadius: 8,
+      color: msg.ok ? "#34d399" : "#fca5a5",
+      fontSize: 12
+    }
+  }, msg.text)));
+};
+
+// ── About Section ─────────────────────────────────────────────────────────────
+const AboutSection = () => /*#__PURE__*/React.createElement("div", {
+  style: {
+    background: "linear-gradient(135deg,#1f2937,#111827)",
+    border: "1px solid #374151",
+    borderRadius: 16,
+    padding: 24,
+    marginTop: 26
+  }
+}, /*#__PURE__*/React.createElement("h2", {
+  style: {
+    margin: "0 0 14px",
+    fontSize: 17,
+    fontWeight: 900,
+    color: "#f9fafb"
+  }
+}, "About TAHA STUDIO ScriptEngine"), /*#__PURE__*/React.createElement("div", {
+  style: {
+    color: "#d1d5db",
+    fontSize: 13,
+    lineHeight: 1.75,
+    display: "flex",
+    flexDirection: "column",
+    gap: 12
+  }
+}, /*#__PURE__*/React.createElement("p", {
+  style: {
+    margin: 0
+  }
+}, "TAHA STUDIO ScriptEngine builds a single story idea, or a full production booklet for a sequel, into a complete, scene-by-scene cinematic script. For each scene it generates the scene description, natural dialogue capped at 18 spoken words (timed to a 9-second beat), an SFX/sound design brief, a camera motion (I2V) prompt, a kinetic/gesture prompt, and a continuity bridge into the next scene, plus one universal text-to-image prompt to keep the visual style consistent across the whole story."), /*#__PURE__*/React.createElement("p", {
+  style: {
+    margin: 0
+  }
+}, "A character registry lets you define recurring people (appearance, voice tone, accent, personality) that get woven into every script automatically."), /*#__PURE__*/React.createElement("p", {
+  style: {
+    margin: 0
+  }
+}, "Beyond writing, it tracks each scene's production status (scripted → image → video → VO → edited → published), can generate a ready-to-post Facebook caption with hook, CTA, and hashtags, and keeps every story in a permanent library you can revisit, edit, or extend with new scenes."), /*#__PURE__*/React.createElement("p", {
+  style: {
+    margin: 0
+  }
+}, "It runs entirely in the browser: you bring your own Anthropic API key. Everything is stored locally on your device.")));
+
 // ── Main App ───────────────────────────────────────────────────────────────────
 function App() {
   const [idea, setIdea] = useState("");
@@ -1875,7 +2240,22 @@ function App() {
   const [elVoiceId, setElVoiceId] = useState("21m00Tcm4TlvDq8ikWAM");
   const [anthropicKey, setAnthropicKey] = useState("");
   const [trackers, setTrackers] = useState({});
+  const [user, setUser] = useState(null);
+  const [tier, setTier] = useState("free");
+  const [showAccount, setShowAccount] = useState(false);
   const resultRef = useRef(null);
+  const refreshMe = async () => {
+    const r = await api("me");
+    if (r.ok && r.data) {
+      setUser({
+        email: r.data.email
+      });
+      setTier(r.data.tier || "free");
+    } else {
+      setUser(null);
+      setTier("free");
+    }
+  };
   useEffect(() => {
     (async () => {
       try {
@@ -1895,6 +2275,7 @@ function App() {
           setAnthropicKey(s.anthropicKey || "");
         }
       } catch {}
+      await refreshMe();
       setReady(true);
     })();
   }, []);
@@ -2137,17 +2518,18 @@ function App() {
       WebkitBackgroundClip: "text",
       WebkitTextFillColor: "transparent"
     }
-  }, "🎬 STORY SCRIPTENGINE"), /*#__PURE__*/React.createElement("p", {
+  }, "🎬 TAHA STUDIO ScriptEngine"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: "#6b7280",
       margin: "2px 0 0",
       fontSize: 11
     }
-  }, "Idea → cinematic script → production ready · saved forever")), /*#__PURE__*/React.createElement("div", {
+  }, "Type the idea. Get the whole production.")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 5,
-      flexWrap: "wrap"
+      flexWrap: "wrap",
+      alignItems: "center"
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: rescan,
@@ -2175,7 +2557,33 @@ function App() {
       fontSize: 11,
       fontWeight: 700
     }
-  }, t.label))))), /*#__PURE__*/React.createElement("div", {
+  }, t.label)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowAccount(true),
+    style: {
+      background: tier === "pro" ? "#064e3b" : "#1f2937",
+      border: `1px solid ${tier === "pro" ? "#10b981" : "#374151"}`,
+      borderRadius: 8,
+      color: tier === "pro" ? "#34d399" : "#9ca3af",
+      padding: "6px 13px",
+      cursor: "pointer",
+      fontSize: 11,
+      fontWeight: 700
+    }
+  }, user ? tier === "pro" ? "✅ Pro" : "👤 Account" : "Sign In")))), /*#__PURE__*/React.createElement(AccountModal, {
+    open: showAccount,
+    onClose: () => setShowAccount(false),
+    user: user,
+    tier: tier,
+    onAuthed: async () => {
+      await refreshMe();
+      setShowAccount(false);
+    },
+    onSignedOut: async () => {
+      setUser(null);
+      setTier("free");
+      setShowAccount(false);
+    }
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       maxWidth: 920,
       margin: "0 auto",
@@ -2440,6 +2848,6 @@ function App() {
         scenes: u.scenes?.length || e.scenes
       } : e));
     }
-  })))));
+  }))), tier !== "pro" && /*#__PURE__*/React.createElement(AboutSection, null)));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
