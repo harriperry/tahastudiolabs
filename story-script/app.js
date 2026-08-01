@@ -402,7 +402,34 @@ const SceneCard = ({
       overflow: "hidden",
       boxShadow: `0 0 18px ${c}0d`
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, scene.direction && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#2e1065",
+      borderBottom: "1px solid #7c3aed66",
+      padding: "8px 15px",
+      display: "flex",
+      gap: 8,
+      alignItems: "flex-start"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13
+    }
+  }, "🎯"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#c4b5fd",
+      fontWeight: 800,
+      fontSize: 11,
+      textTransform: "uppercase",
+      letterSpacing: 0.5
+    }
+  }, "Writer's Direction: "), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#ddd6fe",
+      fontSize: 12,
+      lineHeight: 1.5
+    }
+  }, scene.direction))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: `linear-gradient(135deg,${c}28,#1a2035)`,
       padding: "12px 15px",
@@ -729,6 +756,8 @@ const StoryView = ({
   const [adding, setAdding] = useState(false);
   const [addMsg, setAddMsg] = useState("");
   const [rawView, setRawView] = useState(false);
+  const [showAddDirection, setShowAddDirection] = useState(false);
+  const [direction, setDirection] = useState("");
   const enterEdit = () => {
     const d = {};
     data.scenes?.forEach(s => {
@@ -752,20 +781,27 @@ const StoryView = ({
     setEditMode(false);
   };
   const addTwoScenes = async () => {
+    const dir = direction.trim();
     setAdding(true);
     setAddMsg("✍️ Writing 2 new scenes...");
     const sum = data.scenes.map(s => `Scene ${s.scene_number} — ${s.scene_title}: ${s.scene_description}`).join("\n");
     const last = data.scenes[data.scenes.length - 1];
     const next = (last?.scene_number || data.scenes.length) + 1;
     try {
-      const text = await callAI(ai, `Write exactly 2 continuation scenes. Return ONLY a JSON array of 2 objects (no markdown): [{"scene_number":${next},"scene_title":"...","scene_description":"...","dialogue":"[Name] said *(tone)* TTS: (msg). [Name] replied *(tone)*: (reply).","i2v_prompt":"...","kinetic_prompt":"...","continuity_prompt":"..."}] Numbers start at ${next}. Match story's arc and visual style exactly.`, `Story: "${data.title}" (${data.genre})\nSynopsis: ${data.synopsis}\n\nScenes:\n${sum}\n\nLast continuity: ${last?.continuity_prompt || "N/A"}`, 3000);
+      const text = await callAI(ai, `Write exactly 2 continuation scenes. Return ONLY a JSON array of 2 objects (no markdown): [{"scene_number":${next},"scene_title":"...","scene_description":"...","dialogue":"[Name] said *(tone)* TTS: (msg). [Name] replied *(tone)*: (reply).","i2v_prompt":"...","kinetic_prompt":"...","continuity_prompt":"..."}] Numbers start at ${next}. Match story's arc and visual style exactly.${dir ? ` The writer has given specific direction for these 2 scenes — follow it closely and make sure the scenes clearly deliver on it: "${dir}"` : ""}`, `Story: "${data.title}" (${data.genre})\nSynopsis: ${data.synopsis}\n\nScenes:\n${sum}\n\nLast continuity: ${last?.continuity_prompt || "N/A"}${dir ? `\n\nDirection for these 2 new scenes (from the writer): ${dir}` : ""}`, 3000);
       const ns = JSON.parse(text.replace(/```json|```/g, "").trim());
+      if (dir && ns[0]) ns[0] = {
+        ...ns[0],
+        direction: dir
+      };
       await onSave({
         ...data,
         scenes: [...data.scenes, ...ns]
       });
       setAddMsg("✅ 2 scenes added!");
       setTimeout(() => setAddMsg(""), 3000);
+      setShowAddDirection(false);
+      setDirection("");
     } catch (e) {
       setAddMsg("⚠️ " + e.message.slice(0, 50));
       setTimeout(() => setAddMsg(""), 4000);
@@ -844,10 +880,10 @@ const StoryView = ({
       fontWeight: 700
     }
   }, data.scenes?.length, " Scenes"), !editMode && !adding && /*#__PURE__*/React.createElement("button", {
-    onClick: addTwoScenes,
+    onClick: () => setShowAddDirection(v => !v),
     style: {
-      background: "linear-gradient(135deg,#7c3aed,#4338ca)",
-      border: "none",
+      background: showAddDirection ? "#4338ca" : "linear-gradient(135deg,#7c3aed,#4338ca)",
+      border: showAddDirection ? "1px solid #a78bfa" : "none",
       borderRadius: 8,
       color: "#fff",
       fontSize: 11,
@@ -957,7 +993,91 @@ const StoryView = ({
       fontWeight: 700,
       marginLeft: 4
     }
-  }, published, "/", data.scenes.length, " published ✓"))), editMode && /*#__PURE__*/React.createElement("div", {
+  }, published, "/", data.scenes.length, " published ✓"))), showAddDirection && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#0a1a2e",
+      border: "1px solid #7c3aed55",
+      borderRadius: 14,
+      padding: 18,
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#a78bfa",
+      fontWeight: 800,
+      fontSize: 12,
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      marginBottom: 8
+    }
+  }, "🎯 Direction for the Next 2 Scenes (optional)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#6b7280",
+      fontSize: 12,
+      marginBottom: 9,
+      lineHeight: 1.6
+    }
+  }, "Tell the writer what you want to happen — a twist, a reveal, a location or mood change, anything. Leave blank to let it continue the story naturally."), /*#__PURE__*/React.createElement("textarea", {
+    value: direction,
+    onChange: e => setDirection(e.target.value),
+    placeholder: "e.g. She finds the letter and realizes he lied the whole time...",
+    rows: 3,
+    style: {
+      width: "100%",
+      background: "#070d1a",
+      border: "1px solid #7c3aed44",
+      borderRadius: 8,
+      color: "#e5e7eb",
+      fontSize: 13,
+      padding: "9px 12px",
+      lineHeight: 1.6,
+      resize: "vertical",
+      outline: "none",
+      boxSizing: "border-box",
+      fontFamily: "inherit"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 11
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: addTwoScenes,
+    disabled: adding,
+    style: {
+      background: adding ? "#374151" : "linear-gradient(135deg,#7c3aed,#4338ca)",
+      border: "none",
+      borderRadius: 8,
+      color: "#fff",
+      fontWeight: 700,
+      fontSize: 13,
+      padding: "8px 16px",
+      cursor: adding ? "not-allowed" : "pointer"
+    }
+  }, adding ? "⏳ Writing..." : "✨ Generate 2 Scenes"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setShowAddDirection(false);
+      setDirection("");
+    },
+    disabled: adding,
+    style: {
+      background: "transparent",
+      border: "1px solid #374151",
+      borderRadius: 8,
+      color: "#9ca3af",
+      fontSize: 13,
+      padding: "8px 14px",
+      cursor: "pointer"
+    }
+  }, "Cancel")), addMsg && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 9,
+      fontSize: 12,
+      fontWeight: 700,
+      color: addMsg.startsWith("⚠️") ? "#fca5a5" : "#34d399"
+    }
+  }, addMsg)), editMode && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#0a1a2e",
       border: "1px solid #3b82f655",
