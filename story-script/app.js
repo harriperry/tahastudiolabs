@@ -109,54 +109,32 @@ async function anthropicJSON(res) {
    four call sites (generate, addTwoScenes, regenScene, FBGen) don't each
    need their own provider-switch logic. */
 const GROK_MODEL = "grok-4-fast";
+/* Both providers now go through the same "/api/ai-relay" same-origin relay function
+   (functions/api/ai-relay.js). Grok used to call https://api.x.ai/v1/chat/completions
+   directly from the browser here, which never actually worked: xAI's API has no CORS
+   headers permitting a direct browser fetch from a third-party origin, so the request
+   was blocked before any response came back, surfacing as a bare "Failed to fetch"
+   regardless of whether the key was valid or paid. Routing through the relay (the key
+   is forwarded for this one request only, never stored or logged server-side) fixes
+   that the same way it was already fixed for Anthropic below. */
 async function callAI({
   provider,
   anthropicKey,
   grokKey
 }, system, userText, maxTokens) {
-  if (provider === "grok") {
-    if (!grokKey) throw new Error("Add your Grok (xAI) API key in Settings first.");
-    const res = await fetch("https://api.x.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${grokKey}`
-      },
-      body: JSON.stringify({
-        model: GROK_MODEL,
-        max_tokens: maxTokens,
-        messages: [{
-          role: "system",
-          content: system
-        }, {
-          role: "user",
-          content: userText
-        }]
-      })
-    });
-    let json;
-    try {
-      json = await res.json();
-    } catch (e) {
-      throw new Error(`Grok returned an unreadable response (HTTP ${res.status}).`);
-    }
-    if (!res.ok || json?.error) {
-      throw new Error(json?.error?.message || json?.error || `Grok API error (HTTP ${res.status}).`);
-    }
-    return json.choices?.[0]?.message?.content || "";
-  }
-  if (!anthropicKey) throw new Error("Add your Anthropic API key in Settings first.");
-  // Anthropic blocks direct cross-origin browser fetches from third-party sites,
-  // so this goes through our own same-origin relay function instead (the key is
-  // forwarded for this one request only — never stored or logged server-side).
+  const isGrok = provider === "grok";
+  const apiKey = isGrok ? grokKey : anthropicKey;
+  if (!apiKey) throw new Error(`Add your ${isGrok ? "Grok (xAI)" : "Anthropic"} API key in Settings first.`);
+
   const res = await fetch("/api/ai-relay", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      apiKey: anthropicKey,
-      model: ANTHROPIC_MODEL,
+      provider: isGrok ? "grok" : "anthropic",
+      apiKey,
+      model: isGrok ? GROK_MODEL : ANTHROPIC_MODEL,
       max_tokens: maxTokens,
       system,
       messages: [{
@@ -171,7 +149,7 @@ async function callAI({
   } catch (e) {
     throw new Error(`Relay returned an unreadable response (HTTP ${res.status}).`);
   }
-  if (!res.ok || !json?.ok) throw new Error(json?.error || `Anthropic API error (HTTP ${res.status}).`);
+  if (!res.ok || !json?.ok) throw new Error(json?.error || `${isGrok ? "Grok" : "Anthropic"} API error (HTTP ${res.status}).`);
   return json.text || "";
 }
 const buildSystemPrompt = (context, chars) => {
