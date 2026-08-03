@@ -54,6 +54,9 @@ Follow this exact structure for EVERY segment. Keep wording clear and concise, m
 **Audio Note**:
 > [MANDATORY — never leave this generic, vague, or empty. AUDIBLE DETAIL ONLY: describe sound and only sound, never smell, visual appearance, or touch/texture here, those belong in the Text-to-Image Prompt or TTS Script fields instead. Describe the ambient environmental soundscape that actually belongs in this shot's setting, based on what the Text-to-Image Prompt above describes. No real-world location is ever acoustically silent: an outdoor/forest/nature setting needs wind through leaves, birdsong, distant animal sounds, or rustling underbrush; a city street or urban setting needs traffic hum, distant horns, footsteps, or crowd/pedestrian ambience; a market or crowded space needs overlapping voices and bustle; an indoor room needs quiet room tone and any appliance/HVAC hum; rain, wind, or weather visible in the shot needs its own audible layer. Layer this ambience under any dialogue or music, at a level that supports rather than competes with the TTS Script. Also note music level or voice clarity guidance here if relevant]
 
+**Continuity Prompt**:
+> [MANDATORY — the bridge from this segment into the next one. Describe explicitly how this segment's ending hands off to the next segment's opening: the continuation of thought or narrative (what idea, sentence, or emotional beat carries forward), the visual/camera handoff (matching or contrasting composition, motion, or framing), the lighting or mood transition, and any audio carry-through. This must read as a deliberate bridge, not a restatement of the segment itself, so consecutive segments feel like one continuous flow of thought rather than disconnected cuts. For the FINAL segment only, describe how the piece resolves and closes out instead of bridging forward]
+
 ---
 
 Additional rules:
@@ -76,7 +79,8 @@ Additional rules:
 17. Every speaking character must have a distinct, identifiable voice, rhythm, vocabulary, and tone that differ from every other character, never interchangeable script blocks distinguished only by the name attached to them
 18. Show, don't summarize. Render what a moment looks like, sounds like, and feels like rather than stating a conclusion about it. This is the single biggest lever for writing that reads as vivid and specific rather than flat and generic
 19. Whenever a segment's Type is On-Camera or On-Camera + Brand Close, the on-screen subject is the one delivering the TTS Script, out loud, directly to camera, this is a spoken-to-camera moment, not narration played over unrelated footage of that person. Write the TTS Script as a line that person would actually say on camera (first person is fine, but it must read as dialogue delivered to the viewer, not a diary-style travelogue caption). The Image-to-Video Prompt's physical action must stay compatible with speaking: a person cannot naturally talk with their mouth full or while mid-drink, so if the moment includes eating, drinking, or anything else that occupies the mouth, stage it as a distinct beat clearly before or after the spoken line, never simultaneous with it
-20. Output ONLY the formatted blocks. No preamble, no commentary, no closing remarks.`;
+20. Continuity Prompt is mandatory for every segment: it must explicitly connect this segment's ending to the next segment's opening, carrying forward the same line of thought, emotional arc, and visual/audio handoff, so segments read as one continuous flow rather than a series of disconnected clips. The final segment's Continuity Prompt describes closure instead of a handoff to a segment that doesn't exist
+21. Output ONLY the formatted blocks. No preamble, no commentary, no closing remarks.`;
 }
 
 /* ─────────────────────────  DOM  ───────────────────────── */
@@ -975,7 +979,7 @@ els.btnFormat.addEventListener("click", async () => {
      don't need — keeping that requirement and its craft guidance together in one block avoids
      splitting a single format's instructions across two separate places in the prompt. */
   const podcastBlock = stype === "Podcast"
-    ? `PODCAST FORMAT — DEDICATED INSTRUCTIONS: this is a continuous conversational podcast/banter about a single theme or subject, not a series of separate scenes. Treat the whole script as one ongoing conversation split purely by the segment timing boundaries (10s for segments 1-3, 15s from segment 4 onward), not by topic or scene changes, every segment should feel like a natural continuation of the moment right before it, mid-sentence energy is fine. Speakers should sound like they are genuinely reacting to, building on, or riffing off whatever was just said. Conversational authenticity is the top priority: natural turn-taking, real overlaps or interruptions where they fit, contractions, and audio-first descriptive language in any narration since there is no visual for the listener to lean on. Note host energy and pacing explicitly where it matters, a pause, a raised-emphasis word, a tonal shift, since podcast delivery lives or dies on rhythm. Vary the camera position, framing, and angle across segments (wide two-shot, closer single, alternate angle, etc.) so the scene stays visually dynamic even though the setting and speakers stay the same, never lock the camera to one static angle for the whole episode. IMPORTANT: this continuity applies ONLY to the tone and content, you must still output every single segment as its own separate "### SEGMENT [NUMBER] | [START]-[END]" header with all 8 required fields (Type, TTS Script, Text-to-Image Prompt, Image-to-Video Prompt, Camera Movement, Lighting, Mood, Audio Note) filled in exactly as specified in the structure above. Never merge multiple segments into one block, never omit a segment header, and never write the conversation as one continuous unbroken paragraph, the discrete segment structure is mandatory even though the conversation itself should read continuously across them.\n\n`
+    ? `PODCAST FORMAT — DEDICATED INSTRUCTIONS: this is a continuous conversational podcast/banter about a single theme or subject, not a series of separate scenes. Treat the whole script as one ongoing conversation split purely by the segment timing boundaries (10s for segments 1-3, 15s from segment 4 onward), not by topic or scene changes, every segment should feel like a natural continuation of the moment right before it, mid-sentence energy is fine. Speakers should sound like they are genuinely reacting to, building on, or riffing off whatever was just said. Conversational authenticity is the top priority: natural turn-taking, real overlaps or interruptions where they fit, contractions, and audio-first descriptive language in any narration since there is no visual for the listener to lean on. Note host energy and pacing explicitly where it matters, a pause, a raised-emphasis word, a tonal shift, since podcast delivery lives or dies on rhythm. Vary the camera position, framing, and angle across segments (wide two-shot, closer single, alternate angle, etc.) so the scene stays visually dynamic even though the setting and speakers stay the same, never lock the camera to one static angle for the whole episode. IMPORTANT: this continuity applies ONLY to the tone and content, you must still output every single segment as its own separate "### SEGMENT [NUMBER] | [START]-[END]" header with all 9 required fields (Type, TTS Script, Text-to-Image Prompt, Image-to-Video Prompt, Camera Movement, Lighting, Mood, Audio Note, Continuity Prompt) filled in exactly as specified in the structure above. Never merge multiple segments into one block, never omit a segment header, and never write the conversation as one continuous unbroken paragraph, the discrete segment structure is mandatory even though the conversation itself should read continuously across them.\n\n`
     : "";
 
   /* Per-production-type craft layer, additive on top of the shared base standards already in
@@ -1086,10 +1090,11 @@ function renderOutput(raw){
     const segType = pick(body, "Type");
     const ttsScript = pick(body, "TTS Script");
     const audioNote = pick(body, "Audio Note");
+    const continuityPrompt = pick(body, "Continuity Prompt");
     /* time + num are kept on the object (not just used locally) so serializeSegment() below
        can rebuild a correct "### SEGMENT N | TIME" header purely from this object, live, on
        every keystroke, with no dependency on the original AI-generated text ever again. */
-    window.__segPrompts[num] = { num, time, t2iPrompt, i2vPrompt, camera, lighting, mood, ttsScript, audioNote, segType };
+    window.__segPrompts[num] = { num, time, t2iPrompt, i2vPrompt, camera, lighting, mood, ttsScript, audioNote, segType, continuityPrompt };
     /* Every field renders as an editable textarea (not a read-only div) so the user can bring
        their own touch to the TTS script, prompts, or any other field before either copying the
        block, saving it, or hitting Generate clip, everything downstream (Copy full output,
@@ -1103,18 +1108,22 @@ function renderOutput(raw){
       ["Camera Movement",       camera,    "",        "camera"],
       ["Lighting",              lighting,  "",        "lighting"],
       ["Mood",                  mood,      "",        "mood"],
-      ["Audio Note",            audioNote, "",        "audioNote"]
+      ["Audio Note",            audioNote, "",        "audioNote"],
+      ["Continuity Prompt",     continuityPrompt, "continuity", "continuityPrompt"]
     ];
     let inner = "";
     for (const [lab, val, cls, key] of fields) {
-      const rows = (key === "ttsScript" || key === "t2iPrompt" || key === "i2vPrompt") ? 3 : (key === "segType" ? 1 : 2);
+      const rows = (key === "ttsScript" || key === "t2iPrompt" || key === "i2vPrompt" || key === "continuityPrompt") ? 3 : (key === "segType" ? 1 : 2);
       inner += `<div class="field ${cls}"><div class="fl">${lab}</div><textarea class="fv fv-edit" data-num="${num}" data-field="${key}" rows="${rows}">${esc(val)}</textarea></div>`;
     }
     html.push(
-      `<div class="seg-card">
+      `<div class="seg-card" data-num="${num}">
          <div class="seg-head">
            <div class="t">SEGMENT ${num}<small>${esc(time)}</small></div>
-           <button class="btn-copy" data-action="copy-block" data-num="${num}">📋 Copy block</button>
+           <div style="display:flex;gap:8px">
+             <button class="btn-copy" data-action="regenerate-segment" data-num="${num}" title="Regenerate this segment, keeping the flow to and from its neighbors">🔄 Regenerate</button>
+             <button class="btn-copy" data-action="copy-block" data-num="${num}">📋 Copy block</button>
+           </div>
          </div>
          <div class="seg-body">${inner}</div>
          ${t2iPrompt ? `
@@ -1155,6 +1164,8 @@ els.output.addEventListener("click", (e) => {
   if (copyBtn) { copyText(copyBtn, serializeSegment(copyBtn.dataset.num)); return; }
   const genBtn = e.target.closest('[data-action="gen-clip"]');
   if (genBtn) { genClip(Number(genBtn.dataset.num), genBtn); return; }
+  const regenBtn = e.target.closest('[data-action="regenerate-segment"]');
+  if (regenBtn) { regenerateSegment(regenBtn.dataset.num, regenBtn); return; }
 });
 
 /* Delegated input handling — fires on every keystroke in any editable field textarea. Updates
@@ -1206,7 +1217,10 @@ function serializeSegment(num){
 > ${bq(seg.mood)}
 
 **Audio Note**:
-> ${bq(seg.audioNote)}`;
+> ${bq(seg.audioNote)}
+
+**Continuity Prompt**:
+> ${bq(seg.continuityPrompt)}`;
 }
 
 /* Recomputes lastRaw (the source for Copy full output / Save to Library / Download PDF) from
@@ -1226,6 +1240,91 @@ function pick(body, label){
   return m[1].replace(/^>\s?/gm, "").trim();
 }
 function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* ─────────────────────────  REGENERATE SEGMENT  ─────────────────────────
+   Rewrites a single segment in place, leaving every other segment untouched.
+   Sends the whole current script (every segment, in order, via serializeSegment
+   so live edits are included) as context so the model can hand off correctly
+   from the previous segment's Continuity Prompt and set up the next one, then
+   asks for ONLY that one segment back. Only the changed segment's textareas
+   are updated in the DOM afterward, so any in-progress video generation on
+   other segments is left alone. */
+async function regenerateSegment(numStr, btn){
+  const num = Number(numStr);
+  const seg = window.__segPrompts && window.__segPrompts[num];
+  if (!seg) return;
+  const provider = els.formatProvider.value;
+  const pmeta = FORMAT_PROVIDER_META[provider];
+  const key = els[pmeta.keyEl].value.trim();
+  if (!key || (provider === "anthropic" && key === "sk-ant-YOUR_KEY_HERE")) { setStatus("err", `Enter your ${pmeta.label} API key (${pmeta.keyUrl}).`); return; }
+
+  const nums = Object.keys(window.__segPrompts).map(Number).sort((a, b) => a - b);
+  const prevNum = nums.filter(x => x < num).pop();
+  const nextNum = nums.filter(x => x > num)[0];
+  const ratio = els.ratio.value;
+  const allowBRoll = els.allowBRoll ? els.allowBRoll.checked : true;
+
+  const sys = buildSystemPrompt(nums.length, ratio, allowBRoll) +
+    `\n\nYou are now regenerating ONLY Segment ${num} of this already-produced ${nums.length}-segment script. The full script so far (every segment, in order) is given below for context. Output ONLY Segment ${num}'s block, in the exact "### SEGMENT ${num} | ${seg.time}" format above, with all 9 fields including Continuity Prompt. No other segments, no preamble, no commentary.`;
+
+  const userMsg = `Full script for context:\n\n${nums.map(n => serializeSegment(n)).join("\n\n---\n\n")}\n\n` +
+    `Regenerate Segment ${num} only, with fresh wording and a different take on the composition, while keeping it perfectly consistent with the rest of the script.` +
+    (prevNum ? ` It must pick up naturally from Segment ${prevNum}'s Continuity Prompt: "${window.__segPrompts[prevNum].continuityPrompt || "N/A"}".` : "") +
+    (nextNum ? ` Its own Continuity Prompt must set up Segment ${nextNum} naturally.` : " This is the final segment, so its Continuity Prompt should describe closure, not a handoff.");
+
+  async function callRegen() {
+    return fetch("/api/format", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider, apiKey: key, model: els[pmeta.modelEl].value, max_tokens: computeMaxTokens(1, provider, els[pmeta.modelEl].value), system: sys, messages: [{ role: "user", content: userMsg }] })
+    });
+  }
+
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = "Regenerating…";
+  try {
+    let res;
+    try {
+      res = await callRegen();
+    } catch (networkErr) {
+      await new Promise(r => setTimeout(r, 900));
+      res = await callRegen();
+    }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n").trim();
+    if (!text) throw new Error("Empty response from API.");
+    const m = text.match(/###\s*SEGMENT\s*(\d+)\s*\|\s*([^\n]+)\n([\s\S]*)/i);
+    if (!m) throw new Error("Could not parse the regenerated segment.");
+    const body = m[3];
+    const newSeg = {
+      num, time: seg.time,
+      segType: pick(body, "Type"),
+      ttsScript: pick(body, "TTS Script"),
+      t2iPrompt: pick(body, "Text-to-Image Prompt") || pick(body, "Visual / B-Roll Prompt") || pick(body, "Visual"),
+      i2vPrompt: pick(body, "Image-to-Video Prompt"),
+      camera: pick(body, "Camera Movement") || pick(body, "Motion"),
+      lighting: pick(body, "Lighting"),
+      mood: pick(body, "Mood"),
+      audioNote: pick(body, "Audio Note"),
+      continuityPrompt: pick(body, "Continuity Prompt")
+    };
+    window.__segPrompts[num] = newSeg;
+    rebuildLastRaw();
+    const card = els.output.querySelector(`.seg-card[data-num="${num}"]`);
+    if (card) {
+      for (const f of ["segType", "ttsScript", "t2iPrompt", "i2vPrompt", "camera", "lighting", "mood", "audioNote", "continuityPrompt"]) {
+        const ta = card.querySelector(`textarea[data-field="${f}"]`);
+        if (ta) ta.value = newSeg[f] || "";
+      }
+    }
+    setStatus("ok", `✓ Segment ${num} regenerated.`);
+  } catch (err) {
+    setStatus("err", "Regenerate failed: " + err.message + `<br>Check that your key is valid at ${pmeta.keyUrl}, or try again in a moment.`);
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
 
 /* ─────────────────────────  COPY / TOGGLE / CLEAR  ───────────────────────── */
 window.copyText = function(btn, text){
