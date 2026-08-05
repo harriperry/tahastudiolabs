@@ -542,7 +542,11 @@ Additional rules:
         unit.warnings = result.warnings || [];
       }
     } catch (e) {
-      unit.warnings = [`Continuity check failed to run: ${e.message}. Content was generated and saved, but continuity for the next unit could not be updated automatically, review manually before generating the next unit.`];
+      // Fall back to carrying the prior state forward instead of leaving this
+      // slot empty. A failed extraction should degrade continuity to "same as
+      // last time", not silently erase everything the next unit would see.
+      project.continuityStates[unitIndex] = priorState;
+      unit.warnings = [`Continuity check failed to run: ${e.message}. Content was generated and saved, and the previous unit's continuity state was carried forward as a fallback so the next unit isn't written blind, review manually before generating the next unit.`];
     }
     await lfPut(project);
     return project;
@@ -596,8 +600,14 @@ ${JSON.stringify(priorState)}`;
 
   async function extractContinuity(project, unit, priorState) {
     const { system, userMsg } = buildContinuityPrompt(project, unit, priorState);
-    const choice = jobModelChoice("continuity", project.provider, project.model);
-    const text = await sfCallFormat({ provider: choice.provider, model: choice.model, max_tokens: 3000, system, userMsg });
+    // Deliberately NOT using jobModelChoice("continuity", ...) here anymore.
+    // That routed this call to whichever cheap/fast model scored close enough,
+    // reasoning being this is bookkeeping, not creative writing. In production
+    // that model proved unreliable at strictly returning JSON for this schema
+    // (17+ fields, several nested arrays), producing prose with no braces at
+    // all instead. Always use the project's own provider/model, same one doing
+    // the actual unit writing, trading a bit of cost for reliability.
+    const text = await sfCallFormat({ provider: project.provider, model: project.model, max_tokens: 6000, system, userMsg });
     return extractJson(text);
   }
 
