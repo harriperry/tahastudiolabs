@@ -129,6 +129,17 @@
   const LONGFORM_SAFETY_MARGIN = 0.65;
   const LONGFORM_REQUEST_BASE = 2000, LONGFORM_REQUEST_PER_SEGMENT = 900; // mirrors computeMaxTokens()'s own formula in app.js
 
+  /* HARD CEILING, independent of the token math above. Confirmed in production
+     testing (Cloudflare error 524, gateway timeout) that a single call asked to
+     write a full 41 segment unit in one shot took too long for Cloudflare's
+     edge to keep waiting on, even though the token budget said it should fit.
+     Token budget only bounds output SIZE, not generation TIME, and time is
+     what a gateway timeout actually measures. Capping segments per call keeps
+     each request fast enough to reliably finish before any edge or provider
+     timeout, at the cost of more units for long productions. This value is a
+     starting point, not a measured limit, tighten it further if 524s recur. */
+  const LONGFORM_MAX_SEGMENTS_PER_UNIT = 10;
+
   function lfProviderCeiling(provider, model) {
     let ceiling = (typeof PROVIDER_MAX_OUTPUT_TOKENS !== "undefined") ? PROVIDER_MAX_OUTPUT_TOKENS[provider] : null;
     if (ceiling && typeof ceiling === "object") ceiling = ceiling[model] || ceiling.default;
@@ -136,12 +147,13 @@
   }
 
   /* Generation Unit Capacity, expressed in segments (the app's own atomic
-     unit). Never below 2 — a "unit" of a single segment defeats the point of
-     batching (all overhead, no room for a real beat). */
+     unit). Never below 2, a unit of a single segment defeats the point of
+     batching (all overhead, no room for a real beat). Never above
+     LONGFORM_MAX_SEGMENTS_PER_UNIT, see the comment on that constant above. */
   function computeUnitCapacitySegments(provider, model) {
     const budget = lfProviderCeiling(provider, model) * LONGFORM_SAFETY_MARGIN;
     const maxSegments = Math.floor((budget - LONGFORM_REQUEST_BASE) / LONGFORM_REQUEST_PER_SEGMENT);
-    return Math.max(2, maxSegments);
+    return Math.max(2, Math.min(maxSegments, LONGFORM_MAX_SEGMENTS_PER_UNIT));
   }
 
   /* Turns a target runtime into a concrete Generation Unit Plan: how many
