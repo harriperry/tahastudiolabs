@@ -8,7 +8,6 @@
 <script src="/assets/jspdf.umd.min.js" defer></script>
 </head>
 <body>
-
 <nav class="sitenav"><a href="/" class="brand">TAHA <b>Studio Labs</b></a><span class="navlinks"><a href="/">Home</a><a href="/products.html">Products</a><a href="/scriptforge/" class="active">ScriptForge</a></span></nav>
 <header style="position:relative">
   <h1>TAHA STUDIO <span>AI ScriptForge</span></h1>
@@ -16,7 +15,6 @@
   <p>Turn One Idea Into a Production-Ready Video in Minutes</p>
   <button class="btn-copy" id="btnAccount" style="position:absolute;top:22px;right:26px">Sign in</button>
 </header>
-
 <main>
 <!-- ══════════ LEFT: CONFIG ══════════ -->
 <div>
@@ -32,7 +30,6 @@
       <option value="Public Address">Public Address</option>
     </select>
   </div>
-
   <!-- Smart Recommendation card — additive only, gated by FEATURE_SMART_RECOMMEND in app.js.
        Set that flag to false (and redeploy) to hide this card instantly without touching any
        other logic; nothing else on the page depends on it. Populated by renderRecommendation()
@@ -69,7 +66,6 @@
       <button class="btn-ghost" id="btnRecommendDismiss" style="flex:1;padding:9px">Not now</button>
     </div>
   </div>
-
   <div class="card">
     <h2>2 · API Configuration <span style="color:var(--muted);font-weight:400;font-size:.8rem" id="apiConfigAutoNote"></span></h2>
     <label>Provider <span style="color:var(--muted);font-weight:400">(pick whichever you have a key for — all four work the same way)</span></label>
@@ -79,7 +75,6 @@
       <option value="groq">Groq (free tier available)</option>
       <option value="deepseek">DeepSeek (signup credit, not a permanent free tier)</option>
     </select>
-
     <div id="anthropicFormatOptions">
       <label style="margin-top:12px">Anthropic API Key <span style="color:var(--muted);font-weight:400">— console.anthropic.com/settings/keys</span></label>
       <input type="password" id="apiKey" placeholder="sk-ant-YOUR_KEY_HERE" autocomplete="off">
@@ -95,7 +90,6 @@
         <option value="claude-opus-4-8">claude-opus-4-8 (max quality)</option>
       </select>
     </div>
-
     <div id="geminiFormatOptions" style="display:none">
       <label style="margin-top:12px">Google Gemini API Key <span style="color:var(--muted);font-weight:400">— free, no card required, at aistudio.google.com/apikey</span></label>
       <input type="password" id="apiKeyGemini" placeholder="AIza..." autocomplete="off">
@@ -111,7 +105,6 @@
       </select>
       <p style="color:var(--muted);font-size:.72rem;margin-top:6px">If you already created a Gemini key for Veo 3.1 video generation below, that same key works here too.</p>
     </div>
-
     <div id="groqFormatOptions" style="display:none">
       <label style="margin-top:12px">Groq API Key <span style="color:var(--muted);font-weight:400">— free, no card required, at console.groq.com/keys</span></label>
       <input type="password" id="apiKeyGroq" placeholder="gsk_..." autocomplete="off">
@@ -126,7 +119,6 @@
         <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (larger, reasoning)</option>
       </select>
     </div>
-
     <div id="deepseekFormatOptions" style="display:none">
       <label style="margin-top:12px">DeepSeek API Key <span style="color:var(--muted);font-weight:400">— platform.deepseek.com/api_keys</span></label>
       <input type="password" id="apiKeyDeepseek" placeholder="sk-..." autocomplete="off">
@@ -143,7 +135,6 @@
       <p style="color:var(--muted);font-size:.72rem;margin-top:6px">⚠ DeepSeek does not offer a permanent free tier — new accounts get a one-time 5-million-token / 30-day signup credit, then it's pay-as-you-go. Unlike the Gemini and Groq options above, budget for this once the credit runs out.</p>
     </div>
   </div>
-
   <div class="card">
     <h2>3 · Output Length</h2>
     <label>Number of segments (10s each for segments 1&ndash;3, then 15s each from segment 4 onward)</label>
@@ -171,7 +162,6 @@
       <option value="21">21 segments — 5 min (300s total)</option>
     </select>
   </div>
-
   <div class="card">
     <h2>4 · Ratio &amp; Technical Specs</h2>
     <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -189,7 +179,6 @@
     <label>Additional technical specs (optional — resolution, ratio, captions…)</label>
     <textarea id="techSpecs" rows="2">1080p · SRT captions · flux-realism for B-roll</textarea>
   </div>
-
   <div class="card">
     <h2>5 · Paste Full Script</h2>
     <textarea id="script" rows="12" placeholder="[PASTE YOUR FULL SCRIPT HERE]"></textarea>
@@ -201,7 +190,6 @@
     <button class="btn-ghost" id="btnMock" style="width:100%;margin-top:10px;border-color:var(--ok);color:var(--ok)">🧪 Run Mock Test — instant free demo, no API key</button>
     <div class="status" id="status"></div>
   </div>
-
   <div class="card">
     <h2>6 · Video Generation <span style="color:var(--muted);font-weight:400;font-size:.8rem">(optional — bring your own key per provider)</span></h2>
     <p style="color:var(--muted);font-size:.8rem;margin:0 0 10px">
@@ -245,7 +233,6 @@
       </div>
       <p style="color:var(--muted);font-size:.72rem;margin-top:6px">Slot 1 is treated as the required on-camera narrator/speaker — the clip is explicitly instructed to preserve that face throughout. Slots 2-3 are optional supporting participants or objects. Not used by HeyGen (no reference-image support in its API). If attached: Veo clips generate at 8s (Google's requirement for image-referenced video); Grok clips are capped at 10s even if you selected a longer duration above (xAI's requirement for reference-guided video).</p>
   </div>
-
   <div class="card">
     <h2>7 · ElevenLabs Voice <span style="color:var(--muted);font-weight:400;font-size:.8rem">(optional, voice ID picker)</span></h2>
     <p style="color:var(--muted);font-size:.8rem;margin:0 0 10px">
@@ -267,7 +254,6 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     </select>
   </div>
 </div>
-
 <!-- ══════════ RIGHT: OUTPUT ══════════ -->
 <div>
   <div class="out-toolbar">
@@ -278,24 +264,24 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     <button class="btn-copy" id="btnSaveLib" style="display:none">💾 Save to Library</button>
     <button class="btn-copy" id="btnPdf" style="display:none">⬇ Download PDF</button>
     <button class="btn-copy" id="btnCharLib">🎭 Characters</button>
+    <!-- LONG-FORM PROJECT ORCHESTRATION — additive only, see assets/longform.js header comment
+         for the full rollback contract. Deleting this button plus the #longformOverlay markup
+         below, and the longform.js <script> tag near the bottom of this file, removes the
+         entire feature with zero effect on Quick Generation, Characters, or Library. -->
+    <button class="btn-copy" id="btnLongform" style="border-color:var(--accent);color:var(--accent2)">🎬 Long-Form Project</button>
     <button class="btn-copy" id="btnLibrary">📚 Library</button>
   </div>
   <div id="output"><div class="empty">Formatted segments will appear here.<br><br>Paste your script, pick your settings, and hit <b>Format</b>.</div></div>
   <textarea id="rawOut" readonly></textarea>
 </div>
 </main>
-
 <section id="aboutSection" style="max-width:1200px;margin:0 auto 32px;padding:0 24px">
   <div class="card" style="padding:32px 30px">
     <h2 style="margin-bottom:6px">About ScriptForge</h2>
     <p style="font-size:1.3rem;font-weight:700;color:var(--text);line-height:1.35;margin:0 0 18px">Your go-to AI tool that transforms ideas into content.</p>
-
     <p style="color:var(--text);line-height:1.7;margin-bottom:14px">ScriptForge is TAHA Studio's end-to-end AI writing and video production tool. Paste a single idea — a product, a story, a message you want people to hear — and ScriptForge writes it into a fully segmented, timed script, complete with on-camera direction, TTS-ready dialogue, B-roll prompts, camera motion, and audio notes. Then, segment by segment, it hands that script straight to Google Veo 3.1, xAI's Grok Imagine, or HeyGen's Video Agent to generate an actual video clip — voice, music, and all. No separate scriptwriting app. No separate storyboard tool. No separate video generator. One idea in, one production-ready video out.</p>
-
     <p style="color:var(--text);line-height:1.7;margin-bottom:14px">It's built for solo creators, marketers, agencies, and small businesses who need short-form video — ads, explainers, social clips, documentary segments — without a writers' room, a studio, or a production schedule measured in weeks.</p>
-
     <p style="color:var(--text);line-height:1.7;margin-bottom:18px"><b style="color:var(--accent2)">Time saved:</b> what used to take a script draft, a revision pass, a storyboard, a voice actor booking, and a day in an edit bay now takes minutes. Paste your idea and ScriptForge formats a complete, timed script in under a minute. Click "Generate clip" on any segment, and a spoken, scored video clip is ready a few minutes later — no editing software, no timeline, no rendering rig of your own. Projects that used to take days now finish in one sitting.</p>
-
     <p style="color:var(--accent2);font-size:.8rem;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">What makes it different</p>
     <ul style="color:var(--text);line-height:1.8;margin:0 0 20px;padding-left:20px">
       <li><b>All-in-one pipeline</b> — script writing, segmenting, and video generation in one tool, not three.</li>
@@ -305,11 +291,9 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
       <li><b>Privacy by design</b> — your scripts and API keys are relayed for a single request only, never stored, never logged.</li>
       <li><b>Built for real production</b> — every segment lands on exact, precisely timed boundaries (10s for the first three, 15s from there on), matching how social platforms and ad slots actually cut.</li>
     </ul>
-
     <p style="font-size:1.15rem;font-weight:700;color:var(--accent2);line-height:1.4;margin:0">Turn one idea into a production-ready AI video — in minutes.</p>
   </div>
 </section>
-
 <div class="lib-overlay" id="libOverlay">
   <div class="lib-panel">
     <h2>Script Library <span style="display:flex;gap:8px"><button class="btn-copy" id="btnLibExport">⬇ Export JSON</button><button class="btn-copy" id="btnLibImport">⬆ Import JSON</button><button class="btn-copy" id="btnLibClose">✕ Close</button></span></h2>
@@ -318,7 +302,6 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     <div id="libList"></div>
   </div>
 </div>
-
 <!-- Character Library — additive only (see the block comment above buildAnchorPhrase() in
      assets/app.js for the full rollback contract). Separate from both the Option 5 provider-key
      settings and the Script Library above. List view and add/edit form live in the same panel,
@@ -328,11 +311,9 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
   <div class="lib-panel" style="max-width:640px">
     <h2>Character Library <span style="display:flex;gap:8px"><button class="btn-copy" id="btnCharImportOpen">📋 Import from text</button><button class="btn-copy" id="btnCharNew">+ New Character</button><button class="btn-copy" id="btnCharClose">✕ Close</button></span></h2>
     <div class="lib-note">⚠ Characters live only in this browser, on this device — clearing browser data erases them, and we keep no copy on any server. Reference images are uploaded manually in this version; nothing is auto-generated.</div>
-
     <div id="charListView">
       <div id="charList"></div>
     </div>
-
     <!-- Bulk import — parses a pasted character brief (e.g. a "character bible" doc already
          written for a script) into one record per character, using the deterministic parser
          parseCharacterBrief() in assets/app.js. Everything except reference images fills in
@@ -351,7 +332,6 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
         <button class="btn-primary" id="btnCharImportSave">Import selected</button>
       </div>
     </div>
-
     <div id="charFormView" style="display:none">
       <button class="btn-ghost" id="btnCharBack" style="margin-bottom:12px">← Back to list</button>
       <input type="hidden" id="charId">
@@ -387,13 +367,11 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
       <input type="text" id="charTone" placeholder="e.g. warm, slow speech, slight rasp">
       <label>ElevenLabs Voice ID <span style="color:var(--muted);font-weight:400">(optional)</span></label>
       <input type="text" id="charElevenVoiceId" placeholder="voice ID from elevenlabs.io">
-
       <label>Default outfit</label>
       <input type="text" id="charOutfitDefault" placeholder="e.g. faded floral housedress, shawl">
       <label>Additional named looks <span style="color:var(--muted);font-weight:400">(optional — e.g. for a flashback or a different scene)</span></label>
       <div id="charOutfitExtra"></div>
       <button class="btn-ghost" id="btnCharAddOutfit" style="margin-top:6px;margin-bottom:12px">+ Add another look</button>
-
       <label>Reference images <span style="color:var(--muted);font-weight:400">(upload front, three-quarter, and/or profile — at least one recommended)</span></label>
       <div class="row" style="gap:10px;margin-bottom:12px">
         <div style="flex:1;text-align:center">
@@ -409,10 +387,8 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
           <label for="charImgProfile" style="cursor:pointer;display:block"><img id="charImgProfilePrev" style="max-width:100%;border-radius:6px;display:none;margin-bottom:4px"><span class="btn-ghost" style="display:block;padding:6px">Profile</span></label>
         </div>
       </div>
-
       <label>Anchor phrase <span style="color:var(--muted);font-weight:400">(editable — auto-fills as you edit the fields above, or write/paste your own to override)</span></label>
       <textarea id="charAnchorPreview" rows="3"></textarea>
-
       <div class="row" style="margin-top:14px">
         <button class="btn-primary" id="btnCharSave">Save character</button>
         <button class="btn-ghost" id="btnCharDelete" style="display:none;color:var(--err)">Delete</button>
@@ -420,7 +396,34 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     </div>
   </div>
 </div>
-
+<!-- LONG-FORM PROJECT — additive only, powered entirely by assets/longform.js. This markup only
+     provides containers; longform.js owns all rendering/state inside them (same division of
+     labor as the Character Library above: HTML shell here, behavior in the JS file). -->
+<div class="lib-overlay" id="longformOverlay">
+  <div class="lib-panel" style="max-width:820px">
+    <h2>Long-Form Project <button class="btn-copy" id="btnLongformClose">✕ Close</button></h2>
+    <div class="lib-note">⚠ Projects (Master Bible, plan, units, continuity history) live only in this browser, on this device, same as the Character Library. Use this for productions longer than a single Quick Generation can hold: ScriptForge plans how many generation units your target runtime needs for whichever provider/model you have selected in section 2, generates them one at a time with continuity carried forward between them, and assembles the locked units into one master script that feeds the same Library/PDF/video pipeline as Quick Generation.</div>
+    <div id="longformListView">
+      <div style="margin-bottom:12px"><button class="btn-primary" id="btnLongformNew" style="width:auto;padding:9px 18px">+ New Project</button></div>
+      <div id="longformProjectList"></div>
+    </div>
+    <div id="longformNewView" style="display:none">
+      <button class="btn-ghost" id="btnLongformNewCancel" style="margin-bottom:12px">← Back</button>
+      <label>Idea / synopsis</label>
+      <textarea id="longformIdea" rows="6" placeholder="Paste the idea, premise, or synopsis for the full production…"></textarea>
+      <p style="color:var(--muted);font-size:.72rem;margin-top:6px">Uses the Script Type, Ratio, B-Roll, Technical Specs, and Provider/Model already selected in sections 1-4 on the left.</p>
+      <label style="margin-top:12px">Target runtime (minutes)</label>
+      <input type="number" id="longformTargetMinutes" min="1" max="30" step="1" value="10">
+      <div id="longformTargetPreview" style="color:var(--muted);font-size:.72rem;margin-top:4px">≈ 10 min target</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:12px">
+        <input type="checkbox" id="longformMock" style="width:auto">
+        🧪 Mock Test mode <span style="color:var(--muted);font-weight:400">(no API key, no deployment needed — fabricated Bible/units so you can try the whole workflow offline, same spirit as the Quick Generation Mock Test)</span>
+      </label>
+      <button class="btn-primary" id="btnLongformCreate" style="width:100%;margin-top:14px">Create Project &amp; Plan Runtime</button>
+    </div>
+    <div id="longformDetailView" style="display:none"></div>
+  </div>
+</div>
 <div class="lib-overlay" id="authOverlay">
   <div class="lib-panel" style="max-width:440px">
     <h2><span id="authTitle">Account</span> <button class="btn-copy" id="btnAuthClose">✕ Close</button></h2>
@@ -488,12 +491,15 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     </div>
   </div>
 </div>
-
 <footer style="max-width:1200px;margin:0 auto;padding:18px 24px;color:var(--muted);font-size:.78rem;border-top:1px solid var(--border)">
   © 2026 TAHA Production Studio · <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a> · <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> · Your scripts and API key are never stored or logged — see our Privacy Policy for details.
 </footer>
-
 <script src="/assets/app.js?v=craft13" defer></script>
+<!-- LONG-FORM PROJECT ORCHESTRATION ENGINE — additive only, loaded after app.js so it can reuse
+     app.js's own top-level functions/constants (timing model, model advisory, provider config,
+     segment rendering) directly by name. See the header comment in assets/longform.js for the
+     full design rationale and rollback contract. -->
+<script src="/assets/longform.js" defer></script>
 <script src="/assets/visit-tracker.js" defer></script>
 </body>
 </html>
