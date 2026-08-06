@@ -171,6 +171,30 @@ When given a story idea or production brief, return ONLY a valid JSON object (no
 {"title":"...","synopsis":"2-3 sentence emotional hook — open with the end feeling first","genre":"Drama/Thriller/etc","universal_t2i_prompt":"[Art style],[characters],[palette],[lighting],[mood],[camera], cinematic, high detail, consistent character design, storyboard sheet","scenes":[{"scene_number":1,"scene_title":"...","scene_description":"Vivid 2-3 sentences: setting, time, mood, atmosphere. Weave in [SFX: ambient sounds] naturally.","dialogue":"[Name] said *(vivid ElevenLabs-ready tone)* TTS: (spoken message — count these words). [Name] replied *(tone and accent)*: (spoken reply — count these words). Total spoken words across both turns must not exceed 18. Use ... for pauses. Never use em-dashes.","sfx_prompt":"Precise sound design brief for this scene: ambient layers, action-triggered SFX, emotional audio cues. Production-ready for audio editors.","i2v_prompt":"Camera movement, scene motion, environmental animation, cinematic technique","kinetic_prompt":"Character gestures, facial expressions, physical actions, emotional physicality — include reactions","continuity_prompt":"Bridge to next scene: lighting transition, emotional arc, camera handoff, mood shift"}]}
 CRITICAL: All 7 storytelling rules are non-negotiable. 18 spoken words hard limit. SFX in every scene. Present tense throughout. No em-dashes ever. End on a reaction. Optimised for Facebook vertical video.`;
 };
+const MASTER_CHARACTER_BASE_PROMPT = "Photorealistic Hollywood cinematic character design, premium Netflix-style production, realistic human anatomy, realistic skin texture, natural facial imperfections, physically accurate lighting, cinematic depth of field, realistic wardrobe and materials, professional production design, sophisticated dramatic lighting, realistic eyes, natural hair, realistic body proportions, cinematic lens characteristics, high-end feature-film photography, photorealistic Hollywood realism.";
+
+/* Item 5 of Harry's Universal N+1 Story Production Standard: every character
+   image prompt is built from this one shared base direction, then customized
+   per character so no two characters render as generic or interchangeable.
+   Pure string assembly, no AI call, safe to run on every keystroke or Mock
+   Test load. Falls back gracefully when a character only has the original
+   name/role/appearance/voiceTone/accent/personality fields (older saved
+   characters), so nothing already saved breaks. */
+const buildMasterCharacterPrompt = c => {
+  const parts = [MASTER_CHARACTER_BASE_PROMPT];
+  const identity = [c.age && `${c.age}-year-old`, c.gender, c.ethnicity, c.nationality && `(${c.nationality})`].filter(Boolean).join(" ");
+  if (identity) parts.push(`Character: ${identity}.`);
+  if (c.occupation) parts.push(`Occupation: ${c.occupation}.`);
+  if (c.personality) parts.push(`Personality: ${c.personality}.`);
+  const setting = [c.period, c.location].filter(Boolean).join(", ");
+  if (setting) parts.push(`Period and setting: ${setting}.`);
+  if (c.genre) parts.push(`Genre: ${c.genre}.`);
+  if (c.wardrobe) parts.push(`Wardrobe: ${c.wardrobe}.`);
+  if (c.appearance) parts.push(`Appearance: ${c.appearance}.`);
+  if (c.emotionalState) parts.push(`Emotional state: ${c.emotionalState}.`);
+  if (c.storyContext) parts.push(`Story context: ${c.storyContext}`);
+  return parts.join(" ");
+};
 const extractSpoken = d => {
   if (!d || d.toUpperCase().startsWith("SILENT")) return null;
   return d.replace(/\*[^*]+\*/g, "").replace(/TTS:\s*/gi, "").replace(/\b\w[\w ]*\b\s+said\s*/gi, "").replace(/\b\w[\w ]*\b\s+replied\s*/gi, "").replace(/:\s*/g, ". ").replace(/\s+/g, " ").trim();
@@ -1253,12 +1277,93 @@ const CharacterRegistry = ({
     appearance: "",
     voiceTone: "",
     accent: "",
-    personality: ""
+    personality: "",
+    age: "",
+    gender: "",
+    ethnicity: "",
+    nationality: "",
+    occupation: "",
+    period: "",
+    location: "",
+    genre: "",
+    wardrobe: "",
+    emotionalState: "",
+    storyContext: ""
   };
   const [form, setForm] = useState(empty);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [showMasterFields, setShowMasterFields] = useState(false);
+  const [openPromptId, setOpenPromptId] = useState(null);
   const roles = ["Protagonist", "Antagonist", "Supporting", "Narrator", "Recurring"];
+
+  /* Mock Test proof of Item 5 (Master Character Image Prompt Standard), same
+     pattern as the Write tab's "Run Mock Test": three preset, fully-fielded
+     characters that are visually and demographically distinct, appended to
+     whatever is already saved (never overwrites), no API key, no network
+     call. Lets the Master Prompt output be seen immediately with zero typing. */
+  const MOCK_CHARACTERS = [{
+    name: "Amara Okafor",
+    role: "Protagonist",
+    appearance: "",
+    voiceTone: "Warm, unhurried alto, carries authority without raising volume",
+    accent: "Nigerian English, Igbo cadence",
+    personality: "Warm but unyielding, quietly commanding",
+    age: "58",
+    gender: "woman",
+    ethnicity: "West African, Igbo",
+    nationality: "Nigerian",
+    occupation: "Retired schoolteacher turned community elder",
+    period: "Present day",
+    location: "Lagos, Nigeria",
+    genre: "Drama",
+    wardrobe: "Hand-woven Ankara wrapper and headscarf, layered gold jewelry",
+    emotionalState: "Grieving but resolute",
+    storyContext: "Confronting her son about a decision that could tear the family apart"
+  }, {
+    name: "Viktor Petrov",
+    role: "Antagonist",
+    appearance: "",
+    voiceTone: "Low, controlled, clipped sentences",
+    accent: "Russian accent, formal English",
+    personality: "Guarded, calculating, quietly desperate",
+    age: "34",
+    gender: "man",
+    ethnicity: "Slavic",
+    nationality: "Russian",
+    occupation: "Disgraced former intelligence officer",
+    period: "1980s, Cold War era",
+    location: "East Berlin",
+    genre: "Thriller",
+    wardrobe: "Worn wool overcoat, loosened tie",
+    emotionalState: "Paranoid, cornered",
+    storyContext: "Realizing he is being followed on the night of his defection"
+  }, {
+    name: "Sofia Reyes",
+    role: "Supporting",
+    appearance: "",
+    voiceTone: "Quick, energetic, rises when nervous",
+    accent: "Southern California English",
+    personality: "Idealistic, sharp-tongued, still naive",
+    age: "22",
+    gender: "woman",
+    ethnicity: "Latina",
+    nationality: "Mexican-American",
+    occupation: "Rookie detective",
+    period: "Present day",
+    location: "Los Angeles",
+    genre: "Mystery",
+    wardrobe: "Off-the-rack blazer, badge clipped to her belt",
+    emotionalState: "Determined, slightly out of her depth",
+    storyContext: "Standing over her first crime scene, trying not to show she is rattled"
+  }];
+  const loadMockCharacters = async () => {
+    const updated = [...chars, ...MOCK_CHARACTERS.map((c, i) => ({
+      ...c,
+      id: Date.now() + i
+    }))];
+    await onSave(updated);
+  };
   const saveChar = async () => {
     if (!form.name.trim()) return;
     setSaving(true);
@@ -1276,7 +1381,10 @@ const CharacterRegistry = ({
   };
   const del = async id => onSave(chars.filter(c => c.id !== id));
   const edit = i => {
-    setForm(chars[i]);
+    setForm({
+      ...empty,
+      ...chars[i]
+    });
     setEditing(i);
   };
   const F = ({
@@ -1342,14 +1450,35 @@ const CharacterRegistry = ({
   }));
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 8,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
       color: "#9ca3af",
       fontSize: 12,
       fontWeight: 700,
       textTransform: "uppercase",
-      letterSpacing: 1,
-      marginBottom: 16
+      letterSpacing: 1
     }
-  }, chars.length, " Character", chars.length !== 1 ? "s" : "", " — auto-injected into every story you generate"), chars.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, chars.length, " Character", chars.length !== 1 ? "s" : "", " — auto-injected into every story you generate"), /*#__PURE__*/React.createElement("button", {
+    onClick: loadMockCharacters,
+    style: {
+      background: "transparent",
+      border: "1px solid #6366f1",
+      borderRadius: 8,
+      color: "#a5b4fc",
+      fontWeight: 700,
+      fontSize: 11,
+      padding: "5px 11px",
+      cursor: "pointer",
+      whiteSpace: "nowrap"
+    }
+  }, "🧪 Load 3 Mock Characters")), chars.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1364,6 +1493,8 @@ const CharacterRegistry = ({
       Narrator: "#f59e0b",
       Recurring: "#a855f7"
     }[c.role] || "#6b7280";
+    const masterPrompt = buildMasterCharacterPrompt(c);
+    const hasMasterFields = !!(c.age || c.gender || c.ethnicity || c.nationality || c.occupation);
     return /*#__PURE__*/React.createElement("div", {
       key: c.id,
       style: {
@@ -1408,6 +1539,18 @@ const CharacterRegistry = ({
         gap: 6
       }
     }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => setOpenPromptId(id => id === c.id ? null : c.id),
+      style: {
+        background: openPromptId === c.id ? "#1e3a5f" : "transparent",
+        border: "1px solid #6366f1",
+        borderRadius: 6,
+        color: "#a5b4fc",
+        fontSize: 11,
+        padding: "2px 9px",
+        cursor: "pointer",
+        whiteSpace: "nowrap"
+      }
+    }, "🎬 Master Prompt"), /*#__PURE__*/React.createElement("button", {
       onClick: () => edit(i),
       style: {
         background: "#1e3a5f",
@@ -1448,7 +1591,38 @@ const CharacterRegistry = ({
         color: "#9ca3af",
         fontSize: 11
       }
-    }, val.slice(0, 70), val.length > 70 ? "..." : "")) : null)));
+    }, val.slice(0, 70), val.length > 70 ? "..." : "")) : null)), openPromptId === c.id && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 11,
+        background: "#070d1a",
+        border: "1px solid #6366f155",
+        borderRadius: 8,
+        padding: "10px 13px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#a5b4fc",
+        fontSize: 10,
+        fontWeight: 700,
+        textTransform: "uppercase",
+        letterSpacing: 1
+      }
+    }, hasMasterFields ? "Master image prompt" : "Master image prompt (base only, add age, gender, ethnicity etc. for a fully customized version)"), /*#__PURE__*/React.createElement(CopyBtn, {
+      text: masterPrompt
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "#d1d5db",
+        fontSize: 12,
+        lineHeight: 1.6
+      }
+    }, masterPrompt)));
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "linear-gradient(135deg,#1f2937,#111827)",
@@ -1512,7 +1686,7 @@ const CharacterRegistry = ({
   }), /*#__PURE__*/React.createElement(F, {
     k: "voiceTone",
     label: "Voice Tone (ElevenLabs-ready)",
-    ph: "e.g. Deep, measured baritone — slow and deliberate, weight of wisdom in every word",
+    ph: "e.g. Deep, measured baritone, slow and deliberate, weight of wisdom in every word",
     rows: 2
   }), /*#__PURE__*/React.createElement(F, {
     k: "accent",
@@ -1521,9 +1695,76 @@ const CharacterRegistry = ({
   }), /*#__PURE__*/React.createElement(F, {
     k: "personality",
     label: "Personality & Traits",
-    ph: "e.g. Wise, patient, quietly fierce — speaks in proverbs under pressure",
+    ph: "e.g. Wise, patient, quietly fierce, speaks in proverbs under pressure",
     rows: 2
-  }), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowMasterFields(v => !v),
+    style: {
+      background: "transparent",
+      border: `1px solid ${showMasterFields ? "#6366f1" : "#374151"}`,
+      borderRadius: 8,
+      color: showMasterFields ? "#a5b4fc" : "#6b7280",
+      fontSize: 12,
+      fontWeight: 700,
+      padding: "6px 13px",
+      cursor: "pointer",
+      marginBottom: showMasterFields ? 12 : 4,
+      width: "100%",
+      textAlign: "left"
+    }
+  }, showMasterFields ? "▲" : "▼", " 🎬 Master Image Prompt details (optional, age, ethnicity, wardrobe...)"), showMasterFields && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: "0 12px"
+    }
+  }, /*#__PURE__*/React.createElement(F, {
+    k: "age",
+    label: "Age",
+    ph: "e.g. 58"
+  }), /*#__PURE__*/React.createElement(F, {
+    k: "gender",
+    label: "Gender",
+    ph: "e.g. woman"
+  }), /*#__PURE__*/React.createElement(F, {
+    k: "ethnicity",
+    label: "Ethnicity",
+    ph: "e.g. West African, Igbo"
+  }), /*#__PURE__*/React.createElement(F, {
+    k: "nationality",
+    label: "Nationality",
+    ph: "e.g. Nigerian"
+  }), /*#__PURE__*/React.createElement(F, {
+    k: "occupation",
+    label: "Occupation",
+    ph: "e.g. Retired schoolteacher"
+  }), /*#__PURE__*/React.createElement(F, {
+    k: "period",
+    label: "Period",
+    ph: "e.g. Present day"
+  }), /*#__PURE__*/React.createElement(F, {
+    k: "location",
+    label: "Location",
+    ph: "e.g. Lagos, Nigeria"
+  }), /*#__PURE__*/React.createElement(F, {
+    k: "genre",
+    label: "Genre",
+    ph: "e.g. Drama"
+  })), /*#__PURE__*/React.createElement(F, {
+    k: "wardrobe",
+    label: "Wardrobe",
+    ph: "e.g. Hand-woven Ankara wrapper, layered gold jewelry",
+    rows: 2
+  }), /*#__PURE__*/React.createElement(F, {
+    k: "emotionalState",
+    label: "Emotional State",
+    ph: "e.g. Grieving but resolute"
+  }), /*#__PURE__*/React.createElement(F, {
+    k: "storyContext",
+    label: "Story Context",
+    ph: "e.g. Confronting her son about a decision that could tear the family apart",
+    rows: 2
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
