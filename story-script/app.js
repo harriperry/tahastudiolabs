@@ -2769,6 +2769,78 @@ function App() {
     setLoading(false);
     setProg("");
   };
+
+  /* Mock Test mode, same purpose and shape as ScriptForge's existing "Run Mock
+     Test" button: a canned, offline example story, no API key, no network call,
+     no cost. Exercises the exact same downstream path a real generate() does
+     (saveToStorage, setActiveId, setView, the whole StoryView/SceneCard render
+     tree, TTS copy buttons, the Facebook post generator) so this new feature,
+     and anything built on top of it later, can be proven safe before it ever
+     touches a real API key or a real story. Deliberately does NOT call callAI,
+     buildSystemPrompt, or touch aiConfig/anthropicKey/grokKey at all. */
+  const MOCK_IDEA = "A detective finds a photo that proves his partner lied about the night of the warehouse fire.";
+  const MOCK_STORY_DATA = {
+    title: "The Photograph",
+    genre: "Thriller",
+    synopsis: "A detective finds a photograph that proves his partner lied about the night of the warehouse fire, and has to decide whether the truth is worth what it will cost him.",
+    universal_t2i_prompt: "Photorealistic, moody blue and amber palette, 1990s detective bureau, practical desk lamps, shallow depth of field, handheld documentary camera, consistent character design, storyboard sheet",
+    scenes: [{
+      scene_number: 1,
+      scene_title: "The Drawer",
+      scene_description: "Late night in a cluttered detective bureau. [SFX: a ceiling fan ticking, distant sirens] A single desk lamp cuts through the dark. David pulls a folder from a locked drawer he was told not to touch.",
+      dialogue: "David said *(low, private)* TTS: Seventeen times. I've watched this tape seventeen times. Maya replied *(sharp, cautious)*: And what do you see...",
+      sfx_prompt: "Ceiling fan tick, distant traffic hum, paper rustle close mic, a drawer lock click at the top of the scene.",
+      i2v_prompt: "Slow push in on David's hands opening the folder, lamp light flickering slightly, dust visible in the light beam.",
+      kinetic_prompt: "David's jaw tightens as he opens the folder. Maya leans into frame from the doorway, arms crossed, watching him.",
+      continuity_prompt: "Lighting stays low and warm. Carry the folder and the drawer into the next scene, still open on the desk."
+    }, {
+      scene_number: 2,
+      scene_title: "The Photograph",
+      scene_description: "David slides a single photograph across the desk. [SFX: paper sliding on wood] Maya's face changes the instant she sees it.",
+      dialogue: "David said *(flat, exhausted)* TTS: You told the board you were home. Maya replied *(voice breaking)*: David, please, let me explain...",
+      sfx_prompt: "Photo sliding across a wood desk, a held breath, distant sirens fading in the background.",
+      i2v_prompt: "Camera holds on Maya's face as she looks down, a single slow blink, her hand freezing above the photo.",
+      kinetic_prompt: "Maya's hand stops halfway to the photo. David sits back, watching her reaction without speaking.",
+      continuity_prompt: "Hold the tension. Same room, same lighting, into the final scene."
+    }, {
+      scene_number: 3,
+      scene_title: "What It Costs",
+      scene_description: "Neither of them moves. [SFX: a clock somewhere in the building, faint] David closes the folder without looking away from her.",
+      dialogue: "David said *(quiet, final)* TTS: I need to know if I can still trust you. Maya replied *(barely audible)*: You can't. Not with this.",
+      sfx_prompt: "A distant clock, a slow exhale, complete silence under the final line.",
+      i2v_prompt: "Static two shot, both characters still, the folder closed on the desk between them.",
+      kinetic_prompt: "David closes the folder slowly. Maya looks away first, toward the window.",
+      continuity_prompt: "End on stillness. This closes the sequence, no further scenes."
+    }]
+  };
+  const mockGenerate = () => {
+    if (loading) return;
+    setLoading(true);
+    setError("");
+    setProg("🧪 Running mock test (no API call, no key needed)...");
+    setTimeout(async () => {
+      const id = Date.now();
+      const parsed = MOCK_STORY_DATA;
+      const entry = {
+        id,
+        title: parsed.title,
+        genre: parsed.genre,
+        synopsis: parsed.synopsis,
+        idea: MOCK_IDEA,
+        scenes: parsed.scenes.length,
+        savedAt: id
+      };
+      await saveToStorage(entry, parsed);
+      setActiveId(id);
+      setIdea("");
+      setView("write");
+      setLoading(false);
+      setProg("");
+      setTimeout(() => resultRef.current?.scrollIntoView({
+        behavior: "smooth"
+      }), 150);
+    }, 900);
+  };
   const generate = async () => {
     if (!idea.trim()) return;
     const activeKey = provider === "grok" ? grokKey : anthropicKey;
@@ -3107,7 +3179,21 @@ function App() {
       cursor: loading || !idea.trim() ? "not-allowed" : "pointer",
       transition: "all .2s"
     }
-  }, loading ? progress || "Generating..." : "🚀 Generate Script"))), loading && /*#__PURE__*/React.createElement("div", {
+  }, loading ? progress || "Generating..." : "🚀 Generate Script"), /*#__PURE__*/React.createElement("button", {
+    onClick: mockGenerate,
+    disabled: loading,
+    style: {
+      background: "transparent",
+      border: "1px solid #6366f1",
+      borderRadius: 10,
+      color: "#a5b4fc",
+      fontWeight: 700,
+      fontSize: 13,
+      padding: "11px 18px",
+      cursor: loading ? "not-allowed" : "pointer",
+      marginLeft: 8
+    }
+  }, "🧪 Run Mock Test"))), loading && /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       padding: "34px 0"
