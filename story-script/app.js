@@ -749,7 +749,10 @@ const StoryView = ({
   elVoiceId,
   ai,
   tracker,
-  onStageChange
+  onStageChange,
+  chars,
+  onSaveChars,
+  onOpenStudio
 }) => {
   const [editMode, setEditMode] = useState(false);
   const [drafts, setDrafts] = useState({});
@@ -1153,7 +1156,21 @@ const StoryView = ({
         fontFamily: "inherit"
       }
     }));
-  })), /*#__PURE__*/React.createElement(FBGen, {
+  })), window.SEExtras && /*#__PURE__*/React.createElement(window.SEExtras.CharacterIntelCard, {
+    key: "ci-" + data.title + "-" + String(data.synopsis || "").slice(0, 24),
+    data: data,
+    ai: ai,
+    callAI: callAI,
+    chars: chars || [],
+    onSaveChars: onSaveChars
+  }), window.SEExtras && /*#__PURE__*/React.createElement(window.SEExtras.ThumbnailPromptCard, {
+    key: "tp-" + data.title + "-" + String(data.synopsis || "").slice(0, 24),
+    data: data,
+    ai: ai,
+    callAI: callAI,
+    onSave: onSave,
+    onOpenStudio: onOpenStudio
+  }), /*#__PURE__*/React.createElement(FBGen, {
     data: data,
     ai: ai
   }), rawView ? /*#__PURE__*/React.createElement("div", {
@@ -2834,6 +2851,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [tier, setTier] = useState("free");
   const [showAccount, setShowAccount] = useState(false);
+  const [thumbSeed, setThumbSeed] = useState(null);
   const resultRef = useRef(null);
   const refreshMe = async () => {
     const r = await api("me");
@@ -3141,7 +3159,13 @@ function App() {
   }, {
     id: "characters",
     label: `👥 Characters${characters.length ? ` (${characters.length})` : ""}`
+  }, ...(window.SEExtras ? [{
+    id: "avatars",
+    label: "👤 Avatars"
   }, {
+    id: "thumbnails",
+    label: "🖼️ Thumbnails"
+  }] : []), {
     id: "settings",
     label: "⚙️ Settings"
   }];
@@ -3272,6 +3296,15 @@ function App() {
   })))), view === "characters" && /*#__PURE__*/React.createElement(CharacterRegistry, {
     chars: characters,
     onSave: saveChars
+  }), view === "avatars" && window.SEExtras && /*#__PURE__*/React.createElement(window.SEExtras.AvatarsTab, {
+    chars: characters,
+    onSave: saveChars,
+    ai: aiConfig,
+    callAI: callAI
+  }), view === "thumbnails" && window.SEExtras && /*#__PURE__*/React.createElement(window.SEExtras.ThumbnailsTab, {
+    ai: aiConfig,
+    callAI: callAI,
+    seed: thumbSeed
   }), view === "settings" && /*#__PURE__*/React.createElement(Settings, {
     elApiKey: elApiKey,
     elVoiceId: elVoiceId,
@@ -3512,6 +3545,15 @@ function App() {
     ai: aiConfig,
     tracker: activeTracker,
     onStageChange: (sn, si) => updateStage(activeId, sn, si),
+    chars: characters,
+    onSaveChars: saveChars,
+    onOpenStudio: brief => {
+      setThumbSeed({
+        n: Date.now(),
+        brief
+      });
+      setView("thumbnails");
+    },
     onSave: async u => {
       await window.storage.set(`story:${activeId}`, JSON.stringify(u));
       setStoryCache(c => ({
