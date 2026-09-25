@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin-visits.html
+
+Sitemap: https://www.tahastudiolabs.com/sitemap.xml

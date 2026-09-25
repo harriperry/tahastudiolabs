@@ -1,0 +1,15 @@
+# TAHA Studio Labs
+
+> Practical AI tools for video creators and producers, built by TAHA Production Studio. Users bring their own API keys.
+
+## Tools
+
+- [ScriptForge](https://www.tahastudiolabs.com/scriptforge/): Turns one idea or a script into a timed, segmented video script (10 to 15 second segments, 30 seconds to 5 minutes) with TTS text, B-roll prompts, camera motion and audio notes, for Google Veo 3.1, xAI Grok Imagine and HeyGen.
+- [ScriptEngine](https://www.tahastudiolabs.com/story-script/): Turns one story idea into a full cinematic production script, scene by scene, with dialogue, camera direction, SFX and a character registry. Uses the visitor's own Anthropic API key.
+- [AmiStoreCM](https://store.tahastudiolabs.com/): Online stores for small merchants in Cameroon, with Mobile Money checkout. Merchants set up a shop free with a 30-day trial.
+
+## Other pages
+
+- [Products](https://www.tahastudiolabs.com/products.html)
+- [Privacy Policy](https://www.tahastudiolabs.com/privacy.html)
+- [Terms of Service](https://www.tahastudiolabs.com/terms.html)
