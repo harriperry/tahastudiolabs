@@ -2,7 +2,7 @@ import { json } from "../_utils.js";
 /* Relay for the script-formatting call.
    WHY THIS EXISTS: calling api.anthropic.com directly from the browser (the
    original v7 design) works fine on a clean browser, but is silently blocked by
-   a meaningful share of real-world setups — ad blockers, antivirus "web shield"
+   a meaningful share of real-world setups - ad blockers, antivirus "web shield"
    extensions, and corporate VPN/proxies all commonly intercept unfamiliar
    cross-origin fetches with custom headers. That surfaces to paying customers as
    a bare "Failed to fetch" with no path to fix it themselves. Routing the call
@@ -12,28 +12,28 @@ import { json } from "../_utils.js";
 
    PROVIDERS: originally Anthropic-only. Extended to also support Google Gemini
    and Groq so people without an Anthropic budget can still use ScriptForge for
-   free — both have genuine free tiers (no credit card, confirmed July 2026).
+   free - both have genuine free tiers (no credit card, confirmed July 2026).
    Each provider has its own request/response shape, so this relay translates
    both directions: it builds the right upstream request, then NORMALIZES every
    provider's response into Anthropic's { content: [{type:"text", text}] } shape
    before it reaches the browser. That means the entire rendering pipeline
-   (segment parsing, Library, PDF export) needs zero provider-aware changes —
+   (segment parsing, Library, PDF export) needs zero provider-aware changes - 
    it only ever sees one response format, regardless of which provider answered.
 
    DATA HANDLING: the script text and API key pass through this function's
    memory for the lifetime of a single request only. Nothing here is written to
-   Supabase, KV, disk, or any log — the key and script are used once to make the
+   Supabase, KV, disk, or any log - the key and script are used once to make the
    upstream call and are discarded the instant the response is returned. See
    privacy.html §1 for the accurate description of this flow. */
-/* HARD BAN ON EM DASHES — the user does not want "—" anywhere in generated dialogue/script
+/* HARD BAN ON EM DASHES - the user does not want an em dash anywhere in generated dialogue/script
    output, regardless of which provider wrote it. buildSystemPrompt() (assets/app.js) also
-   instructs every model not to use one, but instructions alone are not a guarantee — models
+   instructs every model not to use one, but instructions alone are not a guarantee - models
    still slip one in occasionally. This is the actual enforcement: every provider's text passes
    through here, right before it reaches the browser, so no em dash can survive regardless of
-   model compliance. Replaces "—" (with or without surrounding spaces) with a comma, which reads
+   model compliance. Replaces the em dash (with or without surrounding spaces) with a comma, which reads
    naturally in the vast majority of real sentence positions an em dash appears in. */
 function stripEmDashes(text) {
-  return typeof text === "string" ? text.replace(/\s*—\s*/g, ", ") : text;
+  return typeof text === "string" ? text.replace(/\s*\u2014\s*/g, ", ") : text;
 }
 
 export async function onRequestPost(context) {
@@ -55,7 +55,7 @@ export async function onRequestPost(context) {
   }
 }
 
-/* Anthropic Messages API — the original/default path, unchanged in request shape. Response
+/* Anthropic Messages API - the original/default path, unchanged in request shape. Response
    used to be passed through completely as-is; now it's parsed just enough to run every text
    block through stripEmDashes() before re-serializing, since Claude is just as capable of
    producing an em dash as any other provider and the ban applies regardless of provider. */
@@ -92,13 +92,13 @@ async function formatAnthropic(apiKey, model, max_tokens, system, messages) {
   });
 }
 
-/* Google Gemini — generateContent (ai.google.dev/gemini-api/docs/text-generation).
+/* Google Gemini - generateContent (ai.google.dev/gemini-api/docs/text-generation).
    Deliberately using this classic endpoint rather than Google's newer Interactions API:
    generateContent still fully supports a plain system_instruction + contents +
    generationConfig.maxOutputTokens request with none of the deprecated-sampling-parameter
-   churn that only affects the newest 3.6/3.5 models — and we never send temperature/top_p/
+   churn that only affects the newest 3.6/3.5 models - and we never send temperature/top_p/
    top_k anyway, so this is the lower-risk, more stable integration point.
-   thinkingConfig.thinkingBudget: 0 — Gemini 2.5/3.6 Flash have "thinking" turned on by default,
+   thinkingConfig.thinkingBudget: 0 - Gemini 2.5/3.6 Flash have "thinking" turned on by default,
    and those thinking tokens are deducted from the SAME maxOutputTokens budget as the visible
    response (confirmed via Google's own developer forum reports of exactly this causing silently
    truncated/empty responses on plain formatting calls like this one). This task is a mechanical
@@ -123,11 +123,11 @@ async function formatGemini(apiKey, model, max_tokens, system, messages) {
   const data = await res.json().catch(() => null);
   if (!res.ok) return json({ error: data?.error || { message: `HTTP ${res.status}` } }, res.status);
   const text = stripEmDashes((data?.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim());
-  if (!text) return json({ error: { message: "Gemini returned an empty response — try again, or double-check your key/model at aistudio.google.com." } }, 502);
+  if (!text) return json({ error: { message: "Gemini returned an empty response - try again, or double-check your key/model at aistudio.google.com." } }, 502);
   return json({ content: [{ type: "text", text }] });
 }
 
-/* Groq — OpenAI-compatible chat completions (console.groq.com/docs/openai). Same response
+/* Groq - OpenAI-compatible chat completions (console.groq.com/docs/openai). Same response
    normalization as Gemini above, into Anthropic's { content: [...] } shape. */
 async function formatGroq(apiKey, model, max_tokens, system, messages) {
   let res;
@@ -147,12 +147,12 @@ async function formatGroq(apiKey, model, max_tokens, system, messages) {
   const data = await res.json().catch(() => null);
   if (!res.ok) return json({ error: data?.error || { message: `HTTP ${res.status}` } }, res.status);
   const text = stripEmDashes((data?.choices?.[0]?.message?.content || "").trim());
-  if (!text) return json({ error: { message: "Groq returned an empty response — try again, or double-check your key/model at console.groq.com." } }, 502);
+  if (!text) return json({ error: { message: "Groq returned an empty response - try again, or double-check your key/model at console.groq.com." } }, 502);
   return json({ content: [{ type: "text", text }] });
 }
 
-/* DeepSeek — OpenAI-compatible chat completions (api-docs.deepseek.com). NOTE: unlike Gemini
-   and Groq above, DeepSeek does NOT offer a permanent free tier — new accounts get a one-time
+/* DeepSeek - OpenAI-compatible chat completions (api-docs.deepseek.com). NOTE: unlike Gemini
+   and Groq above, DeepSeek does NOT offer a permanent free tier - new accounts get a one-time
    5-million-token / 30-day signup credit, then it's pay-as-you-go. The UI labels this
    accurately (not "free tier") so people aren't surprised when the credit runs out. Same
    response normalization as Gemini/Groq, into Anthropic's { content: [...] } shape. */
@@ -174,6 +174,6 @@ async function formatDeepSeek(apiKey, model, max_tokens, system, messages) {
   const data = await res.json().catch(() => null);
   if (!res.ok) return json({ error: data?.error || { message: `HTTP ${res.status}` } }, res.status);
   const text = stripEmDashes((data?.choices?.[0]?.message?.content || "").trim());
-  if (!text) return json({ error: { message: "DeepSeek returned an empty response — try again, or double-check your key at platform.deepseek.com. Note: DeepSeek's signup credit expires after 30 days/5M tokens, not a permanent free tier." } }, 502);
+  if (!text) return json({ error: { message: "DeepSeek returned an empty response - try again, or double-check your key at platform.deepseek.com. Note: DeepSeek's signup credit expires after 30 days/5M tokens, not a permanent free tier." } }, 502);
   return json({ content: [{ type: "text", text }] });
 }

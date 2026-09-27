@@ -13,6 +13,6 @@ export async function onRequestPost(context) {
   await db(env, "DELETE", `license_redemptions?user_id=eq.${auth.user.id}`);
   await db(env, "DELETE", `subscriptions?user_id=eq.${auth.user.id}`);
   const del = await sbAdmin(env, "DELETE", `users/${auth.user.id}`);
-  if (!del.ok) return json({ error: "Deletion failed — contact support." }, 500);
+  if (!del.ok) return json({ error: "Deletion failed - contact support." }, 500);
   return new Response(JSON.stringify({ ok: true }), { status: 200, headers: clearAuthHeaders() });
 }

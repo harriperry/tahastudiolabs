@@ -1,7 +1,7 @@
 import { json, db, sbAdmin } from "../_utils.js";
 /* Polar webhook receiver. Verifies Standard-Webhooks HMAC signature, then updates
    subscription status. Supports instant revocation (Brief §3) on refund/cancellation
-   without a deploy. Only email + status flow through here — nothing else is stored. */
+   without a deploy. Only email + status flow through here - nothing else is stored. */
 
 async function verifySignature(env, request, rawBody) {
   const id = request.headers.get("webhook-id"), ts = request.headers.get("webhook-timestamp"),
@@ -20,8 +20,8 @@ async function setStatusByEmail(env, email, status) {
   const users = await sbAdmin(env, "GET", `users?email=${encodeURIComponent(email)}`);
   const list = (users.data && (users.data.users || users.data)) || [];
   const u = Array.isArray(list) ? list.find(x => x.email === email) : null;
-  if (!u) return; // no account yet — license redemption will bind entitlement at first login
-  // trial_ends_at: null — any real Polar event (payment, cancellation, refund) supersedes an
+  if (!u) return; // no account yet - license redemption will bind entitlement at first login
+  // trial_ends_at: null - any real Polar event (payment, cancellation, refund) supersedes an
   // earlier trial claim, so a leftover expired-trial timestamp can never be mistaken for the
   // reason a genuine paying customer's access changed.
   await db(env, "POST", "subscriptions", { user_id: u.id, status, tier: "pro", trial_ends_at: null, updated_at: new Date().toISOString() });

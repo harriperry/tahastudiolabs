@@ -7,7 +7,7 @@ import { json } from "../_utils.js";
    generation itself did. Routing the download through our own domain sidesteps that
    entirely, since the provider fetch happens server-to-server (no CORS applies there).
    DATA HANDLING: apiKey is used only to authenticate this one upstream request, in memory,
-   then discarded. The video bytes are streamed straight through — never written to disk,
+   then discarded. The video bytes are streamed straight through - never written to disk,
    Supabase, KV, or any log. */
 export async function onRequestPost(context) {
   const { request } = context;
@@ -28,7 +28,7 @@ export async function onRequestPost(context) {
     upstream = await fetch(uri, Object.keys(headers).length ? { headers } : undefined);
     if (!upstream.ok && Object.keys(headers).length) {
       // Some hosts (e.g. signed CDN links) reject an unnecessary auth header on an
-      // already-authorized URL — retry with no header before giving up.
+      // already-authorized URL - retry with no header before giving up.
       upstream = await fetch(uri);
     }
   } catch (e) {

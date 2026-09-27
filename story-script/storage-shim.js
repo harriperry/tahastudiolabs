@@ -1,4 +1,4 @@
-// Local persistence shim — replaces Claude.ai's window.storage with plain localStorage
+// Local persistence shim - replaces Claude.ai's window.storage with plain localStorage
 // so this app runs standalone, outside the Claude artifact sandbox.
 (function () {
   var NS = "ssps:";

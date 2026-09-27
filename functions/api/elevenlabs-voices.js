@@ -1,12 +1,12 @@
 import { json } from "../_utils.js";
 
 /* Relay for fetching the customer's own ElevenLabs voice list.
-   WHY THIS EXISTS: same reasoning as functions/api/format.js and functions/api/video-start.js —
+   WHY THIS EXISTS: same reasoning as functions/api/format.js and functions/api/video-start.js - 
    routing through our own domain avoids ad blockers/antivirus/VPN silently blocking a direct
    browser -> api.elevenlabs.io call.
 
    SCOPE: this is a voice-ID picker only, not a text-to-speech generator. ScriptForge does not
-   call ElevenLabs to generate audio — it fetches the customer's voice list so they can pick a
+   call ElevenLabs to generate audio - it fetches the customer's voice list so they can pick a
    Voice ID, which is then written into the script's TECHNICAL SPECS block for use downstream
    (e.g. pasted into HeyGen, or used with their own ElevenLabs TTS workflow outside this app).
 
@@ -42,7 +42,7 @@ export async function onRequestPost(context) {
     name: v.name,
     category: v.category || null
   }));
-  if (!voices.length) return json({ error: { message: "No voices found on this ElevenLabs account — add or clone a voice at elevenlabs.io first." } }, 502);
+  if (!voices.length) return json({ error: { message: "No voices found on this ElevenLabs account - add or clone a voice at elevenlabs.io first." } }, 502);
 
   return json({ voices });
 }

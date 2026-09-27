@@ -12,7 +12,7 @@ data.asset_id and data.id are checked below rather than assuming one.
 
 The browser can't easily attach an ElevenLabs-fetched audio blob to a real <input type=file>,
 so the client instead base64-encodes it and this relay reconstructs a real multipart body
-server-side before forwarding to HeyGen — fetch() sets the correct boundary headers for us
+server-side before forwarding to HeyGen - fetch() sets the correct boundary headers for us
 automatically once the body is a FormData instance.
 
 DATA HANDLING: apiKey and the audio bytes are held in memory only for the duration of this

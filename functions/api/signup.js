@@ -7,11 +7,11 @@ export async function onRequestPost(context) {
 
   /* Create the user directly through the Admin API with email_confirm:true set at creation time,
      instead of the public /signup endpoint. Two reasons: (1) it removes Supabase's default
-     "click an emailed link before password login works" gate — the "must use a link every time"
-     friction this whole feature replaces — without touching the project's dashboard settings;
+     "click an emailed link before password login works" gate - the "must use a link every time"
+     friction this whole feature replaces - without touching the project's dashboard settings;
      (2) verified live that the public /signup endpoint currently fails outright with "Error
      sending confirmation email" (Supabase's own mailer erroring, independent of anything in this
-     codebase) — going through Admin API creation never attempts to send that email at all, so
+     codebase) - going through Admin API creation never attempts to send that email at all, so
      it sidesteps that failure entirely rather than depending on Supabase's mail delivery working. */
   const created = await sbAdmin(env, "POST", "users", { email: b.email, password: b.password, email_confirm: true });
   if (!created.ok) {

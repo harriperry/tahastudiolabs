@@ -1,6 +1,6 @@
 # TAHA Studio Labs
 
-> Practical AI tools for video creators and producers, built by TAHA Production Studio. Users bring their own API keys.
+> Practical AI tools for video creators and producers, built by TAHA Studio Labs. Users bring their own API keys.
 
 ## Tools
 

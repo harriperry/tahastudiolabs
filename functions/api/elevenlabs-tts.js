@@ -1,7 +1,7 @@
 import { json } from "../_utils.js";
 
 /* Relay for ElevenLabs text-to-speech. WHY THIS EXISTS: same reasoning as every other
-provider relay in this folder — routing through our own domain avoids ad blockers/
+provider relay in this folder - routing through our own domain avoids ad blockers/
 antivirus/VPN silently blocking a direct browser -> api.elevenlabs.io call.
 
 SCOPE CHANGE from elevenlabs-voices.js: that relay only lists voices; this one actually
@@ -16,7 +16,7 @@ POST https://api.elevenlabs.io/v1/text-to-speech/{voice_id}, auth via "xi-api-ke
 JSON body { text, model_id }, response is raw audio bytes (default mp3_44100_128).
 
 DATA HANDLING: apiKey and text are held in memory only for the duration of this single
-request. Audio bytes are streamed straight through — never written to Supabase, KV, or any
+request. Audio bytes are streamed straight through - never written to Supabase, KV, or any
 log, matching every other relay in this app. */
 export async function onRequestPost(context) {
 const { request } = context;

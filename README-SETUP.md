@@ -1,9 +1,9 @@
-# TAHA Studio Labs — Site + ScriptForge v7: Setup Guide
+# TAHA Studio Labs - Site + ScriptForge v7: Setup Guide
 
 Multi-product site: `/` landing + `/products.html` + `/scriptforge/` (the app).
 Future products = new folders; all share the same accounts/checkout backend.
 
-Upgrade of TAHA STUDIO AI ScriptForge implementing the Feature Scope + Auth/Security Brief.
+Upgrade of TAHA Studio Labs ScriptForge implementing the Feature Scope + Auth/Security Brief.
 Architecture: static front end + Cloudflare Pages Functions + Supabase (auth & minimal DB) + Polar (Merchant of Record).
 
 **Trust model preserved:** the Anthropic API key and all script content stay in the browser.
@@ -18,8 +18,8 @@ license redemption records, session ids. Verified against Security Brief §10 be
 |---|---|
 | `index.html`, `assets/app.css`, `assets/app.js` | The app (v6 features + accounts, gating, library export/import) |
 | `assets/jspdf.umd.min.js` | jsPDF self-hosted (allows strict CSP `script-src 'self'`, no SRI needed) |
-| `privacy.html`, `terms.html` | Legal pages, linked in footer + signup (Terms is a PLACEHOLDER — review before launch) |
-| `_headers` | CSP, HSTS, and security headers (Brief §6) — applied automatically by Cloudflare Pages |
+| `privacy.html`, `terms.html` | Legal pages, linked in footer + signup (Terms is a PLACEHOLDER - review before launch) |
+| `_headers` | CSP, HSTS, and security headers (Brief §6) - applied automatically by Cloudflare Pages |
 | `functions/api/*.js` | Backend: signup, login, magic, session-from-token, logout, me, redeem, webhook-polar, delete-account |
 | `supabase-schema.sql` | The three tables + RLS lockdown |
 
@@ -33,11 +33,11 @@ license redemption records, session ids. Verified against Security Brief §10 be
 
 ## 3. Create the Polar account (~15 min)
 
-1. polar.sh → create organization → create a product (e.g. "ScriptForge Pro", one-time or subscription — placeholder pricing is fine per scope §3).
+1. polar.sh → create organization → create a product (e.g. "ScriptForge Pro", one-time or subscription - placeholder pricing is fine per scope §3).
 2. Enable **license keys** on the product (limit: 1 activation).
 3. Create a checkout link → paste it into `assets/app.js` at `CHECKOUT_URL`.
 4. Settings → Webhooks → add endpoint `https://tahastudiolabs.com/api/webhook-polar`, subscribe to order + subscription + refund events, copy the signing secret.
-5. ⚠ `functions/api/redeem.js` calls Polar's license validation endpoint — confirm the exact path/payload against current Polar API docs and adjust if it has changed.
+5. ⚠ `functions/api/redeem.js` calls Polar's license validation endpoint - confirm the exact path/payload against current Polar API docs and adjust if it has changed.
 
 ## 4. Deploy to Cloudflare Pages (~15 min)
 
@@ -73,14 +73,14 @@ license redemption records, session ids. Verified against Security Brief §10 be
 
 - Account deletion (`/api/delete-account`) removes email, credential, subscription, redemption
   and session records immediately (policy allows 30 days; we do it instantly). Payment records
-  remain with Polar under its own MoR compliance — matches Privacy Policy §8.
-- Only cookies set: `sf_at`, `sf_rt`, `sf_sid` — strictly necessary session cookies (httpOnly,
+  remain with Polar under its own MoR compliance - matches Privacy Policy §8.
+- Only cookies set: `sf_at`, `sf_rt`, `sf_sid` - strictly necessary session cookies (httpOnly,
   Secure, SameSite=Strict). **No cookie banner needed** under scope §E. If you ever add
   analytics, add consent first.
 - Fill in `[SUPPORT EMAIL]` in `privacy.html` and finish `terms.html` before launch.
 - Sub-processors to name in the policy: Supabase (auth/data), Polar (payments), Cloudflare (hosting).
 
-## 7. Acceptance criteria (Security Brief §10) — how to verify
+## 7. Acceptance criteria (Security Brief §10) - how to verify
 
 1. **DB contents:** Supabase Table Editor → confirm only the three tables + auth.users exist; no content columns.
 2. **API key never touches our domain:** DevTools → Network during a real format → the key appears only in the request to `api.anthropic.com`; zero requests to `tahastudiolabs.com/api/*` carry it.
@@ -91,5 +91,5 @@ license redemption records, session ids. Verified against Security Brief §10 be
 ## 8. Migration note
 
 Keep the GitHub Pages version live until the Cloudflare deployment is verified, then make the
-old URL a redirect (or retire it). localStorage does not transfer across domains — tell existing
+old URL a redirect (or retire it). localStorage does not transfer across domains - tell existing
 users to use **Export JSON** on the old domain and **Import JSON** on tahastudiolabs.com.

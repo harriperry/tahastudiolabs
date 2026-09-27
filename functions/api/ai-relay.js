@@ -2,7 +2,7 @@ import { json } from "../_utils.js";
 
 /* Anthropic's API does not support direct cross-origin browser fetches from
    arbitrary third-party sites (confirmed: identical requests fail with a
-   network-level CORS error from any origin, not just this one — the
+   network-level CORS error from any origin, not just this one - the
    "anthropic-dangerous-direct-browser-access" header only works inside
    Anthropic's own claude.ai sandbox). This relay forwards the request
    server-side instead, so ScriptEngine's bring-your-own-key flow works the

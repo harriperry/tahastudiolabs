@@ -1,6 +1,6 @@
 import { json, requireUser, db } from "../_utils.js";
 /* One-time license redemption (Brief §3): validate with Polar, then bind permanently
-   to this account. After redemption, access is gated by login — not the key string. */
+   to this account. After redemption, access is gated by login - not the key string. */
 export async function onRequestPost(context) {
   const { request, env } = context;
   const auth = await requireUser(context);
@@ -24,8 +24,8 @@ export async function onRequestPost(context) {
   if (!pv.ok) return json({ error: "License key is not valid." }, 400);
 
   const ins = await db(env, "POST", "license_redemptions", { license_key: key, user_id: auth.user.id });
-  if (!ins.ok) return json({ error: "Redemption failed — try again." }, 500);
-  // trial_ends_at: null — a real license redemption always supersedes any earlier trial claim,
+  if (!ins.ok) return json({ error: "Redemption failed - try again." }, 500);
+  // trial_ends_at: null - a real license redemption always supersedes any earlier trial claim,
   // so a leftover expired-trial timestamp can never cause this now-paying account to lapse.
   await db(env, "POST", "subscriptions", { user_id: auth.user.id, status: "active", tier: "pro", trial_ends_at: null, updated_at: new Date().toISOString() });
   return json({ ok: true });

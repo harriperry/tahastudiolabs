@@ -1,7 +1,7 @@
 import { json } from "../_utils.js";
 
 /* Relay for starting a video generation job with the customer's own API key.
-   WHY THIS EXISTS: same reasoning as functions/api/format.js — a direct browser→provider
+   WHY THIS EXISTS: same reasoning as functions/api/format.js - a direct browser→provider
    call works in clean testing but can be silently blocked by real customers' ad blockers,
    antivirus web-shields, or VPNs (confirmed behavior with the Anthropic integration). This
    relay makes the browser call our own domain instead; the provider call happens server-to-
@@ -30,21 +30,21 @@ return await startHeyGen(apiKey, prompt, params || {});
   }
 }
 
-/* Veo 3.1 — https://ai.google.dev/gemini-api/docs/veo
+/* Veo 3.1 - https://ai.google.dev/gemini-api/docs/veo
    Reference images: Google's own documented schema (ai.google.dev/gemini-api/docs/video#
    reference-images) requires every reference image object to include a "referenceType": "asset"
-   field alongside "image" — every one of Google's own request examples sends it. Enforced here
+   field alongside "image" - every one of Google's own request examples sends it. Enforced here
    server-side too, in case any cached client ever sends the old shape.
 
-   ROUND 2 FIX — the actual image payload shape was ALSO wrong, confirmed by re-reading Google's
+   ROUND 2 FIX - the actual image payload shape was ALSO wrong, confirmed by re-reading Google's
    own REST curl example for this exact endpoint (ai.google.dev/gemini-api/docs/video#reference-
-   images): the "image" field must be a nested { inlineData: { mimeType, data } } object —
-   `"image": {"inlineData": {"mimeType": "image/png", "data": "<base64>"}}` — NOT a flat
+   images): the "image" field must be a nested { inlineData: { mimeType, data } } object - 
+   `"image": {"inlineData": {"mimeType": "image/png", "data": "<base64>"}}` - NOT a flat
    { bytesBase64Encoded, mimeType } object (that flat shape belongs to a different endpoint,
    Imagen's predict API, not Veo's). We were sending the flat shape, which doesn't match Veo's
-   schema at all — very likely why reference images were being silently ignored/malformed and a
+   schema at all - very likely why reference images were being silently ignored/malformed and a
    different person kept showing up regardless of the referenceType fix above. Client still sends
-   { bytesBase64Encoded, mimeType } (see assets/app.js fileToBase64) — wrapped correctly here. */
+   { bytesBase64Encoded, mimeType } (see assets/app.js fileToBase64) - wrapped correctly here. */
 async function startVeo(apiKey, prompt, params) {
   const instance = { prompt };
   if (params.referenceImages) {
@@ -57,12 +57,12 @@ async function startVeo(apiKey, prompt, params) {
       };
     });
   }
-  /* personGeneration is NOT a fixed value across all Veo 3.1 call types — Google's own docs
+  /* personGeneration is NOT a fixed value across all Veo 3.1 call types - Google's own docs
      (ai.google.dev/gemini-api/docs/video#veo-api-parameters) require different values per mode:
      text-to-video (no reference image) only accepts "allow_all", while reference-images /
      image-to-video calls only accept "allow_adult". Sending "allow_adult" unconditionally (the
      previous behavior here) broke every plain text-to-video Veo call with:
-     "allow_adult for personGeneration is currently not supported" — this was silently correct
+     "allow_adult for personGeneration is currently not supported" - this was silently correct
      only for the reference-image/frame-chaining path. */
   const parameters = {
     aspectRatio: params.aspectRatio || "16:9",
@@ -80,10 +80,10 @@ async function startVeo(apiKey, prompt, params) {
   return json({ jobRef: { opName: data.name } });
 }
 
-/* Grok Imagine — https://docs.x.ai/developers/rest-api-reference/inference/videos
+/* Grok Imagine - https://docs.x.ai/developers/rest-api-reference/inference/videos
    Reference-to-video (docs.x.ai/developers/model-capabilities/video/reference-to-video):
    each reference image is passed as { url } where url accepts either a public HTTPS URL or a
-   base64 data URI directly — the browser sends us whichever fileToDataUri() produced, and we
+   base64 data URI directly - the browser sends us whichever fileToDataUri() produced, and we
    just forward it as-is. Confirmed constraints from that doc: max 7 reference images, max 10s
    duration when reference images are present, and grok-imagine-video-1.5 doesn't support this
    mode (we use the base grok-imagine-video model, which does). */
@@ -94,7 +94,7 @@ async function startGrok(apiKey, prompt, params) {
     duration: Number(params.duration || 8),
     aspect_ratio: params.aspectRatio || "16:9",
     // The base grok-imagine-video model doesn't support 1080p/4k (that's 1.5-only, and only for
-    // image-to-video) — the browser already clamps this to "720p" for Grok, but clamp again here
+    // image-to-video) - the browser already clamps this to "720p" for Grok, but clamp again here
     // server-side too rather than trust the client alone.
     resolution: params.resolution === "1080p" || params.resolution === "4k" ? "720p" : (params.resolution || "720p")
   };
@@ -112,9 +112,9 @@ async function startGrok(apiKey, prompt, params) {
   return json({ jobRef: { requestId: data.request_id } });
 }
 
-/* HeyGen Video Agent — https://developers.heygen.com/docs/quick-start
+/* HeyGen Video Agent - https://developers.heygen.com/docs/quick-start
    Its CreateVideoAgentRequest schema has no resolution/aspect-ratio field, only "orientation"
-   (landscape/portrait, default null = auto-detected from content) — confirmed via the OpenAPI
+   (landscape/portrait, default null = auto-detected from content) - confirmed via the OpenAPI
    schema at developers.heygen.com/reference/create-video-agent-session. We derive it from the
    same Aspect Ratio control used for Veo/Grok so all three providers share one setting. */
 async function startHeyGen(apiKey, prompt, params) {
@@ -130,17 +130,17 @@ async function startHeyGen(apiKey, prompt, params) {
   return json({ jobRef: { sessionId: data?.data?.session_id, videoId: data?.data?.video_id || null } });
 }
 
-/* HeyGen Create Avatar Video (V2) — used only when both an Avatar ID and an ElevenLabs-
+/* HeyGen Create Avatar Video (V2) - used only when both an Avatar ID and an ElevenLabs-
 generated audio asset are supplied (see the ElevenLabs block in genClip(), assets/app.js),
 for genuine audio-driven voice + lip-sync consistency across segments. The v3 Video Agent
-used by startHeyGen() above has no documented support for a custom audio voice source —
+used by startHeyGen() above has no documented support for a custom audio voice source - 
 that is a Studio-API-only feature. Confirmed via docs.heygen.com/reference/create-an-avatar-
 video-v2 and docs.heygen.com/docs/using-audio-source-as-voice (not guessed): POST
 https://api.heygen.com/v2/video/generate, video_inputs[] takes { character: { type: "avatar",
 avatar_id, avatar_style: "normal" }, voice: { type: "audio", audio_asset_id } }. No separate
-prompt/script is sent — the video's spoken words come entirely from the uploaded audio, so
+prompt/script is sent - the video's spoken words come entirely from the uploaded audio, so
 this also sidesteps the "does the storyboard planner decide to include spoken narration"
-problem documented above startHeyGen(). UNVERIFIED AGAINST A LIVE HEYGEN ACCOUNT — built from
+problem documented above startHeyGen(). UNVERIFIED AGAINST A LIVE HEYGEN ACCOUNT - built from
 HeyGen's published docs, not tested end-to-end (no HeyGen credentials available here). If a
 real request fails, check the exact video_inputs schema against a live account first. */
 async function startHeyGenAudio(apiKey, params) {

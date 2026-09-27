@@ -75,12 +75,12 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- 7-day Pro trial support. Run this ALTER once against an existing database
--- (safe to re-run — IF NOT EXISTS makes it idempotent).
+-- (safe to re-run - IF NOT EXISTS makes it idempotent).
 --
 -- trial_claimed_at: set the moment a user claims their one-time trial. Its mere
---   presence (non-null) is what prevents re-claiming — see claim-trial.js.
+--   presence (non-null) is what prevents re-claiming - see claim-trial.js.
 -- trial_ends_at: the exact UTC-midnight cutoff the trial lapses at. There is
---   deliberately no cron job or scheduled downgrade anywhere in this system —
+--   deliberately no cron job or scheduled downgrade anywhere in this system - 
 --   functions/_utils.js's getSubscription() compares trial_ends_at against
 --   the current time on every single read (every /api/me call), so access
 --   disappears the instant that boundary passes, and it can never be missed

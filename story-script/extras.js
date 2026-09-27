@@ -1,4 +1,4 @@
-/* TAHA STUDIO ScriptEngine extras
+/* TAHA Studio Labs ScriptEngine extras
    Adds four features that used to live in the earlier Replit build:
      1. CharacterIntelCard   (story page)  Extract Characters, Copy, Save All to Character Registry
      2. ThumbnailPromptCard  (story page)  thumbnail prompt, hook text, colour palette, Redo

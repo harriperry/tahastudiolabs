@@ -53,7 +53,7 @@ const ANTHROPIC_HEADERS = key => ({
 const ANTHROPIC_MODEL = "claude-sonnet-5";
 
 /* ── Accounts & Pro gating ────────────────────────────────────────────────
-   Reuses the same shared TAHA Studio Labs account system as ScriptForge —
+   Reuses the same shared TAHA Studio Labs account system as ScriptForge - 
    one login, cookie-based session, same Supabase project. Every signed-in
    account is Pro for free (the server always reports tier "pro"); accounts
    exist so usage can be counted. */
@@ -152,22 +152,22 @@ async function callAI({
   return json.text || "";
 }
 const buildSystemPrompt = (context, chars) => {
-  const charBlock = chars?.length ? `\n## CHARACTER REGISTRY — USE CONSISTENTLY IN ALL SCENES\n${chars.map(c => `- ${c.name} (${c.role}): ${c.appearance}. Voice: ${c.voiceTone}. Accent: ${c.accent}. Personality: ${c.personality}.`).join("\n")}\n` : "";
-  return `You are an elite story writer, cinematographer, and AI video production expert specialising in short-form Facebook video content. ${charBlock}${context ? `\n## ESTABLISHED STORY WORLD — TREAT AS CANON\n${context}\n` : ""}
+  const charBlock = chars?.length ? `\n## CHARACTER REGISTRY - USE CONSISTENTLY IN ALL SCENES\n${chars.map(c => `- ${c.name} (${c.role}): ${c.appearance}. Voice: ${c.voiceTone}. Accent: ${c.accent}. Personality: ${c.personality}.`).join("\n")}\n` : "";
+  return `You are an elite story writer, cinematographer, and AI video production expert specialising in short-form Facebook video content. ${charBlock}${context ? `\n## ESTABLISHED STORY WORLD - TREAT AS CANON\n${context}\n` : ""}
 ## MANDATORY STORYTELLING RULES
-1. HOOK FIRST: Open every story by revealing the emotional endpoint or consequence BEFORE telling the story. The audience must feel the weight of what happened before they see how. Spark instant curiosity that compels them to watch every scene. Example: begin with the feeling — "This is the moment everything changed..." — then take them back.
+1. HOOK FIRST: Open every story by revealing the emotional endpoint or consequence BEFORE telling the story. The audience must feel the weight of what happened before they see how. Spark instant curiosity that compels them to watch every scene. Example: begin with the feeling - "This is the moment everything changed..." - then take them back.
 2. PRESENT TENSE: Write ALL events in present tense even when describing the past. "She walks in" not "She walked in." Always.
 3. NATURAL DIALOGUE: Write like two real people talking in a real place. No AI patterns. No perfect sentences. Include natural hesitations, reactions, interruptions. It must never sound scripted.
-4. SOUND EFFECTS & REACTIONS: Every scene must feel alive. Include ambient SFX inside scene_description as [SFX: description] — footsteps on tile, door clicking shut, distant crowd, wind through a window, a chair scraping. Also populate the sfx_prompt field with precise audio production directions. SFX must be subtle — never louder than the dialogue or story emotion.
-5. PAUSES: Use "..." in dialogue for natural breath and timing. NEVER use em-dashes (—) inside dialogue or sentences. Not once.
-6. CHARACTER REACTIONS: Every scene must include at least one visible reaction — a flinch, a silence, a laugh, a look away. The body always responds.
-7. ENDING WITH REACTION: The final scene closes with a reaction — not an explanation. The audience must feel the story has fully landed. Completion, not abandonment.
+4. SOUND EFFECTS & REACTIONS: Every scene must feel alive. Include ambient SFX inside scene_description as [SFX: description] - footsteps on tile, door clicking shut, distant crowd, wind through a window, a chair scraping. Also populate the sfx_prompt field with precise audio production directions. SFX must be subtle - never louder than the dialogue or story emotion.
+5. PAUSES: Use "..." in dialogue for natural breath and timing. NEVER use em-dashes ( - ) inside dialogue or sentences. Not once.
+6. CHARACTER REACTIONS: Every scene must include at least one visible reaction - a flinch, a silence, a laugh, a look away. The body always responds.
+7. ENDING WITH REACTION: The final scene closes with a reaction - not an explanation. The audience must feel the story has fully landed. Completion, not abandonment.
 
-## DIALOGUE TIMING — HARD LIMIT: 18 SPOKEN WORDS PER SCENE
-At natural conversational pace of 120 words per minute, 9 seconds = exactly 18 spoken words. Count ONLY the words spoken after TTS: labels and after reply colons — NEVER count the tone descriptions inside asterisks. If spoken words exceed 18, cut until they don't. Every word must earn its place.
+## DIALOGUE TIMING - HARD LIMIT: 18 SPOKEN WORDS PER SCENE
+At natural conversational pace of 120 words per minute, 9 seconds = exactly 18 spoken words. Count ONLY the words spoken after TTS: labels and after reply colons - NEVER count the tone descriptions inside asterisks. If spoken words exceed 18, cut until they don't. Every word must earn its place.
 
 When given a story idea or production brief, return ONLY a valid JSON object (no markdown, no backticks, no preamble):
-{"title":"...","synopsis":"2-3 sentence emotional hook — open with the end feeling first","genre":"Drama/Thriller/etc","universal_t2i_prompt":"[Art style],[characters],[palette],[lighting],[mood],[camera], cinematic, high detail, consistent character design, storyboard sheet","scenes":[{"scene_number":1,"scene_title":"...","scene_description":"Vivid 2-3 sentences: setting, time, mood, atmosphere. Weave in [SFX: ambient sounds] naturally.","dialogue":"[Name] said *(vivid ElevenLabs-ready tone)* TTS: (spoken message — count these words). [Name] replied *(tone and accent)*: (spoken reply — count these words). Total spoken words across both turns must not exceed 18. Use ... for pauses. Never use em-dashes.","sfx_prompt":"Precise sound design brief for this scene: ambient layers, action-triggered SFX, emotional audio cues. Production-ready for audio editors.","i2v_prompt":"Camera movement, scene motion, environmental animation, cinematic technique","kinetic_prompt":"Character gestures, facial expressions, physical actions, emotional physicality — include reactions","continuity_prompt":"Bridge to next scene: lighting transition, emotional arc, camera handoff, mood shift"}]}
+{"title":"...","synopsis":"2-3 sentence emotional hook - open with the end feeling first","genre":"Drama/Thriller/etc","universal_t2i_prompt":"[Art style],[characters],[palette],[lighting],[mood],[camera], cinematic, high detail, consistent character design, storyboard sheet","scenes":[{"scene_number":1,"scene_title":"...","scene_description":"Vivid 2-3 sentences: setting, time, mood, atmosphere. Weave in [SFX: ambient sounds] naturally.","dialogue":"[Name] said *(vivid ElevenLabs-ready tone)* TTS: (spoken message - count these words). [Name] replied *(tone and accent)*: (spoken reply - count these words). Total spoken words across both turns must not exceed 18. Use ... for pauses. Never use em-dashes.","sfx_prompt":"Precise sound design brief for this scene: ambient layers, action-triggered SFX, emotional audio cues. Production-ready for audio editors.","i2v_prompt":"Camera movement, scene motion, environmental animation, cinematic technique","kinetic_prompt":"Character gestures, facial expressions, physical actions, emotional physicality - include reactions","continuity_prompt":"Bridge to next scene: lighting transition, emotional arc, camera handoff, mood shift"}]}
 CRITICAL: All 7 storytelling rules are non-negotiable. 18 spoken words hard limit. SFX in every scene. Present tense throughout. No em-dashes ever. End on a reaction. Optimised for Facebook vertical video.`;
 };
 const MASTER_CHARACTER_BASE_PROMPT = "Photorealistic Hollywood cinematic character design, premium Netflix-style production, realistic human anatomy, realistic skin texture, natural facial imperfections, physically accurate lighting, cinematic depth of field, realistic wardrobe and materials, professional production design, sophisticated dramatic lighting, realistic eyes, natural hair, realistic body proportions, cinematic lens characteristics, high-end feature-film photography, photorealistic Hollywood realism.";
@@ -199,7 +199,7 @@ const extractSpoken = d => {
   return d.replace(/\*[^*]+\*/g, "").replace(/TTS:\s*/gi, "").replace(/\b\w[\w ]*\b\s+said\s*/gi, "").replace(/\b\w[\w ]*\b\s+replied\s*/gi, "").replace(/:\s*/g, ". ").replace(/\s+/g, " ").trim();
 };
 const sceneToText = s => `━━━━━━━━━━━━━━━━━━━━━━━━━
-SCENE ${s.scene_number} — ${s.scene_title}
+SCENE ${s.scene_number} - ${s.scene_title}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 🎬 SCENE DESCRIPTION
 ${s.scene_description}
@@ -607,7 +607,7 @@ const FBGen = ({
   const gen = async () => {
     setLoading(true);
     try {
-      const text = await callAI(ai, `You are a Facebook viral content strategist. Return ONLY valid JSON (no markdown): {"hook":"Single scroll-stopping opening line — max 12 words, pure emotion or curiosity, no hashtags","caption":"3-4 short paragraphs, emotional storytelling tone, ends with a question to drive comments","cta":"One strong call-to-action line","hashtags":"10 relevant hashtags as a single string"}`, `Story: "${data.title}" (${data.genre})\nSynopsis: ${data.synopsis}\n\nWrite a viral Facebook video post.`, 1000);
+      const text = await callAI(ai, `You are a Facebook viral content strategist. Return ONLY valid JSON (no markdown): {"hook":"Single scroll-stopping opening line - max 12 words, pure emotion or curiosity, no hashtags","caption":"3-4 short paragraphs, emotional storytelling tone, ends with a question to drive comments","cta":"One strong call-to-action line","hashtags":"10 relevant hashtags as a single string"}`, `Story: "${data.title}" (${data.genre})\nSynopsis: ${data.synopsis}\n\nWrite a viral Facebook video post.`, 1000);
       setRes(JSON.parse(text.replace(/```json|```/g, "").trim()));
     } catch (e) {
       alert("Failed: " + e.message);
@@ -788,11 +788,11 @@ const StoryView = ({
     const dir = direction.trim();
     setAdding(true);
     setAddMsg("✍️ Writing 2 new scenes...");
-    const sum = data.scenes.map(s => `Scene ${s.scene_number} — ${s.scene_title}: ${s.scene_description}`).join("\n");
+    const sum = data.scenes.map(s => `Scene ${s.scene_number} - ${s.scene_title}: ${s.scene_description}`).join("\n");
     const last = data.scenes[data.scenes.length - 1];
     const next = (last?.scene_number || data.scenes.length) + 1;
     try {
-      const text = await callAI(ai, `Write exactly 2 continuation scenes. Return ONLY a JSON array of 2 objects (no markdown): [{"scene_number":${next},"scene_title":"...","scene_description":"...","dialogue":"[Name] said *(tone)* TTS: (msg). [Name] replied *(tone)*: (reply).","i2v_prompt":"...","kinetic_prompt":"...","continuity_prompt":"..."}] Numbers start at ${next}. Match story's arc and visual style exactly.${dir ? ` The writer has given specific direction for these 2 scenes — follow it closely and make sure the scenes clearly deliver on it: "${dir}"` : ""}`, `Story: "${data.title}" (${data.genre})\nSynopsis: ${data.synopsis}\n\nScenes:\n${sum}\n\nLast continuity: ${last?.continuity_prompt || "N/A"}${dir ? `\n\nDirection for these 2 new scenes (from the writer): ${dir}` : ""}`, 3000);
+      const text = await callAI(ai, `Write exactly 2 continuation scenes. Return ONLY a JSON array of 2 objects (no markdown): [{"scene_number":${next},"scene_title":"...","scene_description":"...","dialogue":"[Name] said *(tone)* TTS: (msg). [Name] replied *(tone)*: (reply).","i2v_prompt":"...","kinetic_prompt":"...","continuity_prompt":"..."}] Numbers start at ${next}. Match story's arc and visual style exactly.${dir ? ` The writer has given specific direction for these 2 scenes - follow it closely and make sure the scenes clearly deliver on it: "${dir}"` : ""}`, `Story: "${data.title}" (${data.genre})\nSynopsis: ${data.synopsis}\n\nScenes:\n${sum}\n\nLast continuity: ${last?.continuity_prompt || "N/A"}${dir ? `\n\nDirection for these 2 new scenes (from the writer): ${dir}` : ""}`, 3000);
       const ns = JSON.parse(text.replace(/```json|```/g, "").trim());
       if (dir && ns[0]) ns[0] = {
         ...ns[0],
@@ -816,7 +816,7 @@ const StoryView = ({
     const s = data.scenes.find(x => x.scene_number === num);
     const prev = data.scenes.find(x => x.scene_number === num - 1);
     try {
-      const text = await callAI(ai, `Rewrite ONE scene. Return ONLY a single JSON scene object (no markdown, no array): {"scene_number":${num},"scene_title":"...","scene_description":"...","dialogue":"[Name] said *(tone)* TTS: (msg). [Name] replied *(tone)*: (reply).","i2v_prompt":"...","kinetic_prompt":"...","continuity_prompt":"..."}`, `Story: "${data.title}" (${data.genre})\nSynopsis: ${data.synopsis}\nPrev continuity: ${prev?.continuity_prompt || "N/A"}\n\nRewrite scene ${num}: "${s?.scene_title}" — fresh approach, same story position.`, 1500);
+      const text = await callAI(ai, `Rewrite ONE scene. Return ONLY a single JSON scene object (no markdown, no array): {"scene_number":${num},"scene_title":"...","scene_description":"...","dialogue":"[Name] said *(tone)* TTS: (msg). [Name] replied *(tone)*: (reply).","i2v_prompt":"...","kinetic_prompt":"...","continuity_prompt":"..."}`, `Story: "${data.title}" (${data.genre})\nSynopsis: ${data.synopsis}\nPrev continuity: ${prev?.continuity_prompt || "N/A"}\n\nRewrite scene ${num}: "${s?.scene_title}" - fresh approach, same story position.`, 1500);
       const ns = JSON.parse(text.replace(/```json|```/g, "").trim());
       await onSave({
         ...data,
@@ -1021,7 +1021,7 @@ const StoryView = ({
       marginBottom: 9,
       lineHeight: 1.6
     }
-  }, "Tell the writer what you want to happen — a twist, a reveal, a location or mood change, anything. Leave blank to let it continue the story naturally."), /*#__PURE__*/React.createElement("textarea", {
+  }, "Tell the writer what you want to happen - a twist, a reveal, a location or mood change, anything. Leave blank to let it continue the story naturally."), /*#__PURE__*/React.createElement("textarea", {
     value: direction,
     onChange: e => setDirection(e.target.value),
     placeholder: "e.g. She finds the letter and realizes he lied the whole time...",
@@ -1481,7 +1481,7 @@ const CharacterRegistry = ({
       textTransform: "uppercase",
       letterSpacing: 1
     }
-  }, chars.length, " Character", chars.length !== 1 ? "s" : "", " — auto-injected into every story you generate"), /*#__PURE__*/React.createElement("button", {
+  }, chars.length, " Character", chars.length !== 1 ? "s" : "", " - auto-injected into every story you generate"), /*#__PURE__*/React.createElement("button", {
     onClick: loadMockCharacters,
     style: {
       background: "transparent",
@@ -2071,7 +2071,7 @@ const Settings = ({
       marginBottom: 10,
       lineHeight: 1.6
     }
-  }, "Alternative to Anthropic — same features, different model. Stored only in this browser, never sent anywhere except xAI. Get one at ", /*#__PURE__*/React.createElement("strong", {
+  }, "Alternative to Anthropic - same features, different model. Stored only in this browser, never sent anywhere except xAI. Get one at ", /*#__PURE__*/React.createElement("strong", {
     style: {
       color: "#9ca3af"
     }
@@ -2277,7 +2277,7 @@ const Settings = ({
       fontWeight: 400,
       textTransform: "none"
     }
-  }, "— ", selectedVoice.name)), /*#__PURE__*/React.createElement("select", {
+  }, " - ", selectedVoice.name)), /*#__PURE__*/React.createElement("select", {
     value: voice,
     onChange: e => setVoice(e.target.value),
     style: {
@@ -2482,7 +2482,7 @@ const AccountModal = ({
     setBusy(false);
     setMsg(r.ok ? {
       ok: true,
-      text: "Check your inbox — we sent a sign-in link to " + email.trim() + "."
+      text: "Check your inbox - we sent a sign-in link to " + email.trim() + "."
     } : {
       ok: false,
       text: r.data?.error || "Could not send sign-in link."
@@ -2733,7 +2733,7 @@ const AccountModal = ({
       fontSize: 11,
       lineHeight: 1.6
     }
-  }, "By creating an account you agree to the Terms of Service and Privacy Policy. We store only your email, login credential, and subscription status — your stories and API key never leave this browser.")), msg && /*#__PURE__*/React.createElement("div", {
+  }, "By creating an account you agree to the Terms of Service and Privacy Policy. We store only your email, login credential, and subscription status - your stories and API key never leave this browser.")), msg && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12,
       padding: "8px 12px",
@@ -2762,7 +2762,7 @@ const AboutSection = () => /*#__PURE__*/React.createElement("div", {
     fontWeight: 900,
     color: "#f9fafb"
   }
-}, "About TAHA STUDIO ScriptEngine"), /*#__PURE__*/React.createElement("div", {
+}, "About TAHA Studio Labs ScriptEngine"), /*#__PURE__*/React.createElement("div", {
   style: {
     color: "#d1d5db",
     fontSize: 13,
@@ -2775,7 +2775,7 @@ const AboutSection = () => /*#__PURE__*/React.createElement("div", {
   style: {
     margin: 0
   }
-}, "TAHA STUDIO ScriptEngine builds a single story idea, or a full production booklet for a sequel, into a complete, scene-by-scene cinematic script. For each scene it generates the scene description, natural dialogue capped at 18 spoken words (timed to a 9-second beat), an SFX/sound design brief, a camera motion (I2V) prompt, a kinetic/gesture prompt, and a continuity bridge into the next scene, plus one universal text-to-image prompt to keep the visual style consistent across the whole story."), /*#__PURE__*/React.createElement("p", {
+}, "TAHA Studio Labs ScriptEngine builds a single story idea, or a full production booklet for a sequel, into a complete, scene-by-scene cinematic script. For each scene it generates the scene description, natural dialogue capped at 18 spoken words (timed to a 9-second beat), an SFX/sound design brief, a camera motion (I2V) prompt, a kinetic/gesture prompt, and a continuity bridge into the next scene, plus one universal text-to-image prompt to keep the visual style consistent across the whole story."), /*#__PURE__*/React.createElement("p", {
   style: {
     margin: 0
   }
@@ -3177,7 +3177,7 @@ function App() {
       WebkitBackgroundClip: "text",
       WebkitTextFillColor: "transparent"
     }
-  }, "TAHA STUDIO ScriptEngine"), /*#__PURE__*/React.createElement("p", {
+  }, "TAHA Studio Labs ScriptEngine"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: "#6b7280",
       margin: "2px 0 0",

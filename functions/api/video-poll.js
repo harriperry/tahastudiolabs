@@ -1,6 +1,6 @@
 import { json } from "../_utils.js";
 
-/* Relay for polling a video generation job — see video-start.js for why this is a relay
+/* Relay for polling a video generation job - see video-start.js for why this is a relay
    rather than a direct browser→provider call. The server holds no state between calls:
    the client sends back whatever jobRef it was last given, and gets an updated jobRef
    (if relevant, e.g. HeyGen's videoId being assigned mid-flight) plus a done/uri result.
@@ -67,9 +67,9 @@ if (jobRef.v2) return await pollHeyGenV2(apiKey, jobRef);
   return json({ done: false, jobRef: { sessionId, videoId } });
 }
 
-/* Status polling for the V2 audio-driven path (startHeyGenAudio in video-start.js) — this
+/* Status polling for the V2 audio-driven path (startHeyGenAudio in video-start.js) - this
 uses HeyGen's classic v1 status endpoint, which is still the documented way to poll a video
-created via v2/video/generate. UNVERIFIED AGAINST A LIVE HEYGEN ACCOUNT — same caveat as
+created via v2/video/generate. UNVERIFIED AGAINST A LIVE HEYGEN ACCOUNT - same caveat as
 startHeyGenAudio() in video-start.js: built from HeyGen's published docs, not tested
 end-to-end. */
 async function pollHeyGenV2(apiKey, jobRef) {
@@ -86,7 +86,7 @@ return json({ done: false, jobRef });
 
 
 /* Confirmed field path from a real completed Veo job:
-   response.generateVideoResponse.generatedSamples[0].video.uri — with a generic fallback
+   response.generateVideoResponse.generatedSamples[0].video.uri - with a generic fallback
    scan in case Google varies the shape for other parameter combos. */
 function findUriDeep(obj) {
   const direct = obj?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;

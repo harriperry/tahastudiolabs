@@ -39,9 +39,9 @@
 <script src="/assets/jspdf.umd.min.js" defer></script>
 </head>
 <body>
-<nav class="sitenav"><a href="/" class="brand"><img src="/assets/brand/taha-studio-labs-64.png" alt="" width="30" height="30" class="brand-logo">TAHA <b>Studio Labs</b></a><span class="navlinks"><a href="/">Home</a><a href="/products.html">Products</a><a href="/scriptforge/" class="active">ScriptForge</a><a href="/story-script/">ScriptEngine</a></span></nav>
+<nav class="sitenav"><a href="/" class="brand"><img src="/assets/brand/taha-studio-labs-64.png" alt="" width="30" height="30" class="brand-logo">TAHA <b>Studio Labs</b></a><span class="navlinks"><a href="/">Home</a><a href="/products.html">Products</a><a href="/scriptforge/" class="active">ScriptForge</a><a href="/story-script/">ScriptEngine</a><a href="https://store.tahastudiolabs.com/onboarding">AmiStoreCM</a></span></nav>
 <header style="position:relative">
-  <h1>TAHA STUDIO <span>AI ScriptForge</span></h1>
+  <h1>TAHA Studio Labs <span>ScriptForge</span></h1>
   <img src="/assets/brand/scriptforge-128.png" alt="ScriptForge" width="68" height="68" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);height:68px;width:68px;pointer-events:none" class="header-logo">
   <p>Turn One Idea Into a Production-Ready Video in Minutes</p>
   <button class="btn-copy" id="btnAccount" style="position:absolute;top:22px;right:26px">Sign in</button>
@@ -51,9 +51,9 @@
 <div>
   <div class="card">
     <h2>1 · Production Type</h2>
-    <label>Script type <span style="color:var(--muted);font-weight:400">(drives the recommendation below — provider, video and voice tips are all keyed off this)</span></label>
+    <label>Script type <span style="color:var(--muted);font-weight:400">(drives the recommendation below - provider, video and voice tips are all keyed off this)</span></label>
     <select id="scriptType">
-      <option value="">— None / generic —</option>
+      <option value="">None / generic</option>
       <option value="Short Movie Script">Short Movie Script</option>
       <option value="Short Documentary">Short Documentary</option>
       <option value="Short Advert">Short Advert</option>
@@ -61,7 +61,7 @@
       <option value="Public Address">Public Address</option>
     </select>
   </div>
-  <!-- Smart Recommendation card — additive only, gated by FEATURE_SMART_RECOMMEND in app.js.
+  <!-- Smart Recommendation card - additive only, gated by FEATURE_SMART_RECOMMEND in app.js.
        Set that flag to false (and redeploy) to hide this card instantly without touching any
        other logic; nothing else on the page depends on it. Populated by renderRecommendation()
        whenever Script Type or segment count changes. Hidden by default until a real script
@@ -74,7 +74,7 @@
     </div>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)">
       <div>
-        <div style="font-size:.85rem;color:var(--text)">Writing · <span id="recWritingLabel">—</span></div>
+        <div style="font-size:.85rem;color:var(--text)">Writing · <span id="recWritingLabel">-</span></div>
         <div style="font-size:.74rem;color:var(--muted);margin-top:2px" id="recWritingReason"></div>
       </div>
       <div style="font-size:.68rem;color:var(--ok);white-space:nowrap;margin-left:10px" id="recConfidence">Excellent</div>
@@ -89,9 +89,9 @@
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 4px">
       <span style="font-size:.7rem;color:var(--muted)">Rough estimate</span>
-      <span style="font-size:.82rem;color:var(--text)" id="recCostTime">—</span>
+      <span style="font-size:.82rem;color:var(--text)" id="recCostTime">-</span>
     </div>
-    <p style="color:var(--muted);font-size:.66rem;margin-top:2px">Estimate only — not a live balance check. Verify against each provider's own pricing page.</p>
+    <p style="color:var(--muted);font-size:.66rem;margin-top:2px">Estimate only - not a live balance check. Verify against each provider's own pricing page.</p>
     <div style="display:flex;gap:8px;margin-top:10px">
       <button class="btn-primary" id="btnRecommendUse" style="flex:1;padding:9px">Use writing pick</button>
       <button class="btn-ghost" id="btnRecommendDismiss" style="flex:1;padding:9px">Not now</button>
@@ -99,7 +99,7 @@
   </div>
   <div class="card">
     <h2>2 · API Configuration <span style="color:var(--muted);font-weight:400;font-size:.8rem" id="apiConfigAutoNote"></span></h2>
-    <label>Provider <span style="color:var(--muted);font-weight:400">(pick whichever you have a key for — all four work the same way)</span></label>
+    <label>Provider <span style="color:var(--muted);font-weight:400">(pick whichever you have a key for - all four work the same way)</span></label>
     <select id="formatProvider">
       <option value="anthropic" selected>Anthropic Claude</option>
       <option value="gemini">Google Gemini (free tier available)</option>
@@ -107,7 +107,7 @@
       <option value="deepseek">DeepSeek (signup credit, not a permanent free tier)</option>
     </select>
     <div id="anthropicFormatOptions">
-      <label style="margin-top:12px">Anthropic API Key <span style="color:var(--muted);font-weight:400">— console.anthropic.com/settings/keys</span></label>
+      <label style="margin-top:12px">Anthropic API Key <span style="color:var(--muted);font-weight:400"> - console.anthropic.com/settings/keys</span></label>
       <input type="password" id="apiKey" placeholder="sk-ant-YOUR_KEY_HERE" autocomplete="off">
       <div class="row" style="margin-top:8px;align-items:center">
         <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer">
@@ -122,7 +122,7 @@
       </select>
     </div>
     <div id="geminiFormatOptions" style="display:none">
-      <label style="margin-top:12px">Google Gemini API Key <span style="color:var(--muted);font-weight:400">— free, no card required, at aistudio.google.com/apikey</span></label>
+      <label style="margin-top:12px">Google Gemini API Key <span style="color:var(--muted);font-weight:400"> - free, no card required, at aistudio.google.com/apikey</span></label>
       <input type="password" id="apiKeyGemini" placeholder="AIza..." autocomplete="off">
       <div class="row" style="margin-top:8px;align-items:center">
         <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer">
@@ -132,12 +132,12 @@
       <label>Model</label>
       <select id="modelGemini">
         <option value="gemini-2.5-flash" selected>gemini-2.5-flash (recommended, stable free tier)</option>
-        <option value="gemini-3.6-flash">gemini-3.6-flash (newest — if this errors on quota/billing, switch back to 2.5-flash)</option>
+        <option value="gemini-3.6-flash">gemini-3.6-flash (newest - if this errors on quota/billing, switch back to 2.5-flash)</option>
       </select>
       <p style="color:var(--muted);font-size:.72rem;margin-top:6px">If you already created a Gemini key for Veo 3.1 video generation below, that same key works here too.</p>
     </div>
     <div id="groqFormatOptions" style="display:none">
-      <label style="margin-top:12px">Groq API Key <span style="color:var(--muted);font-weight:400">— free, no card required, at console.groq.com/keys</span></label>
+      <label style="margin-top:12px">Groq API Key <span style="color:var(--muted);font-weight:400"> - free, no card required, at console.groq.com/keys</span></label>
       <input type="password" id="apiKeyGroq" placeholder="gsk_..." autocomplete="off">
       <div class="row" style="margin-top:8px;align-items:center">
         <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer">
@@ -151,7 +151,7 @@
       </select>
     </div>
     <div id="deepseekFormatOptions" style="display:none">
-      <label style="margin-top:12px">DeepSeek API Key <span style="color:var(--muted);font-weight:400">— platform.deepseek.com/api_keys</span></label>
+      <label style="margin-top:12px">DeepSeek API Key <span style="color:var(--muted);font-weight:400"> - platform.deepseek.com/api_keys</span></label>
       <input type="password" id="apiKeyDeepseek" placeholder="sk-..." autocomplete="off">
       <div class="row" style="margin-top:8px;align-items:center">
         <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer">
@@ -163,34 +163,34 @@
         <option value="deepseek-v4-flash" selected>deepseek-v4-flash (recommended)</option>
         <option value="deepseek-v4-pro">deepseek-v4-pro (slower, stronger reasoning)</option>
       </select>
-      <p style="color:var(--muted);font-size:.72rem;margin-top:6px">⚠ DeepSeek does not offer a permanent free tier — new accounts get a one-time 5-million-token / 30-day signup credit, then it's pay-as-you-go. Unlike the Gemini and Groq options above, budget for this once the credit runs out.</p>
+      <p style="color:var(--muted);font-size:.72rem;margin-top:6px">⚠ DeepSeek does not offer a permanent free tier - new accounts get a one-time 5-million-token / 30-day signup credit, then it's pay-as-you-go. Unlike the Gemini and Groq options above, budget for this once the credit runs out.</p>
     </div>
   </div>
   <div class="card">
     <h2>3 · Output Length</h2>
     <label>Number of segments (10s each for segments 1&ndash;3, then 15s each from segment 4 onward)</label>
     <select id="segCount">
-      <option value="1">1 segment — 10 s (10s total)</option>
-      <option value="2">2 segments — 20 s (20s total)</option>
-      <option value="3" selected>3 segments — 30 s (30s total)</option>
-      <option value="4">4 segments — 45 s (45s total)</option>
-      <option value="5">5 segments — 1 min (60s total)</option>
-      <option value="6">6 segments — 1 min 15 s (75s total)</option>
-      <option value="7">7 segments — 1 min 30 s (90s total)</option>
-      <option value="8">8 segments — 1 min 45 s (105s total)</option>
-      <option value="9">9 segments — 2 min (120s total)</option>
-      <option value="10">10 segments — 2 min 15 s (135s total)</option>
-      <option value="11">11 segments — 2 min 30 s (150s total)</option>
-      <option value="12">12 segments — 2 min 45 s (165s total)</option>
-      <option value="13">13 segments — 3 min (180s total)</option>
-      <option value="14">14 segments — 3 min 15 s (195s total)</option>
-      <option value="15">15 segments — 3 min 30 s (210s total)</option>
-      <option value="16">16 segments — 3 min 45 s (225s total)</option>
-      <option value="17">17 segments — 4 min (240s total)</option>
-      <option value="18">18 segments — 4 min 15 s (255s total)</option>
-      <option value="19">19 segments — 4 min 30 s (270s total)</option>
-      <option value="20">20 segments — 4 min 45 s (285s total)</option>
-      <option value="21">21 segments — 5 min (300s total)</option>
+      <option value="1">1 segment - 10 s (10s total)</option>
+      <option value="2">2 segments - 20 s (20s total)</option>
+      <option value="3" selected>3 segments - 30 s (30s total)</option>
+      <option value="4">4 segments - 45 s (45s total)</option>
+      <option value="5">5 segments - 1 min (60s total)</option>
+      <option value="6">6 segments - 1 min 15 s (75s total)</option>
+      <option value="7">7 segments - 1 min 30 s (90s total)</option>
+      <option value="8">8 segments - 1 min 45 s (105s total)</option>
+      <option value="9">9 segments - 2 min (120s total)</option>
+      <option value="10">10 segments - 2 min 15 s (135s total)</option>
+      <option value="11">11 segments - 2 min 30 s (150s total)</option>
+      <option value="12">12 segments - 2 min 45 s (165s total)</option>
+      <option value="13">13 segments - 3 min (180s total)</option>
+      <option value="14">14 segments - 3 min 15 s (195s total)</option>
+      <option value="15">15 segments - 3 min 30 s (210s total)</option>
+      <option value="16">16 segments - 3 min 45 s (225s total)</option>
+      <option value="17">17 segments - 4 min (240s total)</option>
+      <option value="18">18 segments - 4 min 15 s (255s total)</option>
+      <option value="19">19 segments - 4 min 30 s (270s total)</option>
+      <option value="20">20 segments - 4 min 45 s (285s total)</option>
+      <option value="21">21 segments - 5 min (300s total)</option>
     </select>
   </div>
   <div class="card">
@@ -199,15 +199,15 @@
       <input type="checkbox" id="allowBRoll" checked style="width:auto">
       Allow B-Roll segments <span style="color:var(--muted);font-weight:400">(uncheck for HeyGen-only/on-camera output with no cutaway shots)</span>
     </label>
-    <label>Ratio (video aspect ratio — included at top of output)</label>
+    <label>Ratio (video aspect ratio - included at top of output)</label>
     <select id="ratio">
-      <option value="16:9" selected>16:9 — widescreen / YouTube / TV</option>
-      <option value="9:16">9:16 — vertical / Shorts / Reels / TikTok</option>
-      <option value="1:1">1:1 — square / social feed</option>
-      <option value="4:5">4:5 — portrait / Instagram feed</option>
-      <option value="21:9">21:9 — cinematic widescreen</option>
+      <option value="16:9" selected>16:9 - widescreen / YouTube / TV</option>
+      <option value="9:16">9:16 - vertical / Shorts / Reels / TikTok</option>
+      <option value="1:1">1:1 - square / social feed</option>
+      <option value="4:5">4:5 - portrait / Instagram feed</option>
+      <option value="21:9">21:9 - cinematic widescreen</option>
     </select>
-    <label>Additional technical specs (optional — resolution, ratio, captions…)</label>
+    <label>Additional technical specs (optional - resolution, ratio, captions…)</label>
     <textarea id="techSpecs" rows="2">1080p · SRT captions · flux-realism for B-roll</textarea>
   </div>
   <div class="card">
@@ -218,51 +218,51 @@
       <button class="btn-primary" id="btnFormat" style="flex:2">⚡ Format into 3 × 10s Segments</button>
       <button class="btn-ghost" id="btnClear" style="flex:1">Clear</button>
     </div>
-    <button class="btn-ghost" id="btnMock" style="width:100%;margin-top:10px;border-color:var(--ok);color:var(--ok)">🧪 Run Mock Test — instant free demo, no API key</button>
+    <button class="btn-ghost" id="btnMock" style="width:100%;margin-top:10px;border-color:var(--ok);color:var(--ok)">🧪 Run Mock Test - instant free demo, no API key</button>
     <div class="status" id="status"></div>
   </div>
   <div class="card">
-    <h2>6 · Video Generation <span style="color:var(--muted);font-weight:400;font-size:.8rem">(optional — bring your own key per provider)</span></h2>
+    <h2>6 · Video Generation <span style="color:var(--muted);font-weight:400;font-size:.8rem">(optional - bring your own key per provider)</span></h2>
     <p style="color:var(--muted);font-size:.8rem;margin:0 0 10px">
       Once your script is formatted, each segment below gets a "Generate clip" option. Your key is relayed
-      through our server for that single request only — never stored or logged (see Privacy Policy).
+      through our server for that single request only - never stored or logged (see Privacy Policy).
     </p>
-    <label>Google Gemini API key (for Veo 3.1) — aistudio.google.com/apikey</label>
+    <label>Google Gemini API key (for Veo 3.1) - aistudio.google.com/apikey</label>
     <input type="password" id="videoKeyVeo" placeholder="AIza...">
     <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
       <input type="checkbox" id="rememberVideoKeyVeo" style="width:auto"> Remember on this device
     </label>
-    <label style="margin-top:12px">xAI API key (for Grok Imagine) — console.x.ai</label>
+    <label style="margin-top:12px">xAI API key (for Grok Imagine) - console.x.ai</label>
     <input type="password" id="videoKeyGrok" placeholder="xai-...">
     <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
       <input type="checkbox" id="rememberVideoKeyGrok" style="width:auto"> Remember on this device
     </label>
-    <label style="margin-top:12px">HeyGen API key (for HeyGen Video Agent) — app.heygen.com Settings → API</label>
+    <label style="margin-top:12px">HeyGen API key (for HeyGen Video Agent) - app.heygen.com Settings → API</label>
     <input type="password" id="videoKeyHeygen" placeholder="your HeyGen key">
-<label style="margin-top:12px">HeyGen Avatar ID <span style="color:var(--muted);font-weight:400">(optional — only needed for ElevenLabs audio-driven voice matching, see section 6 below)</span></label>
+<label style="margin-top:12px">HeyGen Avatar ID <span style="color:var(--muted);font-weight:400">(optional - only needed for ElevenLabs audio-driven voice matching, see section 6 below)</span></label>
 <input type="text" id="heygenAvatarId" placeholder="e.g. Josh_lite3_20230714">
     <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
       <input type="checkbox" id="rememberVideoKeyHeygen" style="width:auto"> Remember on this device
     </label>
     <label style="margin-top:14px">Aspect ratio <span style="color:var(--muted);font-weight:400">(Veo 3.1 &amp; Grok Imagine)</span></label>
     <select id="vidAspectRatio">
-      <option value="16:9" selected>16:9 — landscape</option>
-      <option value="9:16">9:16 — portrait</option>
+      <option value="16:9" selected>16:9 - landscape</option>
+      <option value="9:16">9:16 - portrait</option>
     </select>
-    <label style="margin-top:12px">Resolution <span style="color:var(--muted);font-weight:400">(Veo 3.1 — Grok is capped lower, see note below)</span></label>
+    <label style="margin-top:12px">Resolution <span style="color:var(--muted);font-weight:400">(Veo 3.1 - Grok is capped lower, see note below)</span></label>
     <select id="vidResolution">
       <option value="720p" selected>720p</option>
       <option value="1080p">1080p (Veo: forces 8s duration)</option>
       <option value="4k">4k (Veo: forces 8s duration, slower/pricier)</option>
     </select>
-    <p style="color:var(--muted);font-size:.72rem;margin-top:6px">HeyGen has no resolution or aspect-ratio parameter — it auto-detects orientation from your script/prompt. Grok Imagine only supports 16:9/9:16 here (same as Veo) and always renders at 720p regardless of the Resolution setting above, since this model tier doesn't support 1080p/4k.</p>
-    <label style="margin-top:14px">Reference images <span style="color:var(--muted);font-weight:400">(optional, Veo 3.1 or Grok Imagine — up to 3)</span></label>
+    <p style="color:var(--muted);font-size:.72rem;margin-top:6px">HeyGen has no resolution or aspect-ratio parameter - it auto-detects orientation from your script/prompt. Grok Imagine only supports 16:9/9:16 here (same as Veo) and always renders at 720p regardless of the Resolution setting above, since this model tier doesn't support 1080p/4k.</p>
+    <label style="margin-top:14px">Reference images <span style="color:var(--muted);font-weight:400">(optional, Veo 3.1 or Grok Imagine - up to 3)</span></label>
       <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
-        <div><input type="file" id="refImg1" accept="image/*" style="max-width:150px"><br><span style="color:var(--muted);font-size:.68rem">1 — required speaker</span><br><img id="refImg1prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
-        <div><input type="file" id="refImg2" accept="image/*" style="max-width:150px"><br><span style="color:var(--muted);font-size:.68rem">2 — other participant</span><br><img id="refImg2prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
-        <div><input type="file" id="refImg3" accept="image/*" style="max-width:150px"><br><span style="color:var(--muted);font-size:.68rem">3 — other participant</span><br><img id="refImg3prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
+        <div><input type="file" id="refImg1" accept="image/*" style="max-width:150px"><br><span style="color:var(--muted);font-size:.68rem">1 - required speaker</span><br><img id="refImg1prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
+        <div><input type="file" id="refImg2" accept="image/*" style="max-width:150px"><br><span style="color:var(--muted);font-size:.68rem">2 - other participant</span><br><img id="refImg2prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
+        <div><input type="file" id="refImg3" accept="image/*" style="max-width:150px"><br><span style="color:var(--muted);font-size:.68rem">3 - other participant</span><br><img id="refImg3prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
       </div>
-      <p style="color:var(--muted);font-size:.72rem;margin-top:6px">Slot 1 is treated as the required on-camera narrator/speaker — the clip is explicitly instructed to preserve that face throughout. Slots 2-3 are optional supporting participants or objects. Not used by HeyGen (no reference-image support in its API). If attached: Veo clips generate at 8s (Google's requirement for image-referenced video); Grok clips are capped at 10s even if you selected a longer duration above (xAI's requirement for reference-guided video).</p>
+      <p style="color:var(--muted);font-size:.72rem;margin-top:6px">Slot 1 is treated as the required on-camera narrator/speaker - the clip is explicitly instructed to preserve that face throughout. Slots 2-3 are optional supporting participants or objects. Not used by HeyGen (no reference-image support in its API). If attached: Veo clips generate at 8s (Google's requirement for image-referenced video); Grok clips are capped at 10s even if you selected a longer duration above (xAI's requirement for reference-guided video).</p>
   </div>
   <div class="card">
     <h2>7 · ElevenLabs Voice <span style="color:var(--muted);font-weight:400;font-size:.8rem">(optional, voice ID picker)</span></h2>
@@ -272,7 +272,7 @@
 this exact voice, for genuine lip-synced consistency across segments. For <b>Veo / Grok</b>: neither accepts
 external audio, so the narration is generated alongside each clip as a downloadable file to mux in your own editor
 instead. The Voice ID is also still written into your script's TECHNICAL SPECS block as before.</p>
-    <label>ElevenLabs API key <span style="color:var(--muted);font-weight:400">— elevenlabs.io → Profile → API Keys</span></label>
+    <label>ElevenLabs API key <span style="color:var(--muted);font-weight:400"> - elevenlabs.io → Profile → API Keys</span></label>
     <input type="password" id="elevenLabsKey" placeholder="sk_...">
     <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
       <input type="checkbox" id="rememberElevenLabsKey" style="width:auto"> Remember on this device
@@ -281,7 +281,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     <div class="status" id="elevenLabsStatus"></div>
     <label style="margin-top:12px">Voice</label>
     <select id="elevenLabsVoice">
-      <option value="">— fetch voices to choose one —</option>
+      <option value="">Fetch voices to choose one</option>
     </select>
   </div>
 </div>
@@ -295,7 +295,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     <button class="btn-copy" id="btnSaveLib" style="display:none">💾 Save to Library</button>
     <button class="btn-copy" id="btnPdf" style="display:none">⬇ Download PDF</button>
     <button class="btn-copy" id="btnCharLib">🎭 Characters</button>
-    <!-- LONG-FORM PROJECT ORCHESTRATION — additive only, see assets/longform.js header comment
+    <!-- LONG-FORM PROJECT ORCHESTRATION - additive only, see assets/longform.js header comment
          for the full rollback contract. Deleting this button plus the #longformOverlay markup
          below, and the longform.js <script> tag near the bottom of this file, removes the
          entire feature with zero effect on Quick Generation, Characters, or Library. -->
@@ -310,19 +310,19 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
   <div class="card" style="padding:32px 30px">
     <h2 style="margin-bottom:6px">About ScriptForge</h2>
     <p style="font-size:1.3rem;font-weight:700;color:var(--text);line-height:1.35;margin:0 0 18px">Your go-to AI tool that transforms ideas into content.</p>
-    <p style="color:var(--text);line-height:1.7;margin-bottom:14px">ScriptForge is TAHA Studio's end-to-end AI writing and video production tool. Paste a single idea — a product, a story, a message you want people to hear — and ScriptForge writes it into a fully segmented, timed script, complete with on-camera direction, TTS-ready dialogue, B-roll prompts, camera motion, and audio notes. Then, segment by segment, it hands that script straight to Google Veo 3.1, xAI's Grok Imagine, or HeyGen's Video Agent to generate an actual video clip — voice, music, and all. No separate scriptwriting app. No separate storyboard tool. No separate video generator. One idea in, one production-ready video out.</p>
-    <p style="color:var(--text);line-height:1.7;margin-bottom:14px">It's built for solo creators, marketers, agencies, and small businesses who need short-form video — ads, explainers, social clips, documentary segments — without a writers' room, a studio, or a production schedule measured in weeks.</p>
-    <p style="color:var(--text);line-height:1.7;margin-bottom:18px"><b style="color:var(--accent2)">Time saved:</b> what used to take a script draft, a revision pass, a storyboard, a voice actor booking, and a day in an edit bay now takes minutes. Paste your idea and ScriptForge formats a complete, timed script in under a minute. Click "Generate clip" on any segment, and a spoken, scored video clip is ready a few minutes later — no editing software, no timeline, no rendering rig of your own. Projects that used to take days now finish in one sitting.</p>
+    <p style="color:var(--text);line-height:1.7;margin-bottom:14px">ScriptForge is TAHA Studio Labs' end-to-end AI writing and video production tool. Paste a single idea - a product, a story, a message you want people to hear - and ScriptForge writes it into a fully segmented, timed script, complete with on-camera direction, TTS-ready dialogue, B-roll prompts, camera motion, and audio notes. Then, segment by segment, it hands that script straight to Google Veo 3.1, xAI's Grok Imagine, or HeyGen's Video Agent to generate an actual video clip - voice, music, and all. No separate scriptwriting app. No separate storyboard tool. No separate video generator. One idea in, one production-ready video out.</p>
+    <p style="color:var(--text);line-height:1.7;margin-bottom:14px">It's built for solo creators, marketers, agencies, and small businesses who need short-form video - ads, explainers, social clips, documentary segments - without a writers' room, a studio, or a production schedule measured in weeks.</p>
+    <p style="color:var(--text);line-height:1.7;margin-bottom:18px"><b style="color:var(--accent2)">Time saved:</b> what used to take a script draft, a revision pass, a storyboard, a voice actor booking, and a day in an edit bay now takes minutes. Paste your idea and ScriptForge formats a complete, timed script in under a minute. Click "Generate clip" on any segment, and a spoken, scored video clip is ready a few minutes later - no editing software, no timeline, no rendering rig of your own. Projects that used to take days now finish in one sitting.</p>
     <p style="color:var(--accent2);font-size:.8rem;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">What makes it different</p>
     <ul style="color:var(--text);line-height:1.8;margin:0 0 20px;padding-left:20px">
-      <li><b>All-in-one pipeline</b> — script writing, segmenting, and video generation in one tool, not three.</li>
-      <li><b>Your keys, your cost</b> — bring your own Veo, Grok, or HeyGen API key and pay providers directly. No markup, no locked-in credit packs.</li>
-      <li><b>Provider choice per segment</b> — pick the best generator for each moment: Veo or Grok for silent B-roll and dialogue, HeyGen for a talking, on-camera presenter.</li>
-      <li><b>Full creative control</b> — aspect ratio, resolution, duration, and up to three reference images to keep a character or product consistent across every clip.</li>
-      <li><b>Privacy by design</b> — your scripts and API keys are relayed for a single request only, never stored, never logged.</li>
-      <li><b>Built for real production</b> — every segment lands on exact, precisely timed boundaries (10s for the first three, 15s from there on), matching how social platforms and ad slots actually cut.</li>
+      <li><b>All-in-one pipeline</b> - script writing, segmenting, and video generation in one tool, not three.</li>
+      <li><b>Your keys, your cost</b> - bring your own Veo, Grok, or HeyGen API key and pay providers directly. No markup, no locked-in credit packs.</li>
+      <li><b>Provider choice per segment</b> - pick the best generator for each moment: Veo or Grok for silent B-roll and dialogue, HeyGen for a talking, on-camera presenter.</li>
+      <li><b>Full creative control</b> - aspect ratio, resolution, duration, and up to three reference images to keep a character or product consistent across every clip.</li>
+      <li><b>Privacy by design</b> - your scripts and API keys are relayed for a single request only, never stored, never logged.</li>
+      <li><b>Built for real production</b> - every segment lands on exact, precisely timed boundaries (10s for the first three, 15s from there on), matching how social platforms and ad slots actually cut.</li>
     </ul>
-    <p style="font-size:1.15rem;font-weight:700;color:var(--accent2);line-height:1.4;margin:0">Turn one idea into a production-ready AI video — in minutes.</p>
+    <p style="font-size:1.15rem;font-weight:700;color:var(--accent2);line-height:1.4;margin:0">Turn one idea into a production-ready AI video - in minutes.</p>
   </div>
 </section>
 <section id="faqSection" style="max-width:1200px;margin:0 auto 32px;padding:0 24px">
@@ -347,12 +347,12 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
 <div class="lib-overlay" id="libOverlay">
   <div class="lib-panel">
     <h2>Script Library <span style="display:flex;gap:8px"><button class="btn-copy" id="btnLibExport">⬇ Export JSON</button><button class="btn-copy" id="btnLibImport">⬆ Import JSON</button><button class="btn-copy" id="btnLibClose">✕ Close</button></span></h2>
-    <div class="lib-note">⚠ Your saved scripts live only in this browser, on this device — clearing browser data erases them, and we keep no copy on any server. Use Export JSON for backups or to move scripts to another device.</div>
+    <div class="lib-note">⚠ Your saved scripts live only in this browser, on this device - clearing browser data erases them, and we keep no copy on any server. Use Export JSON for backups or to move scripts to another device.</div>
     <input type="file" id="libFile" accept="application/json" style="display:none">
     <div id="libList"></div>
   </div>
 </div>
-<!-- Character Library — additive only (see the block comment above buildAnchorPhrase() in
+<!-- Character Library - additive only (see the block comment above buildAnchorPhrase() in
      assets/app.js for the full rollback contract). Separate from both the Option 5 provider-key
      settings and the Script Library above. List view and add/edit form live in the same panel,
      toggled by JS (#charListView / #charFormView), matching this app's existing no-framework
@@ -360,19 +360,19 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
 <div class="lib-overlay" id="charOverlay">
   <div class="lib-panel" style="max-width:640px">
     <h2>Character Library <span style="display:flex;gap:8px"><button class="btn-copy" id="btnCharImportOpen">📋 Import from text</button><button class="btn-copy" id="btnCharNew">+ New Character</button><button class="btn-copy" id="btnCharClose">✕ Close</button></span></h2>
-    <div class="lib-note">⚠ Characters live only in this browser, on this device — clearing browser data erases them, and we keep no copy on any server. Reference images are uploaded manually in this version; nothing is auto-generated.</div>
+    <div class="lib-note">⚠ Characters live only in this browser, on this device - clearing browser data erases them, and we keep no copy on any server. Reference images are uploaded manually in this version; nothing is auto-generated.</div>
     <div id="charListView">
       <div id="charList"></div>
     </div>
-    <!-- Bulk import — parses a pasted character brief (e.g. a "character bible" doc already
+    <!-- Bulk import - parses a pasted character brief (e.g. a "character bible" doc already
          written for a script) into one record per character, using the deterministic parser
          parseCharacterBrief() in assets/app.js. Everything except reference images fills in
          automatically; images still need uploading per character afterward via Edit, same
          limitation as manual entry (no image-generation pathway exists in ScriptForge to
-         auto-create them — see the block comment above buildAnchorPhrase()). -->
+         auto-create them - see the block comment above buildAnchorPhrase()). -->
     <div id="charImportView" style="display:none">
       <button class="btn-ghost" id="btnCharImportBack" style="margin-bottom:12px">← Back to list</button>
-      <label>Paste a character brief <span style="color:var(--muted);font-weight:400">(expects roughly: "CHARACTER 1: NAME (type)", then numbered sections — Reference Images/Image Description, Additional Named Looks, Voice/Tone, Default Outfit, Hair, Anchor Phrase)</span></label>
+      <label>Paste a character brief <span style="color:var(--muted);font-weight:400">(expects roughly: "CHARACTER 1: NAME (type)", then numbered sections - Reference Images/Image Description, Additional Named Looks, Voice/Tone, Default Outfit, Hair, Anchor Phrase)</span></label>
       <textarea id="charImportText" rows="10" placeholder="Paste your character brief here…"></textarea>
       <div class="row" style="margin-top:10px">
         <button class="btn-primary" id="btnCharImportParse">Parse characters</button>
@@ -389,7 +389,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
       <input type="text" id="charDisplayName" placeholder="e.g. Grandma Rosa">
       <div class="row" style="gap:10px">
         <div style="flex:1">
-          <label>Character type <span style="color:var(--muted);font-weight:400">(free text — e.g. Father, Mother, protagonist)</span></label>
+          <label>Character type <span style="color:var(--muted);font-weight:400">(free text - e.g. Father, Mother, protagonist)</span></label>
           <input type="text" id="charType" list="charTypeList" placeholder="e.g. Father">
           <datalist id="charTypeList">
             <option value="narrator"><option value="host"><option value="protagonist">
@@ -409,7 +409,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
         <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:400;cursor:pointer"><input type="checkbox" value="Podcast" class="char-prodtype" style="width:auto"> Podcast</label>
         <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:400;cursor:pointer"><input type="checkbox" value="Public Address" class="char-prodtype" style="width:auto"> Public Address</label>
       </div>
-      <label>Appearance <span style="color:var(--muted);font-weight:400">(optional — skin tone, height, build, face shape, eyes; anything beyond hair/outfit)</span></label>
+      <label>Appearance <span style="color:var(--muted);font-weight:400">(optional - skin tone, height, build, face shape, eyes; anything beyond hair/outfit)</span></label>
       <textarea id="charAppearance" rows="2" placeholder="e.g. dark chocolate skin, 6'0&quot;, lean but strong build, oval face, intelligent dark brown eyes"></textarea>
       <label>Hair</label>
       <textarea id="charHair" rows="2" placeholder="e.g. silver, tied in a low bun"></textarea>
@@ -419,10 +419,10 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
       <input type="text" id="charElevenVoiceId" placeholder="voice ID from elevenlabs.io">
       <label>Default outfit</label>
       <input type="text" id="charOutfitDefault" placeholder="e.g. faded floral housedress, shawl">
-      <label>Additional named looks <span style="color:var(--muted);font-weight:400">(optional — e.g. for a flashback or a different scene)</span></label>
+      <label>Additional named looks <span style="color:var(--muted);font-weight:400">(optional - e.g. for a flashback or a different scene)</span></label>
       <div id="charOutfitExtra"></div>
       <button class="btn-ghost" id="btnCharAddOutfit" style="margin-top:6px;margin-bottom:12px">+ Add another look</button>
-      <label>Reference images <span style="color:var(--muted);font-weight:400">(upload front, three-quarter, and/or profile — at least one recommended)</span></label>
+      <label>Reference images <span style="color:var(--muted);font-weight:400">(upload front, three-quarter, and/or profile - at least one recommended)</span></label>
       <div class="row" style="gap:10px;margin-bottom:12px">
         <div style="flex:1;text-align:center">
           <input type="file" id="charImgFront" accept="image/*" style="display:none">
@@ -437,7 +437,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
           <label for="charImgProfile" style="cursor:pointer;display:block"><img id="charImgProfilePrev" style="max-width:100%;border-radius:6px;display:none;margin-bottom:4px"><span class="btn-ghost" style="display:block;padding:6px">Profile</span></label>
         </div>
       </div>
-      <label>Anchor phrase <span style="color:var(--muted);font-weight:400">(editable — auto-fills as you edit the fields above, or write/paste your own to override)</span></label>
+      <label>Anchor phrase <span style="color:var(--muted);font-weight:400">(editable - auto-fills as you edit the fields above, or write/paste your own to override)</span></label>
       <textarea id="charAnchorPreview" rows="3"></textarea>
       <div class="row" style="margin-top:14px">
         <button class="btn-primary" id="btnCharSave">Save character</button>
@@ -446,7 +446,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     </div>
   </div>
 </div>
-<!-- LONG-FORM PROJECT — additive only, powered entirely by assets/longform.js. This markup only
+<!-- LONG-FORM PROJECT - additive only, powered entirely by assets/longform.js. This markup only
      provides containers; longform.js owns all rendering/state inside them (same division of
      labor as the Character Library above: HTML shell here, behavior in the JS file). -->
 <div class="lib-overlay" id="longformOverlay">
@@ -467,7 +467,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
       <div id="longformTargetPreview" style="color:var(--muted);font-size:.72rem;margin-top:4px">≈ 10 min target</div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:12px">
         <input type="checkbox" id="longformMock" style="width:auto">
-        🧪 Mock Test mode <span style="color:var(--muted);font-weight:400">(no API key, no deployment needed — fabricated Bible/units so you can try the whole workflow offline, same spirit as the Quick Generation Mock Test)</span>
+        🧪 Mock Test mode <span style="color:var(--muted);font-weight:400">(no API key, no deployment needed - fabricated Bible/units so you can try the whole workflow offline, same spirit as the Quick Generation Mock Test)</span>
       </label>
       <button class="btn-primary" id="btnLongformCreate" style="width:100%;margin-top:14px">Create Project &amp; Plan Runtime</button>
     </div>
@@ -492,7 +492,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
         <button class="btn-ghost" id="btnForgotPw" style="flex:1">Forgot password?</button>
       </div>
       <div class="status" id="authStatus"></div>
-      <p style="color:var(--muted);font-size:.72rem;margin-top:12px">By creating an account you agree to the <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> and <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a>. We store only your email, login credential, and account status — never your scripts or API key.</p>
+      <p style="color:var(--muted);font-size:.72rem;margin-top:12px">By creating an account you agree to the <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> and <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a>. We store only your email, login credential, and account status - never your scripts or API key.</p>
     </div>
     <div id="viewSignedIn" style="display:none">
       <div class="avatar-info" id="acctInfo" style="display:block"></div>
@@ -517,10 +517,10 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
   </div>
 </div>
 <footer style="max-width:1200px;margin:0 auto;padding:18px 24px;color:var(--muted);font-size:.78rem;border-top:1px solid var(--border)">
-  © 2026 TAHA Production Studio · <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a> · <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> · Your scripts and API key are never stored or logged — see our Privacy Policy for details.
+  © 2026 TAHA Studio Labs · <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a> · <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> · Your scripts and API key are never stored or logged - see our Privacy Policy for details.
 </footer>
 <script src="/assets/app.js?v=craft13" defer></script>
-<!-- LONG-FORM PROJECT ORCHESTRATION ENGINE — additive only, loaded after app.js so it can reuse
+<!-- LONG-FORM PROJECT ORCHESTRATION ENGINE - additive only, loaded after app.js so it can reuse
      app.js's own top-level functions/constants (timing model, model advisory, provider config,
      segment rendering) directly by name. See the header comment in assets/longform.js for the
      full design rationale and rollback contract. -->

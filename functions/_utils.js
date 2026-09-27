@@ -3,7 +3,7 @@
    Supabase Auth), subscription status, license redemptions, and session ids.
    They must NEVER log or persist script content or Anthropic API keys.
    Exception: functions/api/format.js relays script text + the user's API key to
-   Anthropic's API, in memory, for the duration of a single request only — this is
+   Anthropic's API, in memory, for the duration of a single request only - this is
    the one function in this directory allowed to touch that data, and even it must
    never write either value to Supabase, KV, or any log. */
 
@@ -23,7 +23,7 @@ export function getCookies(request) {
 }
 
 export function cookie(name, value, maxAge) {
-  // Brief §2: httpOnly, Secure, SameSite=Strict — session tokens never in localStorage.
+  // Brief §2: httpOnly, Secure, SameSite=Strict - session tokens never in localStorage.
   return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`;
 }
 export function clearCookie(name) { return `${name}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`; }
@@ -41,7 +41,7 @@ export function clearAuthHeaders() {
   return h;
 }
 
-/* Supabase REST (PostgREST) with service role — server-side only, bypasses RLS */
+/* Supabase REST (PostgREST) with service role - server-side only, bypasses RLS */
 export async function db(env, method, path, body) {
   const res = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, {
     method,
@@ -58,7 +58,7 @@ export async function db(env, method, path, body) {
   return { ok: res.ok, status: res.status, data };
 }
 
-/* Supabase Auth endpoints. `method` defaults to GET (no body) / POST (body present) as before —
+/* Supabase Auth endpoints. `method` defaults to GET (no body) / POST (body present) as before - 
    pass it explicitly for the one case that needs it: PUT /user to update the signed-in user's
    own password (see update-password.js), which reuses this same helper. */
 export async function sbAuth(env, path, body, token, method) {
@@ -105,7 +105,7 @@ export async function requireUser(context) {
       u = await sbAuth(env, "user", undefined, at);
     }
   }
-  if (!u.ok || !u.data || !u.data.id) return { error: json({ error: "Session expired — sign in again." }, 401, { "Set-Cookie": clearCookie("sf_at") }) };
+  if (!u.ok || !u.data || !u.data.id) return { error: json({ error: "Session expired - sign in again." }, 401, { "Set-Cookie": clearCookie("sf_at") }) };
 
   const sess = await db(env, "GET", `active_sessions?session_id=eq.${c.sf_sid}&user_id=eq.${u.data.id}&select=session_id`);
   if (!sess.ok || !sess.data || sess.data.length === 0) {

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   SCRIPTFORGE — LONG-FORM PROJECT ORCHESTRATION & CONTINUITY ENGINE
+   SCRIPTFORGE - LONG-FORM PROJECT ORCHESTRATION & CONTINUITY ENGINE
    ═══════════════════════════════════════════════════════════════════════════
    ADDITIVE ONLY, same rollback contract as FEATURE_SMART_RECOMMEND and the
    Character Library elsewhere in this app: this file, the "🎬 Long-Form
@@ -11,7 +11,7 @@
 
    WHY A SEPARATE FILE INSTEAD OF EDITING app.js:
    app.js already defines everything this feature needs as plain top-level
-   `const`/`function` declarations in a classic (non-module) script — that
+   `const`/`function` declarations in a classic (non-module) script - that
    means a second classic <script> tag loaded after app.js shares the same
    global scope and can reference them directly by name. So this file reuses,
    rather than duplicates:
@@ -22,13 +22,13 @@
      - renderOutput(), esc(), pick()                            (segment rendering)
      - getLib(), setLib(), titleFor(), lastRaw, lastMeta        (Script Library)
    This is the actual "orchestration layer around the existing generation
-   capability" the spec asked for — it calls the same /api/format relay, the
+   capability" the spec asked for - it calls the same /api/format relay, the
    same per-segment output template, and the same renderer as Quick Generation,
    it just calls /api/format more than once and keeps track of what happened
    between calls.
 
    FUNDAMENTAL RULE THIS FILE FOLLOWS: ScriptForge (this code) owns the
-   project's structure — how many units, what time range each covers, what
+   project's structure - how many units, what time range each covers, what
    happened in each one. The AI model only ever fills in *content* inside a
    structure this code already decided. The model is never asked to remember
    the whole production across calls; the Continuity State object is. */
@@ -42,7 +42,7 @@
      fail loud in the console instead of silently breaking mid-generation. */
   function requireGlobal(name) {
     if (typeof window[name] === "undefined" && typeof eval("typeof " + name) === "undefined") {
-      console.error(`[longform.js] Expected app.js to define "${name}" — long-form projects will not work until this is fixed. See the header comment in longform.js.`);
+      console.error(`[longform.js] Expected app.js to define "${name}" - long-form projects will not work until this is fixed. See the header comment in longform.js.`);
     }
   }
   ["tstamp", "segStartTime", "segEndTime", "segDuration", "computeMaxTokens",
@@ -56,7 +56,7 @@
      several units of full rich-field markdown + continuity history) is much
      bigger than a Script Library entry and would fill localStorage's ~5-10MB
      origin-wide cap fast. Nothing here is ever sent to or stored on any
-     server — same guarantee as everything else in this app. */
+     server - same guarantee as everything else in this app. */
   const LF_DB_NAME = "sf_longform_projects", LF_STORE = "projects";
   function lfDbOpen() {
     return new Promise((resolve, reject) => {
@@ -107,7 +107,7 @@
   }
   function uid(prefix) { return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`; }
 
-  /* ═══════════════ 2. RUNTIME PLANNER — "Generation Unit Capacity" ═══════════════
+  /* ═══════════════ 2. RUNTIME PLANNER - "Generation Unit Capacity" ═══════════════
      This is the abstraction the spec asked for explicitly: never hard-code
      "5 minutes", derive how much a single call can safely hold from the
      REAL per-provider output-token ceilings already defined in app.js
@@ -120,10 +120,10 @@
      Two reasons, both concrete, not hypothetical: (1) a single call using the
      full ceiling means tens of thousands of tokens of uninterrupted output
      with nothing checking it against the rest of the story until it's already
-     done — smaller units mean the Continuity Extraction pass (section 12/26)
+     done - smaller units mean the Continuity Extraction pass (section 12/26)
      runs more often and catches drift sooner. (2) the Cloudflare Pages
      Functions relay's execution-time limits for a single request were not
-     verified during the architecture audit — staying well under the raw
+     verified during the architecture audit - staying well under the raw
      ceiling keeps individual calls fast rather than betting the whole
      project's reliability on a single very long request. */
   const LONGFORM_SAFETY_MARGIN = 0.65;
@@ -190,7 +190,7 @@
      good content of this type"). Master Architecture and Continuity
      Extraction are new job types this file adds weight profiles for, scored
      against the SAME MODEL_CAPABILITIES table and the SAME scoreModel()
-     function already in app.js — no new capability data invented, just a
+     function already in app.js - no new capability data invented, just a
      different weighting of the numbers that already exist. */
   const LONGFORM_JOB_WEIGHTS = {
     masterBible: { reasoning: .35, longContext: .3, storytelling: .2, research: .15 },
@@ -224,7 +224,7 @@
 
   /* ═══════════════ 4. /api/format CALL HELPER ═══════════════
      Same endpoint, same request shape, same response shape Quick Generation
-     already uses — this is the actual "orchestration layer around the
+     already uses - this is the actual "orchestration layer around the
      existing generation capability," not a parallel generation path. */
   async function sfCallFormat({ provider, model, max_tokens, system, userMsg }) {
     const keyField = PROVIDER_KEY_FIELD[provider];
@@ -253,7 +253,7 @@
      adapted per script type) AND the per-unit beats/purpose for the Runtime
      Plan this code already computed deterministically. ScriptForge decides
      HOW MANY units and WHAT TIME RANGE each covers (planUnits(), above); the
-     model only decides WHAT HAPPENS in each one — the section 34 split. */
+     model only decides WHAT HAPPENS in each one - the section 34 split. */
   const MASTER_BIBLE_FIELDS = {
     "Short Movie Script": ["protagonist", "antagonist", "supportingCharacters", "conflict", "stakes", "characterArcs", "turningPoints", "climax", "resolution"],
     "Short Documentary": ["centralSubject", "researchQuestions", "chronology", "evidenceStructure", "interviewStructure", "thematicProgression", "conclusion"],
@@ -296,7 +296,7 @@ Rules:
 2. forbiddenInfo lists anything that must NOT be revealed yet in that unit because it is scheduled for a later one (section: information/reveal control). The final unit's forbiddenInfo should normally be empty.
 3. endingRequirement for every unit except the last describes how it hands off into the next (open thread, rising question, unresolved beat). The last unit's endingRequirement describes how the whole production resolves and closes.
 4. Adapt typeSpecific to what a ${scriptType || "generic"} production actually needs, do not force a movie three-act structure onto a non-narrative format.
-5. Never use an em dash ("—") anywhere in any field. Use a comma or period instead.
+5. Never use an em dash ("\u2014") anywhere in any field. Use a comma or period instead.
 6. Visual style should account for a ${ratio} frame${allowBRoll ? " and may include B-roll/cutaway coverage" : ", on-camera only, no cutaway B-roll shots"}.`;
     const userMsg = `Idea / synopsis:\n\n${idea}`;
     return { system, userMsg };
@@ -413,7 +413,7 @@ Rules:
     return project;
   }
 
-  /* ═══════════════ 6. GENERATION UNIT — reuses app.js's own segment template ═══════════════
+  /* ═══════════════ 6. GENERATION UNIT - reuses app.js's own segment template ═══════════════
      This mirrors buildSystemPrompt() in app.js field-for-field (same 8 fields
      per segment, same em-dash ban, same single-axis camera rule, same
      documentary-grade visual direction) but generalizes segment numbering to
@@ -490,7 +490,7 @@ Additional rules:
 3. Output as clean, copy-paste ready blocks exactly like the sample format.
 4. Pace TTS at approximately 150 spoken words per minute for each segment's specific duration.
 5. Visuals: cinematic documentary grade, ultra-realistic African physiognomy where people appear, specify era, geography, lighting, composition, never generic stock-photo descriptors.
-6. Never use an em dash (the "—" character) anywhere in the output. Use a comma, a period, or the word "and" instead.
+6. Never use an em dash (the "\u2014" character) anywhere in the output. Use a comma, a period, or the word "and" instead.
 7. Camera Movement is always single-axis only, never combine axes, never fully static, vary axis/direction across segments so it never repeats twice in a row.
 8. B-Roll handling: ${allowBRoll ? "Voiceover + B-Roll segments are allowed and encouraged where they suit the content." : "B-Roll is DISABLED. Every segment's Type must be On-Camera or On-Camera + Brand Close only, the on-camera subject stays in frame at all times."}
 9. Do not reveal anything listed as forbidden/premature information above.
@@ -616,7 +616,7 @@ ${JSON.stringify(priorState)}`;
      preserving timestamps and structure (already globally correct, see
      planUnits()), add exactly one TECHNICAL SPECS header, then hand the
      result to app.js's OWN renderOutput() and the OWN Script Library/PDF
-     buttons — the assembled long-form script becomes an ordinary Library
+     buttons - the assembled long-form script becomes an ordinary Library
      entry, indistinguishable downstream from a Quick Generation script. */
   function assembleMasterScript(project) {
     const units = project.masterPlan.units;
@@ -682,7 +682,7 @@ ${JSON.stringify(priorState)}`;
   /* ═══════════════ 10. UI ═══════════════
      Reuses existing CSS classes only (card, field, fl, fv, status, badge,
      btn-primary, btn-ghost, btn-copy, lib-overlay, lib-panel, lib-item,
-     lib-note, seg-card, empty) — no new CSS added anywhere. Event handling
+     lib-note, seg-card, empty) - no new CSS added anywhere. Event handling
      uses one delegated click listener reading data-lf-action, matching the
      data-action delegation pattern already used elsewhere in this app. */
   let currentProject = null;
@@ -714,7 +714,7 @@ ${JSON.stringify(priorState)}`;
     }
     const b = project.masterBible;
     const lockRow = project.bibleLocked
-      ? `<div class="status ok" style="display:block">✓ Master Bible is LOCKED — units must stay consistent with it. <button class="btn-copy" data-lf-action="unlock-bible" style="margin-left:8px">Unlock</button></div>`
+      ? `<div class="status ok" style="display:block">✓ Master Bible is LOCKED - units must stay consistent with it. <button class="btn-copy" data-lf-action="unlock-bible" style="margin-left:8px">Unlock</button></div>`
       : `<div class="status info" style="display:block">Review the bible below, then lock it before generating units so later units can't silently drift from it. <button class="btn-primary" data-lf-action="lock-bible" style="width:auto;padding:6px 16px;margin-top:8px">🔒 Lock Master Bible</button> <button class="btn-ghost" data-lf-action="gen-bible" style="width:auto;padding:6px 16px;margin-top:8px">Regenerate</button></div>`;
     return `
       <div class="specs-block">

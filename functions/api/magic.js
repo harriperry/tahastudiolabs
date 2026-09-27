@@ -5,7 +5,7 @@ export async function onRequestPost(context) {
   if (!validEmail(b.email)) return json({ error: "Enter a valid email address." }, 400);
   const site = env.SITE_URL || new URL(request.url).origin;
   /* GoTrue's real wire format takes the post-click destination as a "redirect_to" URL query
-     parameter on the request itself, not as a body field — a body-nested "options.email_redirect_to"
+     parameter on the request itself, not as a body field - a body-nested "options.email_redirect_to"
      (the supabase-js SDK's own internal shape) is not read by the raw REST API and was silently
      ignored here, so every magic-link email fell back to Supabase's dashboard-configured default
      Site URL instead of this deployment. Confirmed against gotrue-js's own _request() call sites. */
