@@ -955,7 +955,7 @@ els.btnFormat.addEventListener("click", async () => {
   if (!script) { setStatus("err", "Paste a script first."); return; }
 
   const n = +els.segCount.value;
-  if (n > FREE_MAX_SEGS && tier !== "pro") { showUpgrade("Segments beyond " + FREE_MAX_SEGS + " × 10s are a Pro feature."); return; }
+  if (n > FREE_MAX_SEGS && tier !== "pro") { showUpgrade("Segments beyond " + FREE_MAX_SEGS + " × 10s need a free account."); return; }
   const ratio = els.ratio.value;
   const stype = els.scriptType.value;
   const allowBRoll = els.allowBRoll ? els.allowBRoll.checked : true;
@@ -1358,7 +1358,7 @@ function titleFor(raw, meta){
 els.btnSaveLib.addEventListener("click", () => {
   if (!lastRaw) return;
   const lib = getLib();
-  if (tier !== "pro" && lib.length >= FREE_LIB_CAP) { showUpgrade("The free Library holds " + FREE_LIB_CAP + " scripts. Pro removes the limit."); return; }
+  if (tier !== "pro" && lib.length >= FREE_LIB_CAP) { showUpgrade("Without an account the Library holds " + FREE_LIB_CAP + " scripts."); return; }
   lib.unshift({ id: Date.now(), title: titleFor(lastRaw, lastMeta), meta: lastMeta, raw: lastRaw });
   setLib(lib);
   els.btnSaveLib.textContent = "✓ Saved";
@@ -1666,10 +1666,10 @@ els.output.addEventListener("change", (e) => {
 
 window.libDel = function(id){ setLib(getLib().filter(x => x.id !== id)); renderLib(); };
 window.libPdf = function(id){
-  if (tier !== "pro") { showUpgrade("PDF export is a Pro feature."); return; }
+  if (tier !== "pro") { showUpgrade("PDF export needs a free account."); return; }
   const item = getLib().find(x => x.id === id); if (item) makePdf(item.title, item.raw, item.meta);
 };
-els.btnPdf.addEventListener("click", () => { if (!lastRaw) return; if (tier !== "pro") { showUpgrade("PDF export is a Pro feature."); return; } makePdf(titleFor(lastRaw, lastMeta), lastRaw, lastMeta); });
+els.btnPdf.addEventListener("click", () => { if (!lastRaw) return; if (tier !== "pro") { showUpgrade("PDF export needs a free account."); return; } makePdf(titleFor(lastRaw, lastMeta), lastRaw, lastMeta); });
 function makePdf(title, raw, meta){
   if (!(window.jspdf && window.jspdf.jsPDF)) {
     const w = window.open("", "_blank");
@@ -1804,19 +1804,17 @@ updateLengthUI();
    license redemption record. Scripts + API key NEVER leave this browser.               */
 
 const FREE_MAX_SEGS = 3, FREE_LIB_CAP = 5;
-const PRO_MONTHLY_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_1dj4mZuMYRipiLEHbgot9NjORmxDyf1SOYhc72ryz5k";
-const PRO_ANNUAL_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_wcCONu3qcjnaWOHKBvRkKmHyZdrisOFdIQtpm2F0e8c";
-const LIFETIME_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_yZ9zCvMx2U09IWhar3iZ4M6sa29MivL8EqeRN4c1Ilv";
+/* ScriptForge is free: every signed-in account is Pro (the server always reports tier
+   "pro"). Pro features stay locked only for signed-out visitors, so they create a free
+   account first and usage can be counted. */
 let user = null, tier = "free";
-let trial = { available: false, active: false, endsAt: null };
 
 const els2 = {};
 ["btnAccount","authOverlay","btnAuthClose","authTitle","upsell","viewSignedOut","viewSignedIn",
- "authEmail","authPass","btnLogin","btnSignup","btnMagic","btnForgotPw","authStatus","acctInfo","trialBox",
- "btnCheckoutMonthly","btnCheckoutAnnual","btnCheckoutLifetime",
- "licKey","btnRedeem","btnChangePw","changePwBox","newPw","btnSetNewPw",
+ "authEmail","authPass","btnLogin","btnSignup","btnMagic","btnForgotPw","authStatus","acctInfo",
+ "btnChangePw","changePwBox","newPw","btnSetNewPw",
  "btnSignOut","btnDeleteAcct","deleteConfirm","delPass","btnDeleteFinal",
- "acctStatus","btnLibExport","btnLibImport","libFile","upgradeBox"].forEach(id => els2[id] = $(id));
+ "acctStatus","btnLibExport","btnLibImport","libFile"].forEach(id => els2[id] = $(id));
 
 async function api(path, body){
   try {
@@ -1836,68 +1834,28 @@ function setAuthStatus(el, cls, msg){ el.className = "status " + cls; el.innerHT
 function applyTier(){
   [...els.segCount.options].forEach(o => {
     const locked = +o.value > FREE_MAX_SEGS && tier !== "pro";
-    o.textContent = o.textContent.replace(/ 🔒 Pro$/, "") + (locked ? " 🔒 Pro" : "");
+    o.textContent = o.textContent.replace(/ 🔒 (Pro|Sign in)$/, "") + (locked ? " 🔒 Sign in" : "");
     o.disabled = locked;
   });
-  // Pro customers already have full access — the free mock demo is only useful
-  // pre-purchase, so hide it once a license is active.
+  // Signed-in accounts already have full access, so the mock demo is only shown
+  // to signed-out visitors.
   els.btnMock.style.display = tier === "pro" ? "none" : "";
   if (els.segCount.selectedOptions[0] && els.segCount.selectedOptions[0].disabled) {
     els.segCount.value = String(FREE_MAX_SEGS); updateLengthUI();
   }
-  els2.btnAccount.textContent = user ? (tier === "pro" ? (trial.active ? "👤 Account · Trial" : "👤 Account · Pro") : "👤 Account · Free") : "Sign in";
-  // Pro subscribers (paid OR on an active trial) no longer need the marketing/about blurb.
+  els2.btnAccount.textContent = user ? "👤 Account · Pro (FREE)" : "Sign in";
+  // Signed-in accounts (all Pro) no longer need the marketing/about blurb.
   const aboutSection = document.getElementById("aboutSection");
   if (aboutSection) aboutSection.style.display = tier === "pro" ? "none" : "";
-  if (user) {
-    const planLabel = tier === "pro" ? (trial.active ? `Pro trial (${trialDaysLeft()} day${trialDaysLeft() === 1 ? "" : "s"} left)` : "Pro (active)") : "Free";
-    els2.acctInfo.textContent = `Signed in as: ${user.email}\nPlan: ${planLabel}`;
-    // Real paid Pro hides the upgrade cards entirely. An active trial keeps them visible —
-    // trialers can subscribe early any time instead of waiting for the trial to lapse.
-    els2.upgradeBox.style.display = (tier === "pro" && !trial.active) ? "none" : "block";
-  }
-  renderTrialBox();
-}
-
-function trialDaysLeft(){
-  if (!trial.endsAt) return 0;
-  return Math.max(0, Math.ceil((new Date(trial.endsAt).getTime() - Date.now()) / 86400000));
-}
-
-/* Three mutually exclusive states, matching exactly what's visible in the account panel:
-   1. Never claimed a trial, not currently paying  -> "CLAIM YOUR TRIAL" button.
-   2. Trial claimed and still within its window     -> status line with days remaining.
-   3. Trial claimed and its window has passed, still not paying -> "Choose a subscription"
-      button that jumps down to the existing plan cards (already visible below it). */
-function renderTrialBox(){
-  if (!user || (tier === "pro" && !trial.active)) { els2.trialBox.style.display = "none"; els2.trialBox.innerHTML = ""; return; }
-  els2.trialBox.style.display = "block";
-  if (trial.active) {
-    const days = trialDaysLeft();
-    els2.trialBox.innerHTML = `<div class="lib-note">🎁 Pro trial active — ${days} day${days === 1 ? "" : "s"} left (ends ${new Date(trial.endsAt).toLocaleString()}). Full Pro access until then — subscribe any time below to keep it going.</div>`;
-  } else if (trial.available) {
-    els2.trialBox.innerHTML = `<button class="btn-primary" id="btnClaimTrial" style="width:100%">🎁 CLAIM YOUR TRIAL — 7 days full Pro access</button>`;
-    document.getElementById("btnClaimTrial").addEventListener("click", claimTrial);
-  } else {
-    els2.trialBox.innerHTML = `<button class="btn-primary" id="btnChooseSub" style="width:100%">Choose a subscription</button>`;
-    document.getElementById("btnChooseSub").addEventListener("click", () => els2.upgradeBox.scrollIntoView({ behavior: "smooth", block: "start" }));
-  }
-}
-
-async function claimTrial(){
-  setAuthStatus(els2.acctStatus, "info", '<span class="spin"></span>Activating your trial…');
-  const r = await api("claim-trial", {});
-  if (r.ok) { setAuthStatus(els2.acctStatus, "ok", "✓ 7-day Pro trial activated — enjoy full access!"); await refreshMe(); }
-  else setAuthStatus(els2.acctStatus, "err", (r.data && r.data.error) || "Could not start trial.");
+  if (user) els2.acctInfo.textContent = `Signed in as: ${user.email}\nPlan: Pro (FREE)`;
 }
 
 async function refreshMe(){
   const r = await api("me");
   if (r.ok && r.data && r.data.email) {
     user = r.data;
-    tier = (r.data.tier === "pro" && r.data.status === "active") ? "pro" : "free";
-    trial = { available: !!r.data.trialAvailable, active: !!r.data.trialActive, endsAt: r.data.trialEndsAt || null };
-  } else { user = null; tier = "free"; trial = { available: false, active: false, endsAt: null }; }
+    tier = "pro";
+  } else { user = null; tier = "free"; }
   applyTier();
   els2.viewSignedOut.style.display = user ? "none" : "block";
   els2.viewSignedIn.style.display  = user ? "block" : "none";
@@ -1905,7 +1863,7 @@ async function refreshMe(){
 }
 
 function showUpgrade(msg){
-  els2.upsell.textContent = "🔒 " + msg + (user ? "" : " Sign in or create a free account, then upgrade.");
+  els2.upsell.textContent = "🔒 " + msg + " Sign in or create a FREE account to unlock it.";
   els2.upsell.style.display = "block";
   els2.authOverlay.classList.add("open");
 }
@@ -1957,16 +1915,6 @@ els2.btnSetNewPw.addEventListener("click", async () => {
 });
 els2.btnSignOut.addEventListener("click", async () => { await api("logout", {}); await refreshMe(); });
 
-els2.btnCheckoutMonthly.addEventListener("click", () => window.open(PRO_MONTHLY_CHECKOUT_URL, "_blank", "noopener"));
-els2.btnCheckoutAnnual.addEventListener("click", () => window.open(PRO_ANNUAL_CHECKOUT_URL, "_blank", "noopener"));
-els2.btnCheckoutLifetime.addEventListener("click", () => window.open(LIFETIME_CHECKOUT_URL, "_blank", "noopener"));
-els2.btnRedeem.addEventListener("click", async () => {
-  setAuthStatus(els2.acctStatus, "info", '<span class="spin"></span>Redeeming license…');
-  const r = await api("redeem", { license_key: els2.licKey.value.trim() });
-  if (r.ok) { setAuthStatus(els2.acctStatus, "ok", "✓ License redeemed — Pro unlocked on this account."); await refreshMe(); }
-  else setAuthStatus(els2.acctStatus, "err", (r.data && r.data.error) || "Redemption failed.");
-});
-
 els2.btnDeleteAcct.addEventListener("click", () => { els2.deleteConfirm.style.display = "block"; });
 els2.btnDeleteFinal.addEventListener("click", async () => {
   setAuthStatus(els2.acctStatus, "info", '<span class="spin"></span>Deleting account…');
@@ -2016,7 +1964,7 @@ els2.libFile.addEventListener("change", () => {
       const lib = getLib(); const have = new Set(lib.map(x => x.id)); let added = 0;
       for (const it of items) if (it && it.id && it.raw && !have.has(it.id)) { lib.push(it); added++; }
       lib.sort((a,b) => b.id - a.id);
-      if (tier !== "pro" && lib.length > FREE_LIB_CAP && added > 0) { showUpgrade("Import would exceed the free Library limit of " + FREE_LIB_CAP + " scripts."); els2.libFile.value = ""; return; }
+      if (tier !== "pro" && lib.length > FREE_LIB_CAP && added > 0) { showUpgrade("Import would exceed the signed-out Library limit of " + FREE_LIB_CAP + " scripts."); els2.libFile.value = ""; return; }
       setLib(lib); renderLib();
       alert(added + " script(s) imported.");
     } catch(e) { alert("Could not import — not a valid ScriptForge library file."); }

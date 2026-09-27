@@ -336,8 +336,8 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     <p style="color:var(--text);line-height:1.7;margin:0">Google Veo 3.1, xAI Grok Imagine and HeyGen Video Agent. You choose the generator for each segment, for example Veo or Grok for B-roll and HeyGen for a talking presenter.</p>
     <h3 style="font-size:1rem;color:var(--accent2);margin:18px 0 6px">Do I need my own API keys?</h3>
     <p style="color:var(--text);line-height:1.7;margin:0">Yes. You bring your own API key for the AI writing provider and for each video generator you use, and you pay those providers directly with no markup. Your scripts and keys are relayed for a single request only, and are never stored or logged.</p>
-    <h3 style="font-size:1rem;color:var(--accent2);margin:18px 0 6px">Is ScriptForge free to try?</h3>
-    <p style="color:var(--text);line-height:1.7;margin:0">Yes. The Mock Test needs no account, and new accounts can claim a free 7-day Pro trial.</p>
+    <h3 style="font-size:1rem;color:var(--accent2);margin:18px 0 6px">Is ScriptForge free?</h3>
+    <p style="color:var(--text);line-height:1.7;margin:0">Yes, ScriptForge is FREE. The Mock Test needs no account, and every free account gets full Pro access. You only pay the AI providers for your own usage, with your own API keys.</p>
     <h3 style="font-size:1rem;color:var(--accent2);margin:18px 0 6px">What kinds of video can I make?</h3>
     <p style="color:var(--text);line-height:1.7;margin:0">ScriptForge has five production types: short movie scripts, short documentaries, short adverts, podcasts and public addresses.</p>
     <h3 style="font-size:1rem;color:var(--accent2);margin:18px 0 6px">What is the difference between ScriptForge and ScriptEngine?</h3>
@@ -492,36 +492,11 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
         <button class="btn-ghost" id="btnForgotPw" style="flex:1">Forgot password?</button>
       </div>
       <div class="status" id="authStatus"></div>
-      <p style="color:var(--muted);font-size:.72rem;margin-top:12px">By creating an account you agree to the <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> and <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a>. We store only your email, login credential, and subscription status — never your scripts or API key.</p>
+      <p style="color:var(--muted);font-size:.72rem;margin-top:12px">By creating an account you agree to the <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> and <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a>. We store only your email, login credential, and account status — never your scripts or API key.</p>
     </div>
     <div id="viewSignedIn" style="display:none">
       <div class="avatar-info" id="acctInfo" style="display:block"></div>
-      <div id="trialBox" style="display:none;margin-bottom:14px"></div>
-      <div id="upgradeBox">
-        <div class="row" style="margin-top:12px;gap:10px;align-items:stretch">
-          <div style="flex:1;border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
-            <div style="font-weight:600;margin-bottom:4px">Pro Monthly</div>
-            <div style="color:var(--muted);font-size:.85rem;margin-bottom:10px">$9.99 / month</div>
-            <button class="btn-primary" id="btnCheckoutMonthly" style="width:100%">⚡ Choose Monthly</button>
-          </div>
-          <div style="flex:1;border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
-            <div style="font-weight:600;margin-bottom:4px">Pro Annual</div>
-            <div style="color:var(--muted);font-size:.85rem;margin-bottom:10px">$90 / year</div>
-            <button class="btn-primary" id="btnCheckoutAnnual" style="width:100%">⚡ Choose Annual</button>
-          </div>
-          <div style="flex:1;border:1px solid var(--accent2);border-radius:10px;padding:12px;text-align:center">
-            <div style="font-weight:600;margin-bottom:4px">Lifetime</div>
-            <div style="color:var(--muted);font-size:.85rem;margin-bottom:10px">$149 once</div>
-            <button class="btn-primary" id="btnCheckoutLifetime" style="width:100%">⚡ Choose Lifetime</button>
-          </div>
-        </div>
-        <p style="color:var(--muted);font-size:.72rem;margin-top:10px">All plans unlock the full Pro feature set for as long as your chosen period lasts. Lifetime is a one-time purchase — pay once, keep Pro forever.</p>
-        <label>Already have a license key?</label>
-        <div class="row">
-          <input type="text" id="licKey" placeholder="XXXX-XXXX-XXXX-XXXX" style="flex:2">
-          <button class="btn-ghost" id="btnRedeem" style="flex:1">Redeem</button>
-        </div>
-      </div>
+      <div class="lib-note" style="margin-top:12px">🎉 ScriptForge is FREE. Your account has full Pro access at no cost. You only pay the AI providers directly, using your own API keys.</div>
       <div class="row" style="margin-top:14px">
         <button class="btn-ghost" id="btnChangePw">Change password</button>
         <button class="btn-ghost" id="btnSignOut">Sign out</button>
