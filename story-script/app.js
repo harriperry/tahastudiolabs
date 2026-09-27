@@ -3153,7 +3153,22 @@ function App() {
       flexWrap: "wrap",
       gap: 10
     }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: "/assets/brand/scriptengine-128.png",
+    alt: "ScriptEngine",
+    width: 46,
+    height: 46,
+    style: {
+      display: "block",
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
     style: {
       margin: 0,
       fontSize: 19,
@@ -3162,13 +3177,13 @@ function App() {
       WebkitBackgroundClip: "text",
       WebkitTextFillColor: "transparent"
     }
-  }, "🎬 TAHA STUDIO ScriptEngine"), /*#__PURE__*/React.createElement("p", {
+  }, "TAHA STUDIO ScriptEngine"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: "#6b7280",
       margin: "2px 0 0",
       fontSize: 11
     }
-  }, "Type the idea. Get the whole production.")), /*#__PURE__*/React.createElement("div", {
+  }, "Type the idea. Get the whole production."))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 5,
