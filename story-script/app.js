@@ -54,10 +54,9 @@ const ANTHROPIC_MODEL = "claude-sonnet-5";
 
 /* ── Accounts & Pro gating ────────────────────────────────────────────────
    Reuses the same shared TAHA Studio Labs account system as ScriptForge —
-   one login, cookie-based session, same Supabase project. Tier is a single
-   pro/free flag per account, so a paid ScriptEngine subscription also
-   unlocks ScriptForge Pro and vice versa (one TAHA account, every product). */
-const SE_PRO_MONTHLY_CHECKOUT_URL = "https://buy.polar.sh/polar_cl_iPXfCYT9TLO24z43QQcIkIe7ODOa145blAGYT3iOYaa";
+   one login, cookie-based session, same Supabase project. Every signed-in
+   account is Pro for free (the server always reports tier "pro"); accounts
+   exist so usage can be counted. */
 async function api(path, body) {
   try {
     const res = await fetch("/api/" + path, {
@@ -2586,45 +2585,7 @@ const AccountModal = ({
       fontSize: 12,
       fontWeight: 700
     }
-  }, tier === "pro" ? "✅ Pro — thanks for subscribing" : "Free tier")), tier !== "pro" && /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "linear-gradient(135deg,#78350f,#92400e)",
-      border: "1px solid #f59e0b55",
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 14
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      color: "#fcd34d",
-      fontWeight: 800,
-      fontSize: 13,
-      marginBottom: 6
-    }
-  }, "Upgrade to Pro — $3.99/mo"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      color: "#fde68a",
-      fontSize: 12,
-      marginBottom: 10,
-      lineHeight: 1.6
-    }
-  }, "One TAHA Studio Labs account, every product. Removes the About section below and unlocks Pro across ScriptForge too."), /*#__PURE__*/React.createElement("a", {
-    href: SE_PRO_MONTHLY_CHECKOUT_URL,
-    target: "_blank",
-    rel: "noopener noreferrer"
-  }, /*#__PURE__*/React.createElement("button", {
-    style: {
-      background: "linear-gradient(135deg,#f59e0b,#ef4444)",
-      border: "none",
-      borderRadius: 8,
-      color: "#fff",
-      fontWeight: 800,
-      fontSize: 13,
-      padding: "9px 18px",
-      cursor: "pointer",
-      width: "100%"
-    }
-  }, "⚡ Upgrade — $3.99/month"))), /*#__PURE__*/React.createElement("button", {
+  }, tier === "pro" ? "✅ Pro (FREE for everyone)" : "Free tier")), /*#__PURE__*/React.createElement("button", {
     onClick: signOut,
     disabled: busy,
     style: {

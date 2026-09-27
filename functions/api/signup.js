@@ -1,4 +1,4 @@
-import { json, sbAuth, sbAdmin, openSession, authCookieHeaders, validEmail } from "../_utils.js";
+import { json, db, sbAuth, sbAdmin, openSession, authCookieHeaders, validEmail } from "../_utils.js";
 export async function onRequestPost(context) {
   const { request, env } = context;
   let b; try { b = await request.json(); } catch (e) { return json({ error: "Bad request." }, 400); }
@@ -17,6 +17,12 @@ export async function onRequestPost(context) {
   if (!created.ok) {
     const msg = created.data && (created.data.msg || created.data.error_description || created.data.error);
     return json({ error: /registered|exists/i.test(msg || "") ? "An account with that email already exists." : (msg || "Sign-up failed.") }, 400);
+  }
+
+  // Every new account is given Pro for free. Recorded in the subscriptions table too, so the
+  // database shows it; getSubscription() already treats every account as Pro regardless.
+  if (created.data && created.data.id) {
+    await db(env, "POST", "subscriptions", { user_id: created.data.id, status: "active", tier: "pro", updated_at: new Date().toISOString() });
   }
 
   const login = await sbAuth(env, "token?grant_type=password", { email: b.email, password: b.password });
