@@ -31,10 +31,10 @@ th{color:var(--muted);font-weight:600}
 <h2>Cloudflare resources</h2>
 <div class="wrap"><table>
 <tr><th>Resource</th><th>Name</th><th>Settings</th><th>Status</th></tr>
-<tr><td>Worker</td><td><code>brain-vault</code></td><td>Entry <code>src/index.js</code>. workers.dev and preview URLs are off, so the Worker is reachable only through its route.</td><td class="wait">Not deployed yet</td></tr>
-<tr><td>Route</td><td><code>tahastudiolabs.com/api/vault/*</code></td><td>Zone <code>tahastudiolabs.com</code>. A route, not a DNS change.</td><td class="wait">Waiting for Harry's approval</td></tr>
-<tr><td>D1 database</td><td><code>brain-vault-db</code></td><td>Binding <code>DB</code>, jurisdiction <b>EU</b>. The tables create themselves on the first request.</td><td class="wait">To create</td></tr>
-<tr><td>R2 bucket</td><td><code>brain-vault-files</code></td><td>Binding <code>FILES</code>, jurisdiction <b>EU</b>, private (no public access, no custom domain).</td><td class="wait">To create: R2 must first be switched on in the dashboard</td></tr>
+<tr><td>Worker</td><td><code>brain-vault</code></td><td>Entry <code>src/index.js</code>. workers.dev and preview URLs are off, so the Worker is reachable only through its route. Deployed by Workers Builds from GitHub <code>harriperry/tahastudiolabs</code>, branch <code>growth-phase-1</code>, root <code>/workers/brain-vault</code>, deploy command <code>npx wrangler deploy</code>, preview builds off.</td><td class="ok">Connected to GitHub</td></tr>
+<tr><td>Route</td><td><code>tahastudiolabs.com/api/vault/*</code></td><td>Zone <code>tahastudiolabs.com</code>. A route, not a DNS change.</td><td class="ok">Approved by Harry, 3 Oct 2026</td></tr>
+<tr><td>D1 database</td><td><code>brain-vault-db</code></td><td>Binding <code>DB</code>, jurisdiction <b>EU</b>, id <code>94d97c77-2edb-43b9-906f-9e5051ae3bd0</code>. The tables create themselves on the first request.</td><td class="ok">Created 3 Oct 2026</td></tr>
+<tr><td>R2 bucket</td><td><code>brain-vault-files</code></td><td>Binding <code>FILES</code>, jurisdiction <b>EU</b>, private (no public access, no custom domain).</td><td class="ok">Created 3 Oct 2026</td></tr>
 <tr><td>Cron trigger</td><td><code>17 3 * * *</code></td><td>Daily at 03:17 UTC: removes expired tokens, expired sessions and old rate limit entries.</td><td class="wait">Deployed with the Worker</td></tr>
 <tr><td>Pages Function</td><td><code>functions/workers/[[path]].js</code></td><td>Keeps <code>/workers/*</code> (this source folder) off the public site.</td><td class="wait">Goes live when the branch is merged</td></tr>
 </table></div>
