@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Brain Vault README</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#16140f;--muted:#6b665c;--line:#e3dfd6;--accent:#b5532a;--code:#efece5}
+@media (prefers-color-scheme:dark){:root{--bg:#15140f;--card:#1f1d17;--ink:#f1ede4;--muted:#a7a093;--line:#34312a;--accent:#e0774a;--code:#2a2720}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:32px 16px 80px}
+h1{font-size:28px;margin:0 0 4px}
+h2{font-size:20px;margin:40px 0 12px;padding-top:12px;border-top:1px solid var(--line)}
+h3{font-size:16px;margin:24px 0 8px}
+p,li{max-width:72ch}
+.sub{color:var(--muted);margin:0 0 24px}
+code,pre{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13.5px;background:var(--code);border-radius:4px}
+code{padding:1px 5px}
+pre{padding:12px 14px;overflow-x:auto;line-height:1.5}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:8px 0 16px}
+th,td{text-align:left;vertical-align:top;padding:8px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:600}
+td code{white-space:nowrap}
+.note{border-left:3px solid var(--accent);padding:8px 14px;background:var(--card)}
+ol li,ul li{margin:4px 0}
+</style>
+</head>
+<body>
+<main>
+<h1>Brain Vault</h1>
+<p class="sub">TAHA Growth Department V1, phase 1: the Vault foundation. Branch <code>growth-phase-1</code>, folder <code>workers/brain-vault/</code>.</p>
+
+<p>The Brain Vault is a Cloudflare Worker that both sides talk to: the client onboarding portal (phase 2) and the Growth Clients panel in ScriptForge (phase 3). It runs on Cloudflare all the time, so you have nothing to start or restart. Phase 1 builds the foundation: the database, file storage, the three data contracts (JSON Schemas), magic link login with the client and admin roles, the invite email and the rate limits.</p>
+
+<p class="note">House rules built into the code: no em-dashes in any text the Vault produces. No endpoint accepts an AI API key, and none is ever stored or logged. No client business content goes into logs or emails. Public ScriptForge users see nothing new, and the Vault answers them with "not signed in".</p>
+
+<h2>1. Files</h2>
+<div class="wrap"><table>
+<tr><th>File</th><th>What it is</th></tr>
+<tr><td><code>wrangler.json</code></td><td>Worker configuration: name, D1 and R2 bindings, settings (vars), cron cleanup, route. The only file to edit when settings change.</td></tr>
+<tr><td><code>package.json</code></td><td>Lists Wrangler (Cloudflare's deploy tool) and the test commands.</td></tr>
+<tr><td><code>src/index.js</code></td><td>The router: every endpoint, the Origin check, security headers, the daily cleanup.</td></tr>
+<tr><td><code>src/auth.js</code></td><td>Magic link tokens, sessions, roles, rate limits, and the ScriptForge admin bridge.</td></tr>
+<tr><td><code>src/admin.js</code></td><td>Admin endpoints for phase 1: invite a client, list clients, resend an invite.</td></tr>
+<tr><td><code>src/mail.js</code></td><td>The bilingual login and invite emails, plus the provider switch (Gmail, Resend, or log for local tests).</td></tr>
+<tr><td><code>src/smtp.js</code></td><td>A small SMTP client used to send through Gmail with an app password.</td></tr>
+<tr><td><code>src/config.js</code></td><td>Reads every setting, with safe defaults. Also holds the six client status labels in Swedish and English.</td></tr>
+<tr><td><code>src/migrations.js</code></td><td>The D1 tables as SQL inside JavaScript. The Worker applies them by itself on first use, so you never run a database command by hand.</td></tr>
+<tr><td><code>src/db.js</code></td><td>Applies the migrations once and records which ones are done.</td></tr>
+<tr><td><code>src/validate.js</code></td><td>A small JSON Schema validator. ScriptForge reuses it in the browser from phase 3.</td></tr>
+<tr><td><code>src/schemas.js</code></td><td>Loads the three schemas into the Worker.</td></tr>
+<tr><td><code>schemas/intake.schema.json</code></td><td>The contract for what the portal writes: profile, uploads, consent.</td></tr>
+<tr><td><code>schemas/brain.schema.json</code></td><td>The contract for the Business Brain that ScriptForge writes.</td></tr>
+<tr><td><code>schemas/campaign.schema.json</code></td><td>The contract for the campaign: the concept plus nine outputs.</td></tr>
+<tr><td><code>src/public/verify.html</code>, <code>verify.js</code></td><td>The page a magic link opens. You click once on it to finish signing in.</td></tr>
+<tr><td><code>src/public/console.html</code>, <code>console.js</code>, <code>vault.css</code></td><td>The phase 1 test console at <code>/api/vault/console</code>: sign in, see your role, and (as admin) invite clients. The portal and the ScriptForge panel replace it in phases 2 and 3.</td></tr>
+<tr><td><code>test/e2e.test.mjs</code></td><td>38 end to end checks against a local copy of the Worker: login, roles, single use, expiry, rate limits, the bridge.</td></tr>
+<tr><td><code>test/schemas.test.mjs</code>, <code>test/fixtures/pilot-intake-v1.json</code></td><td>14 checks on the schemas. Chef Sandy's Kitchen intake v1 must pass and broken documents must fail.</td></tr>
+<tr><td><code>SETUP-RECORD.html</code></td><td>Cloudflare resource names, setting names and email settings. Contains no secrets.</td></tr>
+<tr><td><code>../../functions/workers/[[path]].js</code></td><td>Stops the website from serving this source folder publicly (Pages serves every file in the repo).</td></tr>
+</table></div>
+
+<h2>2. Endpoints in phase 1</h2>
+<p>All of them sit under <code>https://tahastudiolabs.com/api/vault</code>.</p>
+<div class="wrap"><table>
+<tr><th>Method and path</th><th>Who</th><th>Does</th></tr>
+<tr><td><code>POST /auth/request-link</code></td><td>Anyone</td><td>Body <code>{"email","lang"}</code>. Sends a link only to invited clients and admin emails. The answer is always the same neutral message. Limited to 5 per email and 20 per IP each hour.</td></tr>
+<tr><td><code>GET /auth/verify</code></td><td>Email link</td><td>Opens the confirmation page. The token is in the <code>#t=</code> part of the link, so it never reaches server logs.</td></tr>
+<tr><td><code>POST /auth/verify</code></td><td>Confirmation page</td><td>Uses up the token, sets the 30 day session cookie, and returns where to go for the role.</td></tr>
+<tr><td><code>GET /auth/me</code></td><td>Signed in</td><td>Returns the role, the email, how you signed in (<code>vault</code> or <code>scriptforge</code>) and, for a client, its own record and status.</td></tr>
+<tr><td><code>POST /auth/logout</code></td><td>Signed in</td><td>Ends the Vault session.</td></tr>
+<tr><td><code>POST /admin/clients</code></td><td>Admin</td><td>Body <code>{"name","email","language"}</code>. Creates the client with status Invited and sends the bilingual invite.</td></tr>
+<tr><td><code>GET /admin/clients</code></td><td>Admin</td><td>Lists clients with status, last login, latest intake and brain versions, and the "new intake" flag for phase 3.</td></tr>
+<tr><td><code>POST /admin/clients/:id/invite</code></td><td>Admin</td><td>Sends the invite again with a fresh link.</td></tr>
+<tr><td><code>GET /schemas/intake|brain|campaign</code></td><td>Anyone</td><td>The contract files, so the portal and ScriptForge validate against the same copy.</td></tr>
+<tr><td><code>GET /health</code></td><td>Anyone</td><td>Shows whether D1 and R2 are connected. It holds no data.</td></tr>
+<tr><td><code>GET /console</code></td><td>Anyone</td><td>The phase 1 test console.</td></tr>
+</table></div>
+<p>The rest of the endpoints in spec section 4 (consent, intake, uploads, status, brain, campaign, erasure) arrive in the phase that needs them. The tables they use already exist.</p>
+
+<h2>3. How login works</h2>
+<ol>
+<li>Someone enters an email. If it belongs to an invited client or is in <code>ADMIN_EMAILS</code>, the Vault creates a random 32-byte token, stores only its SHA-256 hash, and emails the link. Any other email gets the same message and no email. The work happens after the reply is sent, so the reply takes the same time for every email.</li>
+<li>The link opens <code>/api/vault/auth/verify#t=...</code>. The person clicks <b>Logga in / Sign in</b> once. This extra click is deliberate: Outlook and Gmail scanners open links automatically, and without it they would use up the one-time link before the person ever saw it.</li>
+<li>The token gets marked as used in one database step, so a second click always fails. It also stops working after 15 minutes.</li>
+<li>The Vault sets the cookie <code>__Host-tv_session</code>, which is HttpOnly, Secure, SameSite=Lax and lasts 30 days. Only its hash is stored.</li>
+<li>Clients land on <code>CLIENT_HOME</code> and admins on <code>ADMIN_HOME</code>. Both point to the test console in phase 1. In phase 2, <code>CLIENT_HOME</code> becomes the portal. In phase 3, <code>ADMIN_HOME</code> becomes <code>/scriptforge/</code>.</li>
+</ol>
+
+<h3>Admin role: two ways in</h3>
+<p><b>A. Magic link</b>, exactly like a client. <b>B. ScriptForge's existing Sign in.</b> If there is no Vault session, the Vault asks ScriptForge's own <code>/api/me</code> who is signed in (it forwards the browser's cookies). If that email is in <code>ADMIN_EMAILS</code>, you are admin. The Vault holds no Supabase keys. ScriptForge's device limit and sign out still apply. Nobody can become a client this way, and a normal ScriptForge user gets nothing. To turn this path off, set <code>SCRIPTFORGE_ADMIN_BRIDGE</code> to <code>off</code>.</p>
+
+<h2>4. Settings</h2>
+<p>Plain settings live in <code>wrangler.json</code> under <code>vars</code>. Secrets are set with <code>wrangler secret put</code> and never go in a file.</p>
+<div class="wrap"><table>
+<tr><th>Name</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>TAHA_EMAIL</code></td><td>agborkak@gmail.com</td><td>The one address for sending, for Harry's notifications, and as the client contact. Change it here to switch to hej@tahastudiolabs.com.</td></tr>
+<tr><td><code>ADMIN_EMAILS</code></td><td>agborkak@gmail.com</td><td>Comma separated list of admin emails.</td></tr>
+<tr><td><code>MAIL_PROVIDER</code></td><td>gmail-smtp</td><td><code>gmail-smtp</code>, <code>resend</code>, or <code>log</code> (local tests only, refused in production).</td></tr>
+<tr><td><code>MAIL_FROM_NAME</code></td><td>TAHA Studio Labs</td><td>The sender name clients see.</td></tr>
+<tr><td><code>PRODUCT_NAME</code></td><td>TAHA Growth Department</td><td>The product name in emails (still to confirm in phase 2).</td></tr>
+<tr><td><code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_SECURE</code></td><td>smtp.gmail.com, 465, on</td><td>Gmail sending. <code>SMTP_USER</code> is optional and defaults to <code>TAHA_EMAIL</code>.</td></tr>
+<tr><td><code>LOGIN_TOKEN_TTL_MINUTES</code></td><td>15</td><td>How long a link stays valid.</td></tr>
+<tr><td><code>SESSION_DAYS</code></td><td>30</td><td>How long the session cookie lasts.</td></tr>
+<tr><td><code>RATE_LIMIT_PER_EMAIL_HOUR</code>, <code>RATE_LIMIT_PER_IP_HOUR</code></td><td>5, 20</td><td>Limits on link requests.</td></tr>
+<tr><td><code>CLIENT_HOME</code>, <code>ADMIN_HOME</code></td><td>/api/vault/console</td><td>Where each role lands after login.</td></tr>
+<tr><td><code>SCRIPTFORGE_ADMIN_BRIDGE</code></td><td>on</td><td>Whether ScriptForge Sign in counts as admin.</td></tr>
+<tr><td><code>SCRIPTFORGE_ME_URL</code></td><td>(empty = SITE_ORIGIN + /api/me)</td><td>Only changed for local tests.</td></tr>
+<tr><td><code>SITE_ORIGIN</code>, <code>ENVIRONMENT</code></td><td>https://tahastudiolabs.com, production</td><td>Used for links and for the Origin check.</td></tr>
+<tr><td><b>Secret</b> <code>SMTP_PASSWORD</code></td><td></td><td>The Gmail app password. Needed while <code>MAIL_PROVIDER</code> is gmail-smtp.</td></tr>
+<tr><td><b>Secret</b> <code>RESEND_API_KEY</code></td><td></td><td>Only needed after switching to Resend.</td></tr>
+</table></div>
+
+<h3>Switching to hej@tahastudiolabs.com later</h3>
+<ol>
+<li>Pick how the new mailbox sends. If it's Resend, add tahastudiolabs.com in Resend with region EU (eu-west-1) and add the DNS records Resend lists. That is a DNS change, so it needs Harry's approval. Then run <code>wrangler secret put RESEND_API_KEY</code> and set <code>MAIL_PROVIDER</code> to <code>resend</code>. If the mailbox is Google Workspace, you can stay on gmail-smtp and make a new app password.</li>
+<li>Set <code>TAHA_EMAIL</code> to <code>hej@tahastudiolabs.com</code>, and add it to <code>ADMIN_EMAILS</code> if Harry will sign in with it.</li>
+<li>Run <code>npx wrangler deploy</code>.</li>
+</ol>
+
+<h2>5. How to redeploy</h2>
+<p>Run these from <code>workers/brain-vault/</code> on a computer with Node.js 20 or newer.</p>
+<pre>npm install
+npx wrangler login                 # or set CLOUDFLARE_API_TOKEN
+npm run test:schemas               # optional, runs offline
+npx wrangler deploy</pre>
+
+<h3>First time only (already done for production, kept here for a rebuild)</h3>
+<pre>npx wrangler d1 create brain-vault-db --jurisdiction eu
+#   copy the database_id it prints into wrangler.json
+npx wrangler r2 bucket create brain-vault-files --jurisdiction eu
+npx wrangler secret put SMTP_PASSWORD
+npx wrangler deploy</pre>
+<p>Then add the route. Put this in <code>wrangler.json</code>, which needs Harry's approval because it makes <code>/api/vault/*</code> live on the site:</p>
+<pre>"routes": [ { "pattern": "tahastudiolabs.com/api/vault/*", "zone_name": "tahastudiolabs.com" } ]</pre>
+<p>A Worker route is not a DNS change: the domain, the DNS records and ScriptForge stay exactly as they are. Only requests to <code>/api/vault/*</code> go to the Worker, and that path does not exist on the site today.</p>
+<p>The tables create themselves on the first request. There is no database step to run.</p>
+
+<h2>6. Testing locally</h2>
+<pre>npx wrangler dev --local --port 8787 \
+  --var ENVIRONMENT:development --var SITE_ORIGIN:http://localhost:8787 \
+  --var MAIL_PROVIDER:log --var SCRIPTFORGE_ME_URL:http://127.0.0.1:8790/api/me \
+  --persist-to .wrangler/state &gt; dev.log 2&gt;&amp;1 &amp;
+DEV_LOG=dev.log PERSIST=.wrangler/state WRANGLER=./node_modules/.bin/wrangler node test/e2e.test.mjs
+node test/schemas.test.mjs</pre>
+<p>Results on 3 October 2026: 38 of 38 end to end checks and 14 of 14 schema checks passed. A test against a local mail server confirmed the Gmail path sends a correct bilingual email from agborkak@gmail.com. The encrypted connection to Gmail itself is confirmed by the first real invite.</p>
+
+<h2>7. Interpretations of the spec, for Harry to confirm</h2>
+<ul>
+<li><b>One click on the verify page.</b> The spec says <code>GET /auth/verify</code> validates the token. Here, the GET shows the page and a click does a POST to finish, for the scanner reason in section 3.</li>
+<li><b>Email through Gmail for now.</b> Resend cannot send as a @gmail.com address, so Gmail SMTP with an app password is the default until hej@tahastudiolabs.com exists. Gmail is not an EU data region, but these emails carry only names and links. Resend in the EU region is ready to switch on.</li>
+<li><b>Schema details the spec left open:</b> <code>landingPage.benefits</code> is three <code>{title, text}</code> blocks, and <code>landingPage.faq</code> holds <code>{q, a}</code> rows. A draft intake has <code>intakeVersion</code> 0 and <code>submittedAt</code> null. The required fields for submit are listed in <code>x-requiredOnSubmit</code> and are checked at submit time, so drafts can be half filled. <code>website</code> takes free text, because the pilot client only has Instagram. Counts are fixed to match the spec: 5 hooks, 5 ad variations, 3 CTAs, 2 email subjects. <code>googleBusinessPost.ctaType</code> is one of BOOK, ORDER, SHOP, LEARN_MORE, SIGN_UP or CALL. Field names are exactly as in the spec.</li>
+<li><b>Portal address.</b> Spec section 3 says <code>/growth/</code> and section 10 says <code>/grow/</code>. Phase 1 does not depend on it, and it becomes the value of <code>CLIENT_HOME</code> in phase 2.</li>
+<li><b>wrangler.json instead of wrangler.toml, and migrations in JavaScript,</b> so that every file in the archive is HTML, JS or JSON.</li>
+</ul>
+</main>
+</body>
+</html>

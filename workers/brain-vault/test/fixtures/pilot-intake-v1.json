@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "intake-1",
+  "clientId": "cl_chefsandy01",
+  "intakeVersion": 1,
+  "submittedAt": "2026-10-05T09:12:00Z",
+  "answerLanguage": "en",
+  "campaignLanguage": "en",
+  "profile": {
+    "companyName": "Chef Sandy's Kitchen",
+    "website": "No website. Instagram: instagram.com/chef_sandys_kitchen_buea",
+    "location": "Buea and environs",
+    "productService": "At Chef Sandy's Kitchen, the product and service go far beyond simply filling a plate. They represent a blend of culinary authenticity, unwavering standards, and an unforgettable customer experience.",
+    "targetAudience": "Busy students: juggling academics and tight schedules, they need quick, reliable and nutritious meals. Busy executives: professionals in demanding workdays who need fast, high-quality food without compromising on standards. Convenience seekers and travellers: people who want seamless ordering by text, and those willing to travel for, or order, premium home-cooked meals.",
+    "brandVoice": {
+      "text": "Three sample replies. Approachably friendly: \"You got it! Our sweet spicy fish is fresh, packed with flavor, and ready to fuel your day. Drop your delivery address, and we'll have it rolling your way in no time. Let's eat!\" Efficient and direct: \"The wait is over: our signature rice is hot off the stove, aromatic, and ready to serve. Text back 'Delivery' or 'Pickup' to claim yours before it's gone!\" Energizing and honest: \"Quick heads-up: your order is hot, packed with clean nutrition, and ready in 5 minutes. Grab it on the go or get ready for the knock at your door!\"",
+      "toneChips": [
+        "warm",
+        "direct"
+      ]
+    },
+    "usp": "Uncompromising, destination-grade nutrition and authentic flavor, crafted with absolute hygiene and delivered straight to your door or ready on the go, just a text away between 8 AM and 10 PM.",
+    "offers": [
+      {
+        "offer": "Refer 10, get your next plate free",
+        "priceOrDiscount": "Next plate free",
+        "validUntil": ""
+      }
+    ],
+    "competitors": [],
+    "reviews": {
+      "pasted": [],
+      "fileIds": []
+    },
+    "brandWords": {
+      "use": [
+        "Authentic West African Flavours, Cooked Fresh, Delivered Hot",
+        "Rich. Spicy. Tender.",
+        "Golden fried plantains",
+        "Your kitchen with you everywhere",
+        "Comfort on your plate"
+      ],
+      "avoid": []
+    }
+  },
+  "uploads": {
+    "pictures": [
+      {
+        "fileId": "f_pic1aaaa",
+        "name": "grilled-skewers.jpg",
+        "mime": "image/jpeg"
+      },
+      {
+        "fileId": "f_pic2aaaa",
+        "name": "event-buffet.jpg",
+        "mime": "image/jpeg"
+      },
+      {
+        "fileId": "f_pic3aaaa",
+        "name": "puff-puff-and-beans.jpg",
+        "mime": "image/jpeg"
+      },
+      {
+        "fileId": "f_pic4aaaa",
+        "name": "chicken-pepper-stew.jpg",
+        "mime": "image/jpeg"
+      },
+      {
+        "fileId": "f_pic5aaaa",
+        "name": "stir-fry-over-rice.jpg",
+        "mime": "image/jpeg"
+      },
+      {
+        "fileId": "f_pic6aaaa",
+        "name": "marinated-skewers.jpg",
+        "mime": "image/jpeg"
+      },
+      {
+        "fileId": "f_pic7aaaa",
+        "name": "spiced-chicken-wings.jpg",
+        "mime": "image/jpeg"
+      },
+      {
+        "fileId": "f_pic8aaaa",
+        "name": "chocolate-cake.jpg",
+        "mime": "image/jpeg"
+      },
+      {
+        "fileId": "f_pic9aaaa",
+        "name": "pound-cake.jpg",
+        "mime": "image/jpeg"
+      }
+    ],
+    "founderStory": {
+      "text": "The Recipe for Independence: My Story with Chef Sandy's Kitchen. (Eight paragraphs, supplied by the client in phase 4.)",
+      "fileId": null
+    },
+    "previousPosts": [
+      {
+        "type": "link",
+        "value": "https://instagram.com/chef_sandys_kitchen_buea"
+      }
+    ],
+    "faqs": {
+      "rows": [],
+      "fileId": null
+    }
+  },
+  "consent": {
+    "version": "c-1",
+    "acceptedAt": "2026-10-05T09:00:00Z",
+    "language": "en"
+  }
+}

@@ -1,0 +1,418 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tahastudiolabs.com/api/vault/schemas/campaign",
+  "title": "TAHA Growth Department campaign",
+  "description": "Written by ScriptForge's Campaign Generator: the concept plus nine outputs. Saved to the Vault; status in_production or delivered.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "campaign-1"
+    },
+    "clientId": {
+      "type": "string",
+      "pattern": "^cl_[a-z0-9]{4,32}$",
+      "description": "Vault client id, for example cl_7f3a."
+    },
+    "campaignId": {
+      "type": "string",
+      "pattern": "^cp_[a-z0-9_]{2,40}$",
+      "description": "For example cp_2026_10."
+    },
+    "brainVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "month": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+    },
+    "goal": {
+      "type": "string",
+      "enum": [
+        "awareness",
+        "bookings",
+        "sales",
+        "launch"
+      ]
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "sv",
+        "en",
+        "both"
+      ]
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "instagram",
+          "facebook",
+          "tiktok",
+          "linkedin",
+          "google_business",
+          "email"
+        ]
+      },
+      "maxItems": 6,
+      "uniqueItems": true
+    },
+    "concept": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "bigIdea": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "whyNow": {
+          "type": "string",
+          "maxLength": 1500
+        },
+        "keyMessage": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "title",
+        "bigIdea",
+        "whyNow",
+        "keyMessage"
+      ]
+    },
+    "hook": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 300
+      },
+      "maxItems": 5,
+      "minItems": 5,
+      "description": "Five hook lines, ranked best first, written for the first three seconds of video."
+    },
+    "offer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "framing": {
+          "type": "string",
+          "maxLength": 1500
+        },
+        "terms": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "deadline": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "riskReversal": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "framing",
+        "terms",
+        "deadline",
+        "riskReversal"
+      ]
+    },
+    "shortVideo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ratio": {
+          "const": "9:16"
+        },
+        "seconds": {
+          "const": 30
+        },
+        "script": {
+          "type": "string",
+          "maxLength": 10000,
+          "description": "One full 30 second short advert script in ScriptForge's segment format (three 10 second segments)."
+        }
+      },
+      "required": [
+        "ratio",
+        "seconds",
+        "script"
+      ]
+    },
+    "socialCopy": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": [
+              "instagram",
+              "facebook",
+              "tiktok",
+              "linkedin",
+              "google_business",
+              "email"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 3000
+          },
+          "hashtags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "maxItems": 30
+          }
+        },
+        "required": [
+          "channel",
+          "text",
+          "hashtags"
+        ]
+      },
+      "maxItems": 6
+    },
+    "adVariations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "angle": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "headline": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "primaryText": {
+            "type": "string",
+            "maxLength": 1500
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "angle",
+          "headline",
+          "primaryText",
+          "description"
+        ]
+      },
+      "maxItems": 5,
+      "minItems": 5,
+      "description": "Five variations, each testing a different angle."
+    },
+    "cta": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "button": {
+            "type": "string",
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "text",
+          "button"
+        ]
+      },
+      "maxItems": 3,
+      "minItems": 3
+    },
+    "landingPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "headline": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "subheadline": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "benefits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "title": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "text": {
+                "type": "string",
+                "maxLength": 800
+              }
+            },
+            "required": [
+              "title",
+              "text"
+            ]
+          },
+          "maxItems": 3,
+          "minItems": 3
+        },
+        "proof": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "maxItems": 10
+        },
+        "faq": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "q": {
+                "type": "string",
+                "maxLength": 500
+              },
+              "a": {
+                "type": "string",
+                "maxLength": 1500
+              }
+            },
+            "required": [
+              "q",
+              "a"
+            ]
+          },
+          "maxItems": 12
+        },
+        "cta": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "headline",
+        "subheadline",
+        "benefits",
+        "proof",
+        "faq",
+        "cta"
+      ]
+    },
+    "email": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "subjects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "preview": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "body": {
+          "type": "string",
+          "maxLength": 8000
+        },
+        "cta": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "subjects",
+        "preview",
+        "body",
+        "cta"
+      ]
+    },
+    "googleBusinessPost": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "maxLength": 1500,
+          "description": "Google Business Profile posts allow up to 1500 characters."
+        },
+        "ctaType": {
+          "type": "string",
+          "enum": [
+            "BOOK",
+            "ORDER",
+            "SHOP",
+            "LEARN_MORE",
+            "SIGN_UP",
+            "CALL"
+          ]
+        }
+      },
+      "required": [
+        "text",
+        "ctaType"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "in_production",
+        "delivered"
+      ]
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "clientId",
+    "campaignId",
+    "brainVersion",
+    "name",
+    "month",
+    "goal",
+    "language",
+    "channels",
+    "concept",
+    "hook",
+    "offer",
+    "shortVideo",
+    "socialCopy",
+    "adVariations",
+    "cta",
+    "landingPage",
+    "email",
+    "googleBusinessPost",
+    "status"
+  ]
+}

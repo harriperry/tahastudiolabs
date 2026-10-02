@@ -1,0 +1,353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tahastudiolabs.com/api/vault/schemas/brain",
+  "title": "TAHA Growth Department Business Brain",
+  "description": "Written by ScriptForge from an intake, edited by Harry, saved to the Vault as brainVersion N+1. The AI model must return JSON that passes this schema; on failure ScriptForge retries once with the error list.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "brain-1"
+    },
+    "clientId": {
+      "type": "string",
+      "pattern": "^cl_[a-z0-9]{4,32}$",
+      "description": "Vault client id, for example cl_7f3a."
+    },
+    "brainVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "builtFromIntakeVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "sv",
+          "en"
+        ]
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "positioning": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "oneLiner": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "differentiators": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "maxItems": 10
+        }
+      },
+      "required": [
+        "oneLiner",
+        "category",
+        "differentiators"
+      ]
+    },
+    "personas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "who": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "wants": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "fears": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "whereTheyAre": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "maxItems": 10
+          }
+        },
+        "required": [
+          "name",
+          "who",
+          "wants",
+          "fears",
+          "whereTheyAre"
+        ]
+      },
+      "maxItems": 6,
+      "minItems": 1
+    },
+    "voice": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "do": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "maxItems": 15
+        },
+        "dont": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "maxItems": 15
+        },
+        "sampleLines": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "maxItems": 10
+        }
+      },
+      "required": [
+        "summary",
+        "do",
+        "dont",
+        "sampleLines"
+      ]
+    },
+    "words": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "use": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 50
+        },
+        "avoid": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 50
+        }
+      },
+      "required": [
+        "use",
+        "avoid"
+      ]
+    },
+    "proofPoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "claim": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "review",
+              "faq",
+              "founder",
+              "usp"
+            ]
+          }
+        },
+        "required": [
+          "claim",
+          "source"
+        ]
+      },
+      "maxItems": 20
+    },
+    "offers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "terms": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "validUntil": {
+            "type": "string",
+            "maxLength": 50
+          }
+        },
+        "required": [
+          "name",
+          "terms",
+          "validUntil"
+        ]
+      },
+      "maxItems": 20
+    },
+    "competitorGaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "competitor": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "gap": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "competitor",
+          "gap"
+        ]
+      },
+      "maxItems": 20
+    },
+    "founderStory": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "short": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "long": {
+          "type": "string",
+          "maxLength": 10000
+        }
+      },
+      "required": [
+        "short",
+        "long"
+      ]
+    },
+    "faqBank": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "q": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "a": {
+            "type": "string",
+            "maxLength": 3000
+          }
+        },
+        "required": [
+          "q",
+          "a"
+        ]
+      },
+      "maxItems": 40
+    },
+    "contentPillars": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 300
+      },
+      "maxItems": 10
+    },
+    "imageNotes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "fileId": {
+            "type": "string",
+            "pattern": "^f_[a-z0-9]{4,32}$",
+            "description": "Vault file id. Files are stored under random ids, never under their original names."
+          },
+          "caption": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "bestUse": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "fileId",
+          "caption",
+          "bestUse"
+        ]
+      },
+      "maxItems": 20
+    },
+    "editedByHarry": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "clientId",
+    "brainVersion",
+    "builtFromIntakeVersion",
+    "createdAt",
+    "languages",
+    "positioning",
+    "personas",
+    "voice",
+    "words",
+    "proofPoints",
+    "offers",
+    "competitorGaps",
+    "founderStory",
+    "faqBank",
+    "contentPillars",
+    "imageNotes",
+    "editedByHarry"
+  ]
+}

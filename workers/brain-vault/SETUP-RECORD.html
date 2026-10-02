@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Brain Vault Setup Record</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#16140f;--muted:#6b665c;--line:#e3dfd6;--accent:#b5532a;--code:#efece5;--ok:#2f6b3a;--wait:#8a5a00}
+@media (prefers-color-scheme:dark){:root{--bg:#15140f;--card:#1f1d17;--ink:#f1ede4;--muted:#a7a093;--line:#34312a;--accent:#e0774a;--code:#2a2720;--ok:#79c08a;--wait:#e2b45a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:32px 16px 80px}
+h1{font-size:28px;margin:0 0 4px}
+h2{font-size:20px;margin:36px 0 12px;padding-top:12px;border-top:1px solid var(--line)}
+.sub{color:var(--muted);margin:0 0 24px}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13.5px;background:var(--code);border-radius:4px;padding:1px 5px}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:8px 0 16px}
+th,td{text-align:left;vertical-align:top;padding:8px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:600}
+.ok{color:var(--ok);font-weight:600}
+.wait{color:var(--wait);font-weight:600}
+</style>
+</head>
+<body>
+<main>
+<h1>Brain Vault setup record</h1>
+<p class="sub">TAHA Growth Department V1, phase 1. This record holds names only: no secrets, keys or passwords. Last updated 3 October 2026.</p>
+
+<h2>Cloudflare resources</h2>
+<div class="wrap"><table>
+<tr><th>Resource</th><th>Name</th><th>Settings</th><th>Status</th></tr>
+<tr><td>Worker</td><td><code>brain-vault</code></td><td>Entry <code>src/index.js</code>. workers.dev and preview URLs are off, so the Worker is reachable only through its route.</td><td class="wait">Not deployed yet</td></tr>
+<tr><td>Route</td><td><code>tahastudiolabs.com/api/vault/*</code></td><td>Zone <code>tahastudiolabs.com</code>. A route, not a DNS change.</td><td class="wait">Waiting for Harry's approval</td></tr>
+<tr><td>D1 database</td><td><code>brain-vault-db</code></td><td>Binding <code>DB</code>, jurisdiction <b>EU</b>. The tables create themselves on the first request.</td><td class="wait">To create</td></tr>
+<tr><td>R2 bucket</td><td><code>brain-vault-files</code></td><td>Binding <code>FILES</code>, jurisdiction <b>EU</b>, private (no public access, no custom domain).</td><td class="wait">To create: R2 must first be switched on in the dashboard</td></tr>
+<tr><td>Cron trigger</td><td><code>17 3 * * *</code></td><td>Daily at 03:17 UTC: removes expired tokens, expired sessions and old rate limit entries.</td><td class="wait">Deployed with the Worker</td></tr>
+<tr><td>Pages Function</td><td><code>functions/workers/[[path]].js</code></td><td>Keeps <code>/workers/*</code> (this source folder) off the public site.</td><td class="wait">Goes live when the branch is merged</td></tr>
+</table></div>
+
+<h2>Environment variables (plain, in wrangler.json)</h2>
+<div class="wrap"><table>
+<tr><th>Name</th><th>Production value</th></tr>
+<tr><td><code>ENVIRONMENT</code></td><td>production</td></tr>
+<tr><td><code>SITE_ORIGIN</code></td><td>https://tahastudiolabs.com</td></tr>
+<tr><td><code>TAHA_EMAIL</code></td><td>agborkak@gmail.com (sender, notifications and client contact, all in one value)</td></tr>
+<tr><td><code>ADMIN_EMAILS</code></td><td>agborkak@gmail.com</td></tr>
+<tr><td><code>MAIL_FROM_NAME</code></td><td>TAHA Studio Labs</td></tr>
+<tr><td><code>PRODUCT_NAME</code></td><td>TAHA Growth Department</td></tr>
+<tr><td><code>MAIL_PROVIDER</code></td><td>gmail-smtp</td></tr>
+<tr><td><code>SMTP_HOST</code> / <code>SMTP_PORT</code> / <code>SMTP_SECURE</code></td><td>smtp.gmail.com / 465 / on</td></tr>
+<tr><td><code>LOGIN_TOKEN_TTL_MINUTES</code></td><td>15</td></tr>
+<tr><td><code>SESSION_DAYS</code></td><td>30</td></tr>
+<tr><td><code>RATE_LIMIT_PER_EMAIL_HOUR</code> / <code>RATE_LIMIT_PER_IP_HOUR</code></td><td>5 / 20</td></tr>
+<tr><td><code>CLIENT_HOME</code> / <code>ADMIN_HOME</code></td><td>/api/vault/console (phase 1 test console)</td></tr>
+<tr><td><code>SCRIPTFORGE_ADMIN_BRIDGE</code></td><td>on</td></tr>
+<tr><td><code>SCRIPTFORGE_ME_URL</code></td><td>(empty: uses https://tahastudiolabs.com/api/me)</td></tr>
+</table></div>
+
+<h2>Secrets (names only)</h2>
+<div class="wrap"><table>
+<tr><th>Name</th><th>What it holds</th><th>Status</th></tr>
+<tr><td><code>SMTP_PASSWORD</code></td><td>A Gmail app password for agborkak@gmail.com (Google Account, Security, 2-Step Verification, App passwords).</td><td class="wait">Harry to create</td></tr>
+<tr><td><code>RESEND_API_KEY</code></td><td>Only once the switch to hej@tahastudiolabs.com happens through Resend.</td><td>Not needed yet</td></tr>
+</table></div>
+<p>The Vault has no LLM API key setting, and none is ever needed: all AI calls stay in Harry's browser inside ScriptForge.</p>
+
+<h2>Email sender settings</h2>
+<div class="wrap"><table>
+<tr><th>Setting</th><th>Value</th></tr>
+<tr><td>From</td><td>TAHA Studio Labs &lt;agborkak@gmail.com&gt;</td></tr>
+<tr><td>Reply-To</td><td>agborkak@gmail.com</td></tr>
+<tr><td>Transport</td><td>Gmail SMTP, smtp.gmail.com:465, TLS, with the app password</td></tr>
+<tr><td>Languages</td><td>Every email has Swedish and English. The client's chosen language comes first.</td></tr>
+<tr><td>Content</td><td>Names, links and status words only. No client business content.</td></tr>
+<tr><td>Later switch</td><td>Change <code>TAHA_EMAIL</code> to hej@tahastudiolabs.com. If it sends through Resend, also set <code>MAIL_PROVIDER</code> to resend, add <code>RESEND_API_KEY</code>, and verify the domain in Resend's EU region (this adds DNS records, so it needs approval).</td></tr>
+</table></div>
+
+<h2>Cookies the Vault sets</h2>
+<div class="wrap"><table>
+<tr><th>Name</th><th>Settings</th></tr>
+<tr><td><code>__Host-tv_session</code></td><td>HttpOnly, Secure, SameSite=Lax, Path=/, 30 days. A strictly necessary session cookie.</td></tr>
+</table></div>
+</main>
+</body>
+</html>

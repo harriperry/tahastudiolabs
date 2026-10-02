@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Brain Vault</title>
+<link rel="stylesheet" href="/api/vault/assets/vault.css">
+</head>
+<body>
+<header>
+  <div class="brand">TAHA Studio Labs<small data-i18n="product"></small></div>
+  <div class="lang">
+    <button type="button" data-lang="sv" aria-pressed="true">SV</button>
+    <button type="button" data-lang="en" aria-pressed="false">EN</button>
+  </div>
+</header>
+<main>
+  <div id="loading" class="card"><p class="muted" data-i18n="loading"></p></div>
+
+  <section id="signin" class="card hidden">
+    <h1 data-i18n="signinTitle"></h1>
+    <p class="muted" data-i18n="signinIntro"></p>
+    <form id="signinForm" novalidate>
+      <label for="email" data-i18n="email"></label>
+      <input id="email" type="email" autocomplete="email" required>
+      <button type="submit" data-i18n="sendLink"></button>
+    </form>
+    <div id="signinMsg" class="msg" role="status" aria-live="polite"></div>
+  </section>
+
+  <section id="me" class="card hidden">
+    <h1 data-i18n="signedIn"></h1>
+    <p><span id="meEmail"></span> <span id="meRole" class="badge"></span></p>
+    <p class="muted" id="meDetail"></p>
+    <button type="button" class="ghost" id="logout" data-i18n="logout"></button>
+  </section>
+
+  <section id="admin" class="hidden">
+    <div class="card">
+      <h2 data-i18n="inviteTitle"></h2>
+      <form id="inviteForm" novalidate>
+        <div class="row">
+          <div><label for="cName" data-i18n="clientName"></label><input id="cName" type="text" maxlength="200" required></div>
+          <div><label for="cEmail" data-i18n="email"></label><input id="cEmail" type="email" required></div>
+          <div><label for="cLang" data-i18n="language"></label>
+            <select id="cLang"><option value="sv">Svenska</option><option value="en">English</option></select>
+          </div>
+        </div>
+        <button type="submit" data-i18n="invite"></button>
+      </form>
+      <div id="inviteMsg" class="msg" role="status" aria-live="polite"></div>
+    </div>
+    <div class="card">
+      <h2 data-i18n="clients"></h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th data-i18n="clientName"></th><th data-i18n="email"></th><th data-i18n="status"></th><th data-i18n="lastLogin"></th><th></th></tr></thead>
+          <tbody id="clientRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <p class="muted" data-i18n="phaseNote"></p>
+</main>
+<script src="/api/vault/assets/console.js"></script>
+</body>
+</html>

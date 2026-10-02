@@ -1,0 +1,16 @@
+{
+  "name": "brain-vault",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "TAHA Growth Department V1: Brain Vault bridge (Cloudflare Worker, D1, R2). Phase 1: magic link login, roles, invites.",
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "deploy": "wrangler deploy",
+    "test:schemas": "node test/schemas.test.mjs",
+    "test:e2e": "node test/e2e.test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.40.0"
+  }
+}
