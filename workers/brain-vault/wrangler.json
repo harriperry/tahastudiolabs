@@ -15,7 +15,12 @@
   "compatibility_date": "2025-09-01",
   "workers_dev": false,
   "preview_urls": false,
-  "routes": [],
+  "routes": [
+    {
+      "pattern": "tahastudiolabs.com/api/vault/*",
+      "zone_name": "tahastudiolabs.com"
+    }
+  ],
   "vars": {
     "ENVIRONMENT": "production",
     "SITE_ORIGIN": "https://tahastudiolabs.com",
@@ -40,7 +45,7 @@
     {
       "binding": "DB",
       "database_name": "brain-vault-db",
-      "database_id": "00000000-0000-0000-0000-000000000000"
+      "database_id": "94d97c77-2edb-43b9-906f-9e5051ae3bd0"
     }
   ],
   "r2_buckets": [
