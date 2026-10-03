@@ -31,7 +31,7 @@ ol li,ul li{margin:4px 0}
 <body>
 <main>
 <h1>Brain Vault</h1>
-<p class="sub">TAHA Growth Department V1, phase 1: the Vault foundation. Branch <code>growth-phase-1</code>, folder <code>workers/brain-vault/</code>.</p>
+<p class="sub">TAHA Studio Labs Growth Department V1. Phase 1: the Vault foundation. Phase 2: the client portal at <code>/grow/</code>. Branch <code>growth-phase-1</code>, folder <code>workers/brain-vault/</code>.</p>
 
 <p>The Brain Vault is a Cloudflare Worker that both sides talk to: the client onboarding portal (phase 2) and the Growth Clients panel in ScriptForge (phase 3). It runs on Cloudflare all the time, so you have nothing to start or restart. Phase 1 builds the foundation: the database, file storage, the three data contracts (JSON Schemas), magic link login with the client and admin roles, the invite email and the rate limits.</p>
 
@@ -58,6 +58,11 @@ ol li,ul li{margin:4px 0}
 <tr><td><code>src/public/verify.html</code>, <code>verify.js</code></td><td>The page a magic link opens. You click once on it to finish signing in.</td></tr>
 <tr><td><code>src/public/console.html</code>, <code>console.js</code>, <code>vault.css</code></td><td>The phase 1 test console at <code>/api/vault/console</code>: sign in, see your role, and (as admin) invite clients. The portal and the ScriptForge panel replace it in phases 2 and 3.</td></tr>
 <tr><td><code>test/e2e.test.mjs</code></td><td>38 end to end checks against a local copy of the Worker: login, roles, single use, expiry, rate limits, the bridge.</td></tr>
+<tr><td><code>src/portal.js</code></td><td>Phase 2 client endpoints: consent, draft auto-save, uploads, submit, status, language. Every query is limited to the signed-in client's own id.</td></tr>
+<tr><td><code>src/files.js</code></td><td>Upload rules per section: allowed types, size limits, file counts, and a first-bytes check so a renamed file cannot pass as another type. Video is always refused.</td></tr>
+<tr><td><code>src/public/portal.html</code>, <code>portal.js</code>, <code>portal.css</code></td><td>The client portal at <code>tahastudiolabs.com/grow/</code>: sign in, consent, business profile, uploads, review and submit, status. Pictures are resized to 2000 px in the browser before upload.</td></tr>
+<tr><td><code>src/public/i18n.json</code></td><td>Every portal word in Swedish and English, including the consent text. Edit the wording here without touching code, keep the keys, then push. No em-dashes.</td></tr>
+<tr><td><code>test/portal.test.mjs</code></td><td>45 checks on the portal endpoints: consent lock, auto-save and resume, upload limits, no video, one client can never see another's files, submit and versions, status history, Harry's notice email.</td></tr>
 <tr><td><code>test/schemas.test.mjs</code>, <code>test/fixtures/pilot-intake-v1.json</code></td><td>14 checks on the schemas. Chef Sandy's Kitchen intake v1 must pass and broken documents must fail.</td></tr>
 <tr><td><code>SETUP-RECORD.html</code></td><td>Cloudflare resource names, setting names and email settings. Contains no secrets.</td></tr>
 <tr><td><code>../../functions/workers/[[path]].js</code></td><td>Stops the website from serving this source folder publicly (Pages serves every file in the repo).</td></tr>
@@ -81,6 +86,22 @@ ol li,ul li{margin:4px 0}
 </table></div>
 <p>The rest of the endpoints in spec section 4 (consent, intake, uploads, status, brain, campaign, erasure) arrive in the phase that needs them. The tables they use already exist.</p>
 
+<h2>2b. Endpoints added in phase 2</h2>
+<p>All under <code>/api/vault</code>, client role only unless noted. A client can only ever reach its own record.</p>
+<div class="wrap"><table>
+<tr><th>Method and path</th><th>Does</th></tr>
+<tr><td><code>GET /portal/meta</code></td><td>Public: product name and contact email for the sign-in screen.</td></tr>
+<tr><td><code>GET /portal/state</code></td><td>Everything the portal needs on load: client, consent state, draft, files, status history, upload limits.</td></tr>
+<tr><td><code>POST /consent</code></td><td>Records consent version (<code>CONSENT_VERSION</code>), language and time. Nothing can be saved or uploaded before this.</td></tr>
+<tr><td><code>GET</code>, <code>PUT /intake</code></td><td>Reads or auto-saves the draft. The server sets client id, versions and consent itself and validates against <code>intake.schema.json</code>. Fields it does not know are dropped or refused.</td></tr>
+<tr><td><code>POST /uploads?section=...</code></td><td>One file per request, sent through the Vault into private R2 storage under a random id. Checks section, type, size, count and the file's first bytes. Sections: pictures, previousPosts, founderStory, faqs, reviews.</td></tr>
+<tr><td><code>GET /files/:id</code></td><td>Serves a file to its own client, or to an admin. <code>DELETE</code> removes it (own client only).</td></tr>
+<tr><td><code>POST /intake/submit</code></td><td>Checks the required fields, freezes the draft as intake version N, sets status Submitted, and emails Harry the company name and version only.</td></tr>
+<tr><td><code>GET /status</code></td><td>Current status and every status change with its time.</td></tr>
+<tr><td><code>PUT /me/language</code></td><td>Remembers the client's SV or EN choice.</td></tr>
+</table></div>
+<p>The portal pages themselves are served by the same Worker at <code>/grow/</code> (route <code>tahastudiolabs.com/grow/*</code>), so the main site and ScriptForge are untouched.</p>
+
 <h2>3. How login works</h2>
 <ol>
 <li>Someone enters an email. If it belongs to an invited client or is in <code>ADMIN_EMAILS</code>, the Vault creates a random 32-byte token, stores only its SHA-256 hash, and emails the link. Any other email gets the same message and no email. The work happens after the reply is sent, so the reply takes the same time for every email.</li>
@@ -101,13 +122,16 @@ ol li,ul li{margin:4px 0}
 <tr><td><code>ADMIN_EMAILS</code></td><td>agborkak@gmail.com</td><td>Comma separated list of admin emails.</td></tr>
 <tr><td><code>MAIL_PROVIDER</code></td><td>gmail-smtp</td><td><code>gmail-smtp</code>, <code>resend</code>, or <code>log</code> (local tests only, refused in production).</td></tr>
 <tr><td><code>MAIL_FROM_NAME</code></td><td>TAHA Studio Labs</td><td>The sender name clients see.</td></tr>
-<tr><td><code>PRODUCT_NAME</code></td><td>TAHA Growth Department</td><td>The product name in emails (still to confirm in phase 2).</td></tr>
+<tr><td><code>PRODUCT_NAME</code></td><td>TAHA Studio Labs Growth Department</td><td>The product name clients see in the portal and emails (confirmed by Harry).</td></tr>
 <tr><td><code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_SECURE</code></td><td>smtp.gmail.com, 465, on</td><td>Gmail sending. <code>SMTP_USER</code> is optional and defaults to <code>TAHA_EMAIL</code>.</td></tr>
 <tr><td><code>LOGIN_TOKEN_TTL_MINUTES</code></td><td>15</td><td>How long a link stays valid.</td></tr>
 <tr><td><code>SESSION_DAYS</code></td><td>30</td><td>How long the session cookie lasts.</td></tr>
 <tr><td><code>RATE_LIMIT_PER_EMAIL_HOUR</code>, <code>RATE_LIMIT_PER_IP_HOUR</code></td><td>5, 20</td><td>Limits on link requests.</td></tr>
-<tr><td><code>CLIENT_HOME</code>, <code>ADMIN_HOME</code></td><td>/api/vault/console</td><td>Where each role lands after login.</td></tr>
+<tr><td><code>CLIENT_HOME</code>, <code>ADMIN_HOME</code></td><td>/grow/, /api/vault/console</td><td>Where each role lands after login. ADMIN_HOME moves to /scriptforge/ in phase 3.</td></tr>
 <tr><td><code>SCRIPTFORGE_ADMIN_BRIDGE</code></td><td>on</td><td>Whether ScriptForge Sign in counts as admin.</td></tr>
+<tr><td><code>CONSENT_VERSION</code></td><td>c-1</td><td>Raise it (c-2, c-3) whenever the consent wording in <code>i18n.json</code> changes. Every client then sees the consent screen again on next login.</td></tr>
+<tr><td><code>RETENTION_MONTHS</code></td><td>6</td><td>How long data is kept after a client leaves. Shown in the consent text.</td></tr>
+<tr><td><code>PRIVACY_URL</code></td><td>https://tahastudiolabs.com/privacy.html</td><td>The privacy policy linked from the consent screen.</td></tr>
 <tr><td><code>SCRIPTFORGE_ME_URL</code></td><td>(empty = SITE_ORIGIN + /api/me)</td><td>Only changed for local tests.</td></tr>
 <tr><td><code>SITE_ORIGIN</code>, <code>ENVIRONMENT</code></td><td>https://tahastudiolabs.com, production</td><td>Used for links and for the Origin check.</td></tr>
 <tr><td><b>Secret</b> <code>SMTP_PASSWORD</code></td><td></td><td>The Gmail app password. Needed while <code>MAIL_PROVIDER</code> is gmail-smtp.</td></tr>
@@ -145,8 +169,11 @@ npx wrangler deploy</pre>
   --var MAIL_PROVIDER:log --var SCRIPTFORGE_ME_URL:http://127.0.0.1:8790/api/me \
   --persist-to .wrangler/state &gt; dev.log 2&gt;&amp;1 &amp;
 DEV_LOG=dev.log PERSIST=.wrangler/state WRANGLER=./node_modules/.bin/wrangler node test/e2e.test.mjs
+node test/portal.test.mjs
 node test/schemas.test.mjs</pre>
-<p>Results on 3 October 2026: 38 of 38 end to end checks and 14 of 14 schema checks passed. A test against a local mail server confirmed the Gmail path sends a correct bilingual email from agborkak@gmail.com. The encrypted connection to Gmail itself is confirmed by the first real invite.</p>
+<p>Local note: <code>wrangler dev</code> rewrites the browser's Origin header to the route's domain, so for local browser tests set <code>SITE_ORIGIN</code> to <code>http://tahastudiolabs.com</code> and run the node tests with <code>ORIGIN=http://tahastudiolabs.com</code>.</p>
+<p>Phase 2 results on 3 October 2026: 45 of 45 portal checks, 38 of 38 login checks and 14 of 14 schema checks passed, plus a browser run on phone and desktop size: consent lock, auto-save surviving a reload, a 3200 px photo resized to 2000 px before upload, video refused, submit, status, Swedish and English.</p>
+<p>Phase 1 results on 3 October 2026: 38 of 38 end to end checks and 14 of 14 schema checks passed. A test against a local mail server confirmed the Gmail path sends a correct bilingual email from agborkak@gmail.com. The encrypted connection to Gmail itself is confirmed by the first real invite.</p>
 
 <h2>7. Interpretations of the spec, for Harry to confirm</h2>
 <ul>

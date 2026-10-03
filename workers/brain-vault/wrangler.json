@@ -19,6 +19,14 @@
     {
       "pattern": "tahastudiolabs.com/api/vault/*",
       "zone_name": "tahastudiolabs.com"
+    },
+    {
+      "pattern": "tahastudiolabs.com/grow",
+      "zone_name": "tahastudiolabs.com"
+    },
+    {
+      "pattern": "tahastudiolabs.com/grow/*",
+      "zone_name": "tahastudiolabs.com"
     }
   ],
   "vars": {
@@ -27,7 +35,7 @@
     "TAHA_EMAIL": "agborkak@gmail.com",
     "ADMIN_EMAILS": "agborkak@gmail.com",
     "MAIL_FROM_NAME": "TAHA Studio Labs",
-    "PRODUCT_NAME": "TAHA Growth Department",
+    "PRODUCT_NAME": "TAHA Studio Labs Growth Department",
     "MAIL_PROVIDER": "gmail-smtp",
     "SMTP_HOST": "smtp.gmail.com",
     "SMTP_PORT": "465",
@@ -36,10 +44,13 @@
     "SESSION_DAYS": "30",
     "RATE_LIMIT_PER_EMAIL_HOUR": "5",
     "RATE_LIMIT_PER_IP_HOUR": "20",
-    "CLIENT_HOME": "/api/vault/console",
+    "CLIENT_HOME": "/grow/",
     "ADMIN_HOME": "/api/vault/console",
     "SCRIPTFORGE_ADMIN_BRIDGE": "on",
-    "SCRIPTFORGE_ME_URL": ""
+    "SCRIPTFORGE_ME_URL": "",
+    "CONSENT_VERSION": "c-1",
+    "RETENTION_MONTHS": "6",
+    "PRIVACY_URL": "https://tahastudiolabs.com/privacy.html"
   },
   "d1_databases": [
     {

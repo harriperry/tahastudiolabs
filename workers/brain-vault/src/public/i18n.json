@@ -1,0 +1,557 @@
+{
+  "_about": "All portal wording, Swedish and English. Edit the text, keep the keys. {placeholders} are filled in by the portal. No em-dashes.",
+  "sv": {
+    "brandTop": "TAHA Studio Labs",
+    "brandSub": "Growth Department",
+    "signOut": "Logga ut",
+    "loading": "Laddar...",
+    "saving": "Sparar...",
+    "saved": "Sparat",
+    "saveFailed": "Kunde inte spara. Vi försöker igen.",
+    "required": "(obligatoriskt)",
+    "optional": "(valfritt)",
+    "example": "Exempel:",
+    "add": "Lägg till",
+    "remove": "Ta bort",
+    "back": "Tillbaka",
+    "networkError": "Nätverksfel. Kontrollera anslutningen och försök igen.",
+    "help": "Behöver du hjälp?",
+    "signin": {
+      "kicker": "KUNDPORTAL",
+      "title": "Logga in",
+      "lead": "Ange e-postadressen som din inbjudan skickades till. Vi mejlar dig en inloggningslänk, inget lösenord behövs.",
+      "label": "E-postadress",
+      "ph": "namn@foretag.se",
+      "button": "Skicka inloggningslänk",
+      "note": "Länken fungerar en gång och gäller i 15 minuter.",
+      "err": "Ange en giltig e-postadress.",
+      "sentTitle": "Kolla din inkorg",
+      "sentBody": "Om adressen är inbjuden får du en länk inom en minut. Öppna den på den här enheten.",
+      "again": "Använd en annan adress",
+      "invite": "Portalen är bara för inbjudna kunder till {product}.",
+      "adminTitle": "Du är inloggad som admin",
+      "adminBody": "Kundportalen är för kunder. Som admin använder du konsolen.",
+      "adminLink": "Öppna konsolen"
+    },
+    "consent": {
+      "kicker": "STEG 0 · SAMTYCKE",
+      "title": "Innan vi börjar",
+      "lead": "Läs hur vi använder det du delar. Formuläret öppnas när du har godkänt.",
+      "points": [
+        {
+          "h": "Vem",
+          "b": "TAHA Studio Labs, Örebro, ansvarar för dina uppgifter. Kontakt: {email}."
+        },
+        {
+          "h": "Vad vi samlar in",
+          "b": "Din företagsprofil, bilder, kundomdömen, grundarens berättelse, vanliga frågor och tidigare inlägg."
+        },
+        {
+          "h": "Varför",
+          "b": "För att ta fram din marknadsstrategi och innehållet i dina kampanjer."
+        },
+        {
+          "h": "AI-tjänster",
+          "b": "Materialet skickas till externa AI-leverantörer, till exempel Anthropic och Google, för att skapa innehåll."
+        },
+        {
+          "h": "Lagring",
+          "b": "Allt lagras inom EU hos Cloudflare."
+        },
+        {
+          "h": "Kundomdömen",
+          "b": "Omdömen kan innehålla dina kunders namn. Genom att dela dem intygar du att du har rätt att göra det."
+        },
+        {
+          "h": "Hur länge och dina rättigheter",
+          "b": "Vi sparar uppgifterna i {months} månader efter att samarbetet avslutats och raderar dem sedan. Du kan när som helst be om en kopia eller att allt raderas genom att mejla {email}."
+        }
+      ],
+      "policy": "Läs hela integritetspolicyn",
+      "agree": "Jag godkänner / I agree",
+      "check": "Jag har läst informationen och godkänner att TAHA Studio Labs använder mina företagsuppgifter på det här sättet.",
+      "err": "Kryssa i rutan för att fortsätta.",
+      "button": "Godkänn och fortsätt",
+      "version": "Samtyckesversion {version}. Du kan ta tillbaka ditt samtycke när som helst."
+    },
+    "steps": {
+      "profile": "Steg 1 av 3 · Företagsprofil",
+      "uploads": "Steg 2 av 3 · Uppladdningar",
+      "review": "Steg 3 av 3 · Granska"
+    },
+    "profile": {
+      "title": "Berätta om ditt företag",
+      "lead": "Svara med egna ord, på svenska eller engelska. Det tar ungefär 15 minuter och allt sparas medan du skriver, så du kan fortsätta senare.",
+      "cardA": "Om företaget",
+      "cardB": "Kunder och röst",
+      "cardC": "Marknad och bevis",
+      "cardD": "Kampanjspråk",
+      "next": "Fortsätt till uppladdningar",
+      "fields": {
+        "companyName": {
+          "label": "Företagsnamn",
+          "hint": "Namnet dina kunder känner dig under.",
+          "ex": "Bageri Ekbacken"
+        },
+        "website": {
+          "label": "Webbplats",
+          "hint": "Ingen webbplats? Ange din Instagram- eller Facebooksida.",
+          "ex": "https://ekbacken.se"
+        },
+        "location": {
+          "label": "Ort och område",
+          "hint": "Var finns du, och vilket område tjänar du?",
+          "ex": "Örebro, med leverans i hela kommunen"
+        },
+        "productService": {
+          "label": "Produkt eller tjänst",
+          "hint": "Vad säljer du, och vad gör det speciellt?",
+          "ex": "Surdegsbröd och bullar bakade varje morgon, utan tillsatser."
+        },
+        "targetAudience": {
+          "label": "Målgrupp",
+          "hint": "Vilka är dina bästa kunder? Ålder, livssituation, vad de behöver.",
+          "ex": "Barnfamiljer i Örebro som vill ha riktigt bröd till frukost på helgen."
+        },
+        "brandVoice": {
+          "label": "Varumärkesröst / tonalitet",
+          "hint": "Hur låter du när du pratar med en kund? Klistra gärna in ett svar du har skickat.",
+          "ex": "Varmt och personligt: \"Välkommen in, bullarna är precis ur ugnen!\"",
+          "chips": "Välj de ord som passar bäst:"
+        },
+        "usp": {
+          "label": "Unikt säljargument (USP)",
+          "hint": "Varför ska en kund välja dig i stället för någon annan?",
+          "ex": "Det enda bageriet i stan som bakar allt från grunden varje morgon."
+        },
+        "offers": {
+          "label": "Erbjudanden",
+          "hint": "Erbjudanden du kör nu eller vill lyfta.",
+          "ex": "Hösterbjudande: kanelbulle på köpet",
+          "offer": "Erbjudande",
+          "price": "Pris eller rabatt",
+          "priceEx": "20 % rabatt",
+          "until": "Gäller till",
+          "add": "Lägg till erbjudande"
+        },
+        "competitors": {
+          "label": "Konkurrenter",
+          "hint": "Vilka andra väljer dina kunder mellan?",
+          "ex": "Stadsbageriet",
+          "name": "Namn",
+          "website": "Webbplats",
+          "add": "Lägg till konkurrent"
+        },
+        "reviews": {
+          "label": "Kundomdömen",
+          "hint": "Klistra in omdömen, ett per rad, eller ladda upp en fil.",
+          "ex": "\"Bästa surdegen i Örebro!\" Anna, Google",
+          "upload": "Ladda upp fil (.txt, .csv, .pdf)"
+        },
+        "brandWords": {
+          "label": "Varumärkesord",
+          "hint": "Ord och fraser vi ska använda, och sådana vi aldrig ska använda. Tryck Enter efter varje ord.",
+          "ex": "Använd: hantverk, nybakat. Undvik: billig",
+          "use": "Använd",
+          "avoid": "Undvik",
+          "usePh": "Skriv ett ord och tryck Enter",
+          "avoidPh": "Ord du aldrig vill se"
+        },
+        "campaignLanguage": {
+          "label": "Kampanjspråk",
+          "hint": "På vilket språk ska vi skriva ditt innehåll?",
+          "ex": "Svenska"
+        }
+      },
+      "chips": {
+        "warm": "Varm",
+        "playful": "Lekfull",
+        "expert": "Expert",
+        "premium": "Premium",
+        "direct": "Rak"
+      },
+      "langs": {
+        "sv": "Svenska",
+        "en": "English",
+        "both": "Båda"
+      }
+    },
+    "uploads": {
+      "title": "Visa oss ditt företag",
+      "lead": "Bilder, din berättelse och det du redan har publicerat. Allt är valfritt men gör innehållet mycket bättre.",
+      "pics": "Bilder",
+      "picsHint": "Bilder på dina produkter, din lokal och dig själv.",
+      "picsBtn": "Välj bilder",
+      "picsRule": "JPG, PNG eller WebP · upp till 20 bilder · max 10 MB per bild",
+      "story": "Grundarens berättelse",
+      "storyHint": "Några frågor att utgå från:",
+      "q1": "Varför startade du?",
+      "q2": "Vad tror du på?",
+      "q3": "Ett ögonblick som visar vem du är.",
+      "storyPh": "Skriv fritt, eller ladda upp ett dokument.",
+      "storyUp": "Ladda upp fil (.txt, .pdf, .docx, max 5 MB)",
+      "posts": "Tidigare inlägg",
+      "postsHint": "Länkar till inlägg som gick bra, inklistrad text eller skärmdumpar. Upp till 15.",
+      "postLink": "Länk till inlägg",
+      "postText": "Inläggstext",
+      "postImage": "Skärmdump",
+      "addLink": "Lägg till länk",
+      "addText": "Lägg till text",
+      "shots": "Ladda upp skärmdumpar",
+      "faq": "Vanliga frågor (FAQ)",
+      "faqHint": "Frågor dina kunder ofta ställer, och dina svar. Upp till 30.",
+      "q": "Fråga",
+      "a": "Svar",
+      "qEx": "Levererar ni på helger?",
+      "aEx": "Ja, lördag och söndag 10 till 16.",
+      "addQ": "Lägg till fråga",
+      "faqUp": "Ladda upp fil (.txt, .pdf, .docx, .csv, max 5 MB)",
+      "next": "Granska och skicka",
+      "noVideo": "Videofiler kan inte laddas upp. Ladda upp bilder i stället.",
+      "tooBig": "{name} är större än {mb} MB och laddades inte upp.",
+      "wrongType": "{name} har en filtyp som inte stöds här.",
+      "maxReached": "Du har nått maxantalet för den här delen.",
+      "uploading": "Laddar upp {name}...",
+      "uploadFailed": "{name} kunde inte laddas upp.",
+      "attached": "Bifogad fil:"
+    },
+    "review": {
+      "title": "Granska och skicka",
+      "lead": "Så här ser din profil ut. Fyll i de obligatoriska fälten, resten kan du komplettera senare.",
+      "edit": "Ändra",
+      "filled": "Ifyllt",
+      "missing": "Saknas",
+      "empty": "Valfritt, tomt",
+      "files": "{n} filer",
+      "note": "Du kan ändra din profil när som helst efter att du skickat in. Varje ny inskickning sparas som en ny version.",
+      "pub": "Avtalet om personuppgiftsbiträde (PUB-avtal) skrivs separat med TAHA Studio Labs.",
+      "submit": "Skicka till TAHA",
+      "submitting": "Skickar...",
+      "fixFirst": "Fyll i de fält som saknas innan du skickar.",
+      "submitFailed": "Det gick inte att skicka. Försök igen."
+    },
+    "status": {
+      "kicker": "DIN STATUS",
+      "titleDone": "Tack, vi har fått din profil",
+      "titleOpen": "Din profil",
+      "lead": "Här ser du hur arbetet går. Vi mejlar dig när nästa steg är klart.",
+      "nowLabel": "JUST NU",
+      "version": "version {n}",
+      "coming": "Kommer",
+      "edit": "Ändra min profil",
+      "continue": "Fortsätt med profilen",
+      "helpEmail": "Frågor? Mejla",
+      "now": {
+        "invited": {
+          "t": "Välkommen",
+          "b": "Börja med att fylla i din företagsprofil."
+        },
+        "profile_in_progress": {
+          "t": "Profilen pågår",
+          "b": "Fyll i resten av profilen och skicka in den när du är klar."
+        },
+        "submitted": {
+          "t": "Vi tar fram din strategi",
+          "b": "Vi går igenom din profil och bygger grunden för dina kampanjer."
+        },
+        "brain_ready": {
+          "t": "Din strategi är klar",
+          "b": "Nu tar vi fram din första kampanj."
+        },
+        "campaign_in_production": {
+          "t": "Kampanjen produceras",
+          "b": "Vi skapar texter, video och inlägg för din kampanj."
+        },
+        "campaign_delivered": {
+          "t": "Kampanjen är levererad",
+          "b": "Din kampanj är klar. Hör av dig om du vill ändra något."
+        }
+      }
+    },
+    "statuses": {
+      "invited": "Inbjuden",
+      "profile_in_progress": "Profilen pågår",
+      "submitted": "Inskickad",
+      "brain_ready": "Din strategi är klar",
+      "campaign_in_production": "Kampanjen produceras",
+      "campaign_delivered": "Kampanjen är levererad"
+    }
+  },
+  "en": {
+    "brandTop": "TAHA Studio Labs",
+    "brandSub": "Growth Department",
+    "signOut": "Sign out",
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "saveFailed": "Couldn't save. We'll try again.",
+    "required": "(required)",
+    "optional": "(optional)",
+    "example": "Example:",
+    "add": "Add",
+    "remove": "Remove",
+    "back": "Back",
+    "networkError": "Network error. Check your connection and try again.",
+    "help": "Need help?",
+    "signin": {
+      "kicker": "CLIENT PORTAL",
+      "title": "Sign in",
+      "lead": "Enter the email address your invitation was sent to. We'll email you a sign-in link, no password needed.",
+      "label": "Email address",
+      "ph": "name@company.com",
+      "button": "Send sign-in link",
+      "note": "The link works once and expires after 15 minutes.",
+      "err": "Enter a valid email address.",
+      "sentTitle": "Check your inbox",
+      "sentBody": "If this address is invited, a link arrives within a minute. Open it on this device.",
+      "again": "Use a different address",
+      "invite": "This portal is only for invited clients of {product}.",
+      "adminTitle": "You are signed in as admin",
+      "adminBody": "The client portal is for clients. As admin, use the console.",
+      "adminLink": "Open the console"
+    },
+    "consent": {
+      "kicker": "STEP 0 · CONSENT",
+      "title": "Before we start",
+      "lead": "Read how we use what you share. The form opens once you agree.",
+      "points": [
+        {
+          "h": "Who",
+          "b": "TAHA Studio Labs, Örebro, is responsible for your information. Contact: {email}."
+        },
+        {
+          "h": "What we collect",
+          "b": "Your business profile, pictures, customer reviews, founder story, FAQs and previous posts."
+        },
+        {
+          "h": "Why",
+          "b": "To build your marketing strategy and the content of your campaigns."
+        },
+        {
+          "h": "AI services",
+          "b": "Your material is sent to third-party AI providers, for example Anthropic and Google, to create content."
+        },
+        {
+          "h": "Storage",
+          "b": "Everything is stored in the EU with Cloudflare."
+        },
+        {
+          "h": "Customer reviews",
+          "b": "Reviews may include your customers' names. By sharing them you confirm you have the right to do so."
+        },
+        {
+          "h": "How long, and your rights",
+          "b": "We keep your information for {months} months after we stop working together, then delete it. You can ask for a copy, or for everything to be deleted, at any time by emailing {email}."
+        }
+      ],
+      "policy": "Read the full privacy policy",
+      "agree": "Jag godkänner / I agree",
+      "check": "I have read the information and agree that TAHA Studio Labs uses my business information in this way.",
+      "err": "Tick the box to continue.",
+      "button": "Agree and continue",
+      "version": "Consent version {version}. You can withdraw your consent at any time."
+    },
+    "steps": {
+      "profile": "Step 1 of 3 · Business profile",
+      "uploads": "Step 2 of 3 · Uploads",
+      "review": "Step 3 of 3 · Review"
+    },
+    "profile": {
+      "title": "Tell us about your business",
+      "lead": "Answer in your own words, in Swedish or English. It takes about 15 minutes and everything saves as you go, so you can finish later.",
+      "cardA": "About the business",
+      "cardB": "Customers and voice",
+      "cardC": "Market and proof",
+      "cardD": "Campaign language",
+      "next": "Continue to uploads",
+      "fields": {
+        "companyName": {
+          "label": "Company name",
+          "hint": "The name your customers know you by.",
+          "ex": "Ekbacken Bakery"
+        },
+        "website": {
+          "label": "Website",
+          "hint": "No website? Add your Instagram or Facebook page.",
+          "ex": "https://ekbacken.se"
+        },
+        "location": {
+          "label": "Location and area served",
+          "hint": "Where are you, and which area do you serve?",
+          "ex": "Örebro, delivering across the municipality"
+        },
+        "productService": {
+          "label": "Product or service",
+          "hint": "What do you sell, and what makes it special?",
+          "ex": "Sourdough bread and buns baked every morning, no additives."
+        },
+        "targetAudience": {
+          "label": "Target audience",
+          "hint": "Who are your best customers? Age, life situation, what they need.",
+          "ex": "Families in Örebro who want real bread for weekend breakfast."
+        },
+        "brandVoice": {
+          "label": "Brand voice",
+          "hint": "How do you sound when you talk to a customer? Paste a reply you have sent.",
+          "ex": "Warm and personal: \"Come on in, the buns are fresh out of the oven!\"",
+          "chips": "Pick the words that fit best:"
+        },
+        "usp": {
+          "label": "Unique selling point (USP)",
+          "hint": "Why should a customer choose you over anyone else?",
+          "ex": "The only bakery in town that bakes everything from scratch every morning."
+        },
+        "offers": {
+          "label": "Offers",
+          "hint": "Offers you run now or want to push.",
+          "ex": "Autumn offer: free cinnamon bun",
+          "offer": "Offer",
+          "price": "Price or discount",
+          "priceEx": "20% off",
+          "until": "Valid until",
+          "add": "Add offer"
+        },
+        "competitors": {
+          "label": "Competitors",
+          "hint": "Who else do your customers choose between?",
+          "ex": "City Bakery",
+          "name": "Name",
+          "website": "Website",
+          "add": "Add competitor"
+        },
+        "reviews": {
+          "label": "Customer reviews",
+          "hint": "Paste reviews, one per line, or upload a file.",
+          "ex": "\"Best sourdough in Örebro!\" Anna, Google",
+          "upload": "Upload file (.txt, .csv, .pdf)"
+        },
+        "brandWords": {
+          "label": "Brand words",
+          "hint": "Words and phrases we should use, and ones we should never use. Press Enter after each word.",
+          "ex": "Use: handmade, freshly baked. Avoid: cheap",
+          "use": "Use",
+          "avoid": "Avoid",
+          "usePh": "Type a word and press Enter",
+          "avoidPh": "Words you never want to see"
+        },
+        "campaignLanguage": {
+          "label": "Campaign language",
+          "hint": "Which language should we write your content in?",
+          "ex": "Swedish"
+        }
+      },
+      "chips": {
+        "warm": "Warm",
+        "playful": "Playful",
+        "expert": "Expert",
+        "premium": "Premium",
+        "direct": "Direct"
+      },
+      "langs": {
+        "sv": "Svenska",
+        "en": "English",
+        "both": "Both"
+      }
+    },
+    "uploads": {
+      "title": "Show us your business",
+      "lead": "Pictures, your story and what you have already posted. All optional, but it makes the content far better.",
+      "pics": "Pictures",
+      "picsHint": "Pictures of your products, your place and yourself.",
+      "picsBtn": "Choose pictures",
+      "picsRule": "JPG, PNG or WebP · up to 20 pictures · max 10 MB each",
+      "story": "Founder story",
+      "storyHint": "A few questions to start from:",
+      "q1": "Why did you start?",
+      "q2": "What do you believe in?",
+      "q3": "A moment that shows who you are.",
+      "storyPh": "Write freely, or upload a document.",
+      "storyUp": "Upload file (.txt, .pdf, .docx, max 5 MB)",
+      "posts": "Previous posts",
+      "postsHint": "Links to posts that did well, pasted text or screenshots. Up to 15.",
+      "postLink": "Post link",
+      "postText": "Post text",
+      "postImage": "Screenshot",
+      "addLink": "Add link",
+      "addText": "Add text",
+      "shots": "Upload screenshots",
+      "faq": "FAQs",
+      "faqHint": "Questions your customers often ask, and your answers. Up to 30.",
+      "q": "Question",
+      "a": "Answer",
+      "qEx": "Do you deliver at weekends?",
+      "aEx": "Yes, Saturday and Sunday 10 to 16.",
+      "addQ": "Add question",
+      "faqUp": "Upload file (.txt, .pdf, .docx, .csv, max 5 MB)",
+      "next": "Review and submit",
+      "noVideo": "Video files can't be uploaded. Upload pictures instead.",
+      "tooBig": "{name} is larger than {mb} MB and was not uploaded.",
+      "wrongType": "{name} has a file type that isn't supported here.",
+      "maxReached": "You have reached the maximum for this section.",
+      "uploading": "Uploading {name}...",
+      "uploadFailed": "{name} could not be uploaded.",
+      "attached": "Attached file:"
+    },
+    "review": {
+      "title": "Review and submit",
+      "lead": "This is your profile. Fill in the required fields, you can add the rest later.",
+      "edit": "Edit",
+      "filled": "Filled in",
+      "missing": "Missing",
+      "empty": "Optional, empty",
+      "files": "{n} files",
+      "note": "You can edit your profile at any time after you submit. Each new submission is saved as a new version.",
+      "pub": "The data processing agreement (PUB-avtal) is signed separately with TAHA Studio Labs.",
+      "submit": "Submit to TAHA",
+      "submitting": "Submitting...",
+      "fixFirst": "Fill in the missing fields before you submit.",
+      "submitFailed": "Couldn't submit. Please try again."
+    },
+    "status": {
+      "kicker": "YOUR STATUS",
+      "titleDone": "Thank you, we have your profile",
+      "titleOpen": "Your profile",
+      "lead": "Follow the work here. We'll email you when the next step is ready.",
+      "nowLabel": "RIGHT NOW",
+      "version": "version {n}",
+      "coming": "Coming",
+      "edit": "Edit my profile",
+      "continue": "Continue with the profile",
+      "helpEmail": "Questions? Email",
+      "now": {
+        "invited": {
+          "t": "Welcome",
+          "b": "Start by filling in your business profile."
+        },
+        "profile_in_progress": {
+          "t": "Profile in progress",
+          "b": "Fill in the rest of your profile and submit it when you're done."
+        },
+        "submitted": {
+          "t": "We are building your strategy",
+          "b": "We are going through your profile and building the foundation for your campaigns."
+        },
+        "brain_ready": {
+          "t": "Your strategy is ready",
+          "b": "Now we create your first campaign."
+        },
+        "campaign_in_production": {
+          "t": "Campaign in production",
+          "b": "We are creating the copy, video and posts for your campaign."
+        },
+        "campaign_delivered": {
+          "t": "Campaign delivered",
+          "b": "Your campaign is ready. Get in touch if you want anything changed."
+        }
+      }
+    },
+    "statuses": {
+      "invited": "Invited",
+      "profile_in_progress": "Profile in progress",
+      "submitted": "Submitted",
+      "brain_ready": "Your strategy is ready",
+      "campaign_in_production": "Campaign in production",
+      "campaign_delivered": "Campaign delivered"
+    }
+  }
+}

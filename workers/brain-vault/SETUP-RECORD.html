@@ -26,13 +26,14 @@ th{color:var(--muted);font-weight:600}
 <body>
 <main>
 <h1>Brain Vault setup record</h1>
-<p class="sub">TAHA Growth Department V1, phase 1. This record holds names only: no secrets, keys or passwords. Last updated 3 October 2026.</p>
+<p class="sub">TAHA Growth Department V1, phase 1. This record holds names only: no secrets, keys or passwords. Last updated 3 October 2026 (phase 2).</p>
 
 <h2>Cloudflare resources</h2>
 <div class="wrap"><table>
 <tr><th>Resource</th><th>Name</th><th>Settings</th><th>Status</th></tr>
 <tr><td>Worker</td><td><code>brain-vault</code></td><td>Entry <code>src/index.js</code>. workers.dev and preview URLs are off, so the Worker is reachable only through its route. Deployed by Workers Builds from GitHub <code>harriperry/tahastudiolabs</code>, branch <code>growth-phase-1</code>, root <code>/workers/brain-vault</code>, deploy command <code>npx wrangler deploy</code>, preview builds off.</td><td class="ok">Connected to GitHub</td></tr>
 <tr><td>Route</td><td><code>tahastudiolabs.com/api/vault/*</code></td><td>Zone <code>tahastudiolabs.com</code>. A route, not a DNS change.</td><td class="ok">Approved by Harry, 3 Oct 2026</td></tr>
+<tr><td>Routes</td><td><code>tahastudiolabs.com/grow</code> and <code>tahastudiolabs.com/grow/*</code></td><td>The client portal, served by the same Worker. Routes, not DNS changes.</td><td class="ok">Approved by Harry, 3 Oct 2026</td></tr>
 <tr><td>D1 database</td><td><code>brain-vault-db</code></td><td>Binding <code>DB</code>, jurisdiction <b>EU</b>, id <code>94d97c77-2edb-43b9-906f-9e5051ae3bd0</code>. The tables create themselves on the first request.</td><td class="ok">Created 3 Oct 2026</td></tr>
 <tr><td>R2 bucket</td><td><code>brain-vault-files</code></td><td>Binding <code>FILES</code>, jurisdiction <b>EU</b>, private (no public access, no custom domain).</td><td class="ok">Created 3 Oct 2026</td></tr>
 <tr><td>Cron trigger</td><td><code>17 3 * * *</code></td><td>Daily at 03:17 UTC: removes expired tokens, expired sessions and old rate limit entries.</td><td class="wait">Deployed with the Worker</td></tr>
@@ -47,13 +48,16 @@ th{color:var(--muted);font-weight:600}
 <tr><td><code>TAHA_EMAIL</code></td><td>agborkak@gmail.com (sender, notifications and client contact, all in one value)</td></tr>
 <tr><td><code>ADMIN_EMAILS</code></td><td>agborkak@gmail.com</td></tr>
 <tr><td><code>MAIL_FROM_NAME</code></td><td>TAHA Studio Labs</td></tr>
-<tr><td><code>PRODUCT_NAME</code></td><td>TAHA Growth Department</td></tr>
+<tr><td><code>PRODUCT_NAME</code></td><td>TAHA Studio Labs Growth Department</td></tr>
+<tr><td><code>CONSENT_VERSION</code></td><td>c-1</td></tr>
+<tr><td><code>RETENTION_MONTHS</code></td><td>6</td></tr>
+<tr><td><code>PRIVACY_URL</code></td><td>https://tahastudiolabs.com/privacy.html</td></tr>
 <tr><td><code>MAIL_PROVIDER</code></td><td>gmail-smtp</td></tr>
 <tr><td><code>SMTP_HOST</code> / <code>SMTP_PORT</code> / <code>SMTP_SECURE</code></td><td>smtp.gmail.com / 465 / on</td></tr>
 <tr><td><code>LOGIN_TOKEN_TTL_MINUTES</code></td><td>15</td></tr>
 <tr><td><code>SESSION_DAYS</code></td><td>30</td></tr>
 <tr><td><code>RATE_LIMIT_PER_EMAIL_HOUR</code> / <code>RATE_LIMIT_PER_IP_HOUR</code></td><td>5 / 20</td></tr>
-<tr><td><code>CLIENT_HOME</code> / <code>ADMIN_HOME</code></td><td>/api/vault/console (phase 1 test console)</td></tr>
+<tr><td><code>CLIENT_HOME</code> / <code>ADMIN_HOME</code></td><td>/grow/ / /api/vault/console</td></tr>
 <tr><td><code>SCRIPTFORGE_ADMIN_BRIDGE</code></td><td>on</td></tr>
 <tr><td><code>SCRIPTFORGE_ME_URL</code></td><td>(empty: uses https://tahastudiolabs.com/api/me)</td></tr>
 </table></div>

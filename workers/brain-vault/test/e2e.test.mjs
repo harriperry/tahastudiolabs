@@ -10,7 +10,7 @@ import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 
 const BASE = process.env.VAULT_URL || "http://127.0.0.1:8787/api/vault";
-const ORIGIN = "http://localhost:8787";
+const ORIGIN = process.env.ORIGIN || "http://localhost:8787";
 const DEV_LOG = process.env.DEV_LOG;
 const ADMIN = "agborkak@gmail.com";
 const run = Date.now().toString(36);

@@ -28,7 +28,10 @@ export function getConfig(env) {
     tahaEmail,
     adminEmails: adminEmails.length ? adminEmails : [tahaEmail],
     fromName: env.MAIL_FROM_NAME || "TAHA Studio Labs",
-    productName: env.PRODUCT_NAME || "TAHA Growth Department",
+    productName: env.PRODUCT_NAME || "TAHA Studio Labs Growth Department",
+    consentVersion: env.CONSENT_VERSION || "c-1",
+    retentionMonths: int(env.RETENTION_MONTHS, 6),
+    privacyUrl: env.PRIVACY_URL || "https://tahastudiolabs.com/privacy.html",
     mailProvider: env.MAIL_PROVIDER || "gmail-smtp",
     smtp: {
       host: env.SMTP_HOST || "smtp.gmail.com",
@@ -42,7 +45,7 @@ export function getConfig(env) {
     sessionDays: int(env.SESSION_DAYS, 30),
     rateLimitPerEmailHour: int(env.RATE_LIMIT_PER_EMAIL_HOUR, 5),
     rateLimitPerIpHour: int(env.RATE_LIMIT_PER_IP_HOUR, 20),
-    clientHome: env.CLIENT_HOME || "/api/vault/console",
+    clientHome: env.CLIENT_HOME || "/grow/",
     adminHome: env.ADMIN_HOME || "/api/vault/console",
     bridgeOn: String(env.SCRIPTFORGE_ADMIN_BRIDGE || "on").toLowerCase() === "on",
     scriptforgeMeUrl: env.SCRIPTFORGE_ME_URL || siteOrigin + "/api/me"

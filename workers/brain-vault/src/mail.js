@@ -73,8 +73,8 @@ const COPY = {
   invite: {
     subject: { sv: "Välkommen till {product}", en: "Welcome to {product}" },
     intro: {
-      sv: "Hej {name}! TAHA Studio Labs har bjudit in dig till {product}. Där berättar du om ditt företag, så bygger vi din marknadsstrategi och dina kampanjer.",
-      en: "Hi {name}! TAHA Studio Labs has invited you to {product}. There you tell us about your business, and we build your marketing strategy and campaigns."
+      sv: "Hej {name}! Du är inbjuden till {product}. Där berättar du om ditt företag, så bygger vi din marknadsstrategi och dina kampanjer.",
+      en: "Hi {name}! You are invited to {product}. There you tell us about your business, and we build your marketing strategy and campaigns."
     },
     button: { sv: "Logga in och kom igång", en: "Sign in and get started" },
     note: {
@@ -123,5 +123,20 @@ export function composeEmail(kind, cfg, { link, name, language, signinUrl }) {
     '<p style="margin:28px 0 0;color:#777;font-size:12px">' +
     escapeHtml(sign) +
     "</p></body></html>";
+  return { subject, text, html };
+}
+
+/* Notice to Harry when a client submits. Company name and version only, no client content. */
+export function composeSubmitNotice(cfg, { company, version, link }) {
+  const subject = "Ny inskickning / New intake: " + company + " (v" + version + ")";
+  const text =
+    company + " har skickat in version " + version + " av sin profil.\n" +
+    company + " has submitted version " + version + " of their profile.\n\n" +
+    link + "\n";
+  const html =
+    '<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#111;max-width:560px;margin:0 auto;padding:24px">' +
+    "<p><b>" + escapeHtml(company) + "</b> har skickat in version " + version + " av sin profil.</p>" +
+    "<p><b>" + escapeHtml(company) + "</b> has submitted version " + version + " of their profile.</p>" +
+    '<p><a href="' + escapeHtml(link) + '">' + escapeHtml(link) + "</a></p></body></html>";
   return { subject, text, html };
 }

@@ -49,9 +49,10 @@
       "enum": [
         "sv",
         "en",
-        "both"
+        "both",
+        ""
       ],
-      "description": "Which language ScriptForge generates in."
+      "description": "Which language ScriptForge generates in. Empty only while the intake is a draft."
     },
     "profile": {
       "type": "object",

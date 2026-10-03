@@ -1,5 +1,6 @@
 /* Brain Vault: the always-on bridge between the TAHA client portal and ScriptForge.
-   Routed at tahastudiolabs.com/api/vault/*. Phase 1 covers login, roles and invites.
+   Routed at tahastudiolabs.com/api/vault/* (the API) and tahastudiolabs.com/grow/* (the client
+   portal pages). Phase 1: login, roles and invites. Phase 2: the client portal.
 
    House rules enforced here:
    1. The Vault never receives, stores or logs an LLM API key. No endpoint accepts one.
@@ -20,6 +21,18 @@ import {
   sessionCookie
 } from "./auth.js";
 import { createClient, listClients, resendInvite } from "./admin.js";
+import {
+  deleteFile,
+  getFile,
+  getIntake,
+  getStatus,
+  portalState,
+  postConsent,
+  postUpload,
+  putIntake,
+  putLanguage,
+  submitIntake
+} from "./portal.js";
 import { SCHEMAS } from "./schemas.js";
 import { json, lang, normEmail, readJson, validEmail, withCookies } from "./util.js";
 
@@ -28,6 +41,10 @@ import verifyJs from "./public/verify.js";
 import consoleHtml from "./public/console.html";
 import consoleJs from "./public/console.js";
 import vaultCss from "./public/vault.css";
+import portalHtml from "./public/portal.html";
+import portalJs from "./public/portal.js";
+import portalCss from "./public/portal.css";
+import i18n from "./public/i18n.json";
 
 const MSG = {
   neutral: {
@@ -61,7 +78,7 @@ function page(body) {
       "Content-Security-Policy": PAGE_CSP,
       "X-Content-Type-Options": "nosniff",
       "X-Frame-Options": "DENY",
-      "Referrer-Policy": "no-referrer",
+      "Referrer-Policy": "same-origin",
       "X-Robots-Tag": "noindex, nofollow"
     }
   });
@@ -77,14 +94,30 @@ function asset(body, type) {
   });
 }
 
+/* The client portal: one page, its script, styles and the i18n dictionary, served at /grow/. */
+function servePortal(path) {
+  if (path === "/grow/portal.js") return asset(portalJs, "text/javascript; charset=utf-8");
+  if (path === "/grow/portal.css") return asset(portalCss, "text/css; charset=utf-8");
+  if (path === "/grow/i18n.json") return asset(JSON.stringify(i18n), "application/json; charset=utf-8");
+  return page(portalHtml);
+}
+
+/* A state-changing request must come from the TAHA site itself. Browsers send Origin on
+   these requests; Sec-Fetch-Site is a header pages cannot forge and covers browsers that send
+   "Origin: null" under a strict referrer policy. */
 function sameOrigin(request, cfg) {
   const origin = request.headers.get("Origin");
-  return origin === cfg.siteOrigin;
+  if (origin === cfg.siteOrigin) return true;
+  return (!origin || origin === "null") && request.headers.get("Sec-Fetch-Site") === "same-origin";
 }
 
 async function handle(request, env, ctx) {
   const cfg = getConfig(env);
   const url = new URL(request.url);
+  if ((url.pathname === "/grow" || url.pathname.startsWith("/grow/")) && (request.method === "GET" || request.method === "HEAD")) {
+    if (url.pathname === "/grow") return Response.redirect(cfg.siteOrigin + "/grow/", 301);
+    return servePortal(url.pathname);
+  }
   if (!url.pathname.startsWith(cfg.basePath + "/") && url.pathname !== cfg.basePath) {
     return json({ error: "not_found", message: MSG.notFound }, 404);
   }
@@ -110,7 +143,11 @@ async function handle(request, env, ctx) {
 
   if (method === "GET" && path === "/health") {
     const db = await env.DB.prepare("SELECT 1 AS ok").first();
-    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 1 });
+    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 2 });
+  }
+
+  if (method === "GET" && path === "/portal/meta") {
+    return json({ productName: cfg.productName, contactEmail: cfg.tahaEmail });
   }
 
   /* ---------- auth ---------- */
@@ -156,6 +193,24 @@ async function handle(request, env, ctx) {
       out.client = { id: c.id, name: c.name, status: c.status, statusLabel: STATUS_LABELS[c.status], language: c.language };
     }
     return respond(json(out));
+  }
+
+  /* ---------- client portal ---------- */
+  const clientPaths = ["/portal/state", "/consent", "/intake", "/uploads", "/intake/submit", "/status", "/me/language"];
+  const fileMatch = path.match(/^\/files\/(f_[a-z0-9]{4,32})$/);
+  if (clientPaths.includes(path) || fileMatch) {
+    if (!auth) return json({ error: "not_signed_in", message: MSG.notSignedIn }, 401);
+    if (fileMatch && method === "GET") return respond(await getFile(env, auth, fileMatch[1]));
+    if (auth.role !== "client") return json({ error: "forbidden", message: MSG.forbidden }, 403);
+    if (fileMatch && method === "DELETE") return deleteFile(env, auth, fileMatch[1]);
+    if (path === "/portal/state" && method === "GET") return portalState(env, cfg, auth);
+    if (path === "/consent" && method === "POST") return postConsent(request, env, cfg, auth);
+    if (path === "/intake" && method === "GET") return getIntake(env, cfg, auth);
+    if (path === "/intake" && method === "PUT") return putIntake(request, env, cfg, auth);
+    if (path === "/uploads" && method === "POST") return postUpload(request, env, cfg, auth, url);
+    if (path === "/intake/submit" && method === "POST") return submitIntake(env, cfg, auth, ctx);
+    if (path === "/status" && method === "GET") return getStatus(env, auth);
+    if (path === "/me/language" && method === "PUT") return putLanguage(request, env, auth);
   }
 
   /* ---------- admin ---------- */

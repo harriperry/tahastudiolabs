@@ -136,6 +136,10 @@
   function loadMe() {
     api("/auth/me").then(function (r) {
       show("loading", false);
+      if (r.ok && r.d.role === "client") {
+        location.replace("/grow/");
+        return;
+      }
       if (r.ok && r.d.role) {
         current = r.d;
         renderMe(r.d);
