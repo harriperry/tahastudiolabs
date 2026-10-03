@@ -20,7 +20,7 @@ import {
   issueLoginLink,
   sessionCookie
 } from "./auth.js";
-import { createClient, listClients, resendInvite } from "./admin.js";
+import { createClient, getIntakeAdmin, listClients, resendInvite } from "./admin.js";
 import {
   deleteFile,
   getFile,
@@ -221,6 +221,8 @@ async function handle(request, env, ctx) {
     if (path === "/admin/clients" && method === "POST") return respond(await createClient(request, env, cfg));
     const inv = path.match(/^\/admin\/clients\/(cl_[a-z0-9]{4,32})\/invite$/);
     if (inv && method === "POST") return respond(await resendInvite(env, cfg, inv[1]));
+    const ai = path.match(/^\/admin\/intake\/(cl_[a-z0-9]{4,32})$/);
+    if (ai && method === "GET") return respond(await getIntakeAdmin(env, ai[1]));
   }
 
   return json({ error: "not_found", message: MSG.notFound }, 404);

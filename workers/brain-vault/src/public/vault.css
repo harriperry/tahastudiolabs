@@ -96,3 +96,10 @@ table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 th { color: var(--muted); font-weight: 600; }
 .hidden { display: none !important; }
+.irow { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.ilabel { font-size: 13px; font-weight: 600; color: var(--muted); margin-top: 8px; }
+.ivalue { white-space: pre-wrap; word-break: break-word; }
+.igrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin: 8px 0; }
+.igrid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); display: block; }
+.ifile { display: block; padding: 6px 0; }
+td button + button { margin-left: 6px; }

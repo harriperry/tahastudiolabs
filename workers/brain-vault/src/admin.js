@@ -100,3 +100,22 @@ export async function listClients(env) {
   ).all();
   return json({ clients: (rows.results || []).map(publicClient) });
 }
+
+/* GET /admin/intake/:clientId : the latest submitted intake (or the draft if nothing is
+   submitted yet) plus the client's files. Files are opened through /api/vault/files/:id,
+   which checks the admin session. */
+export async function getIntakeAdmin(env, clientId) {
+  const client = await env.DB.prepare("SELECT id, name, email, status, language FROM clients WHERE id = ?").bind(clientId).first();
+  if (!client) return json({ error: "not_found", message: M.notFound }, 404);
+  const last = await env.DB.prepare("SELECT version, data, submitted_at FROM intakes WHERE client_id = ? ORDER BY version DESC LIMIT 1").bind(clientId).first();
+  const draft = last ? null : await env.DB.prepare("SELECT data, updated_at FROM intake_drafts WHERE client_id = ?").bind(clientId).first();
+  const files = await env.DB.prepare("SELECT id, section, mime, size, original_name FROM files WHERE client_id = ? ORDER BY created_at ASC").bind(clientId).all();
+  return json({
+    client: { id: client.id, name: client.name, email: client.email, status: client.status, statusLabel: STATUS_LABELS[client.status] },
+    source: last ? "submitted" : draft ? "draft" : "none",
+    version: last ? last.version : 0,
+    submittedAt: last ? last.submitted_at : null,
+    intake: last ? JSON.parse(last.data) : draft ? JSON.parse(draft.data) : null,
+    files: (files.results || []).map((f) => ({ id: f.id, section: f.section, mime: f.mime, size: f.size, name: f.original_name, url: "/api/vault/files/" + f.id }))
+  });
+}

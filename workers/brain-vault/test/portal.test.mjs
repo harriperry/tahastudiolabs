@@ -195,6 +195,10 @@ try {
   r = await call("/admin/clients", { cookie: admin });
   const ca = r.data.clients.find((c) => c.id === A.id);
   ok(ca && ca.latestIntakeVersion === 2 && ca.hasNewIntake === true && ca.status === "submitted", "admin list shows version 2 and the New flag");
+  r = await call("/admin/intake/" + A.id, { cookie: admin });
+  ok(r.status === 200 && r.data.version === 2 && r.data.intake.profile.location === "Örebro" && r.data.files.length >= 2 && r.data.files[0].url.startsWith("/api/vault/files/"), "admin can read the latest intake and its files");
+  r = await call("/admin/intake/" + A.id, { cookie: B.cookie });
+  ok(r.status === 403, "a client cannot read another client's intake through the admin endpoint");
   r = await call("/intake", { cookie: admin });
   ok(r.status === 403, "admin cannot use client endpoints");
   r = await call("/intake", {});
