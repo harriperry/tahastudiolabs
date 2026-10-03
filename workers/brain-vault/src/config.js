@@ -35,7 +35,7 @@ export function getConfig(env) {
       port: int(env.SMTP_PORT, 465),
       secure: env.SMTP_SECURE || "on",
       user: String(env.SMTP_USER || tahaEmail).trim(),
-      pass: env.SMTP_PASSWORD || ""
+      pass: String(env.SMTP_PASSWORD || "").replace(/\s+/g, "")
     },
     resendKey: env.RESEND_API_KEY || "",
     tokenTtlMinutes: int(env.LOGIN_TOKEN_TTL_MINUTES, 15),
