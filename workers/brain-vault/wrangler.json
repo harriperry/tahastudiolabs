@@ -1,0 +1,78 @@
+{
+  "name": "brain-vault",
+  "main": "src/index.js",
+  "rules": [
+    {
+      "type": "Text",
+      "globs": [
+        "**/*.html",
+        "**/*.css",
+        "**/public/*.js"
+      ],
+      "fallthrough": false
+    }
+  ],
+  "compatibility_date": "2025-09-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    {
+      "pattern": "tahastudiolabs.com/api/vault/*",
+      "zone_name": "tahastudiolabs.com"
+    },
+    {
+      "pattern": "tahastudiolabs.com/grow",
+      "zone_name": "tahastudiolabs.com"
+    },
+    {
+      "pattern": "tahastudiolabs.com/grow/*",
+      "zone_name": "tahastudiolabs.com"
+    }
+  ],
+  "vars": {
+    "ENVIRONMENT": "production",
+    "SITE_ORIGIN": "https://tahastudiolabs.com",
+    "TAHA_EMAIL": "agborkak@gmail.com",
+    "ADMIN_EMAILS": "agborkak@gmail.com",
+    "MAIL_FROM_NAME": "TAHA Studio Labs",
+    "PRODUCT_NAME": "TAHA Studio Labs Growth Department",
+    "MAIL_PROVIDER": "gmail-smtp",
+    "SMTP_HOST": "smtp.gmail.com",
+    "SMTP_PORT": "465",
+    "SMTP_SECURE": "on",
+    "LOGIN_TOKEN_TTL_MINUTES": "15",
+    "SESSION_DAYS": "30",
+    "RATE_LIMIT_PER_EMAIL_HOUR": "5",
+    "RATE_LIMIT_PER_IP_HOUR": "20",
+    "CLIENT_HOME": "/grow/",
+    "ADMIN_HOME": "/scriptforge/#growth",
+    "GROWTH_PANEL_PATH": "/scriptforge/#growth",
+    "SCRIPTFORGE_ADMIN_BRIDGE": "on",
+    "SCRIPTFORGE_ME_URL": "",
+    "CONSENT_VERSION": "c-1",
+    "RETENTION_MONTHS": "6",
+    "PRIVACY_URL": "https://tahastudiolabs.com/privacy.html"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "brain-vault-db",
+      "database_id": "94d97c77-2edb-43b9-906f-9e5051ae3bd0"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "FILES",
+      "bucket_name": "brain-vault-files",
+      "jurisdiction": "eu"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "17 3 * * *"
+    ]
+  },
+  "observability": {
+    "enabled": true
+  }
+}

@@ -1,0 +1,401 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tahastudiolabs.com/api/vault/schemas/intake",
+  "title": "TAHA Growth Department intake",
+  "description": "Written by the client portal. A draft is saved on every field blur; a submit freezes it as intakeVersion N. Structural rules are enforced here; the fields that must be filled before submit are listed in x-requiredOnSubmit and checked by the Vault on POST /intake/submit.",
+  "x-requiredOnSubmit": [
+    "profile.companyName",
+    "profile.location",
+    "profile.productService",
+    "profile.targetAudience",
+    "profile.brandVoice.text",
+    "profile.usp",
+    "campaignLanguage",
+    "consent.acceptedAt"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "intake-1"
+    },
+    "clientId": {
+      "type": "string",
+      "pattern": "^cl_[a-z0-9]{4,32}$",
+      "description": "Vault client id, for example cl_7f3a."
+    },
+    "intakeVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "0 while the intake is a draft that has never been submitted; 1, 2, 3 after each submit."
+    },
+    "submittedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "answerLanguage": {
+      "type": "string",
+      "enum": [
+        "sv",
+        "en"
+      ],
+      "description": "The language the client answered in."
+    },
+    "campaignLanguage": {
+      "type": "string",
+      "enum": [
+        "sv",
+        "en",
+        "both",
+        ""
+      ],
+      "description": "Which language ScriptForge generates in. Empty only while the intake is a draft."
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "companyName": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "website": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "A URL is expected, but free text is accepted (for example a client with only an Instagram page)."
+        },
+        "location": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "productService": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "targetAudience": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "brandVoice": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "type": "string",
+              "maxLength": 5000
+            },
+            "toneChips": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "warm",
+                  "playful",
+                  "expert",
+                  "premium",
+                  "direct"
+                ]
+              },
+              "maxItems": 5,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "text",
+            "toneChips"
+          ]
+        },
+        "usp": {
+          "type": "string",
+          "maxLength": 3000
+        },
+        "offers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "offer": {
+                "type": "string",
+                "maxLength": 500
+              },
+              "priceOrDiscount": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "validUntil": {
+                "type": "string",
+                "maxLength": 50
+              }
+            },
+            "required": [
+              "offer",
+              "priceOrDiscount",
+              "validUntil"
+            ]
+          },
+          "maxItems": 20
+        },
+        "competitors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "website": {
+                "type": "string",
+                "maxLength": 500
+              }
+            },
+            "required": [
+              "name",
+              "website"
+            ]
+          },
+          "maxItems": 20
+        },
+        "reviews": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "pasted": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 3000
+              },
+              "maxItems": 500
+            },
+            "fileIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^f_[a-z0-9]{4,32}$",
+                "description": "Vault file id. Files are stored under random ids, never under their original names."
+              },
+              "maxItems": 5
+            }
+          },
+          "required": [
+            "pasted",
+            "fileIds"
+          ]
+        },
+        "brandWords": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "use": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "maxItems": 50
+            },
+            "avoid": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "maxItems": 50
+            }
+          },
+          "required": [
+            "use",
+            "avoid"
+          ]
+        }
+      },
+      "required": [
+        "companyName",
+        "website",
+        "location",
+        "productService",
+        "targetAudience",
+        "brandVoice",
+        "usp",
+        "offers",
+        "competitors",
+        "reviews",
+        "brandWords"
+      ]
+    },
+    "uploads": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pictures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "fileId": {
+                "type": "string",
+                "pattern": "^f_[a-z0-9]{4,32}$",
+                "description": "Vault file id. Files are stored under random ids, never under their original names."
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 255
+              },
+              "mime": {
+                "type": "string",
+                "enum": [
+                  "image/jpeg",
+                  "image/png",
+                  "image/webp"
+                ]
+              }
+            },
+            "required": [
+              "fileId",
+              "name",
+              "mime"
+            ]
+          },
+          "maxItems": 20
+        },
+        "founderStory": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "type": "string",
+              "maxLength": 20000
+            },
+            "fileId": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^f_[a-z0-9]{4,32}$"
+            }
+          },
+          "required": [
+            "text",
+            "fileId"
+          ]
+        },
+        "previousPosts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "link",
+                  "text",
+                  "image"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "maxLength": 5000,
+                "description": "A URL for link, the post text for text, a file id for image."
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ]
+          },
+          "maxItems": 15
+        },
+        "faqs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "q": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "a": {
+                    "type": "string",
+                    "maxLength": 3000
+                  }
+                },
+                "required": [
+                  "q",
+                  "a"
+                ]
+              },
+              "maxItems": 30
+            },
+            "fileId": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^f_[a-z0-9]{4,32}$"
+            }
+          },
+          "required": [
+            "rows",
+            "fileId"
+          ]
+        }
+      },
+      "required": [
+        "pictures",
+        "founderStory",
+        "previousPosts",
+        "faqs"
+      ]
+    },
+    "consent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^c-[0-9]+$"
+        },
+        "acceptedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "language": {
+          "type": "string",
+          "enum": [
+            "sv",
+            "en"
+          ]
+        }
+      },
+      "required": [
+        "version",
+        "acceptedAt",
+        "language"
+      ]
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "clientId",
+    "intakeVersion",
+    "submittedAt",
+    "answerLanguage",
+    "campaignLanguage",
+    "profile",
+    "uploads",
+    "consent"
+  ]
+}
