@@ -8,7 +8,8 @@
     "dev": "wrangler dev --local",
     "deploy": "wrangler deploy",
     "test:schemas": "node test/schemas.test.mjs",
-    "test:e2e": "node test/e2e.test.mjs"
+    "test:e2e": "node test/e2e.test.mjs",
+    "test:panel": "node test/panel.test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.40.0"

@@ -1,4 +1,5 @@
-/* Admin endpoints in phase 1: create and invite a client, list clients, resend an invite.
+/* Admin endpoints. Phase 1: create and invite a client, list clients, resend an invite.
+   Phase 3: the ScriptForge Growth Clients panel reads the list, opens an intake and marks it seen.
    Every handler here is reached only after the router has checked the admin role. */
 import { STATUS_LABELS } from "./config.js";
 import { createLoginToken, isAdminEmail, signinUrl, verifyLink } from "./auth.js";
@@ -26,8 +27,13 @@ function publicClient(c) {
     invitedAt: c.invited_at,
     lastLoginAt: c.last_login_at,
     latestIntakeVersion: c.latest_intake_version || 0,
+    latestSubmittedAt: c.latest_submitted_at || null,
     latestBrainVersion: c.latest_brain_version || 0,
     brainBuiltFromIntakeVersion: c.brain_built_from || 0,
+    seenIntakeVersion: c.admin_seen_intake_version || 0,
+    /* "New": a submitted intake Harry has not opened yet in ScriptForge. */
+    isNew: (c.latest_intake_version || 0) > (c.admin_seen_intake_version || 0),
+    /* The latest intake is newer than the one the current brain was built from (phase 4). */
     hasNewIntake: (c.latest_intake_version || 0) > (c.brain_built_from || 0)
   };
 }
@@ -94,11 +100,26 @@ export async function listClients(env) {
   const rows = await env.DB.prepare(
     `SELECT c.*,
        (SELECT MAX(version) FROM intakes i WHERE i.client_id = c.id) AS latest_intake_version,
+       (SELECT submitted_at FROM intakes i2 WHERE i2.client_id = c.id ORDER BY version DESC LIMIT 1) AS latest_submitted_at,
        (SELECT MAX(version) FROM brains b WHERE b.client_id = c.id) AS latest_brain_version,
        (SELECT built_from_intake_version FROM brains b2 WHERE b2.client_id = c.id ORDER BY version DESC LIMIT 1) AS brain_built_from
      FROM clients c ORDER BY c.created_at DESC`
   ).all();
-  return json({ clients: (rows.results || []).map(publicClient) });
+  const clients = (rows.results || []).map(publicClient);
+  return json({ clients, newCount: clients.filter((c) => c.isNew).length, checkedAt: nowIso() });
+}
+
+/* POST /admin/clients/:clientId/seen {version}: Harry has opened this intake version in
+   ScriptForge, so its "New" badge goes away. Never moves backwards. */
+export async function markSeen(request, env, clientId) {
+  const b = await readJson(request, 256);
+  const version = b && Number.isInteger(b.version) && b.version > 0 ? b.version : 0;
+  if (!version) return json({ error: "bad_request", message: M.badRequest }, 400);
+  const r = await env.DB.prepare(
+    "UPDATE clients SET admin_seen_intake_version = MAX(admin_seen_intake_version, ?) WHERE id = ? RETURNING admin_seen_intake_version AS seen"
+  ).bind(version, clientId).first();
+  if (!r) return json({ error: "not_found", message: M.notFound }, 404);
+  return json({ ok: true, seenIntakeVersion: r.seen });
 }
 
 /* GET /admin/intake/:clientId : the latest submitted intake (or the draft if nothing is
@@ -110,8 +131,12 @@ export async function getIntakeAdmin(env, clientId) {
   const last = await env.DB.prepare("SELECT version, data, submitted_at FROM intakes WHERE client_id = ? ORDER BY version DESC LIMIT 1").bind(clientId).first();
   const draft = last ? null : await env.DB.prepare("SELECT data, updated_at FROM intake_drafts WHERE client_id = ?").bind(clientId).first();
   const files = await env.DB.prepare("SELECT id, section, mime, size, original_name FROM files WHERE client_id = ? ORDER BY created_at ASC").bind(clientId).all();
+  const consent = await env.DB.prepare("SELECT version, language, accepted_at FROM consents WHERE client_id = ? ORDER BY id DESC LIMIT 1").bind(clientId).first();
+  const versions = await env.DB.prepare("SELECT version, submitted_at FROM intakes WHERE client_id = ? ORDER BY version DESC").bind(clientId).all();
   return json({
-    client: { id: client.id, name: client.name, email: client.email, status: client.status, statusLabel: STATUS_LABELS[client.status] },
+    client: { id: client.id, name: client.name, email: client.email, language: client.language, status: client.status, statusLabel: STATUS_LABELS[client.status] },
+    consent: consent ? { version: consent.version, language: consent.language, acceptedAt: consent.accepted_at } : null,
+    versions: (versions.results || []).map((v) => ({ version: v.version, submittedAt: v.submitted_at })),
     source: last ? "submitted" : draft ? "draft" : "none",
     version: last ? last.version : 0,
     submittedAt: last ? last.submitted_at : null,

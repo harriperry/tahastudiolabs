@@ -31,7 +31,7 @@ ol li,ul li{margin:4px 0}
 <body>
 <main>
 <h1>Brain Vault</h1>
-<p class="sub">TAHA Studio Labs Growth Department V1. Phase 1: the Vault foundation. Phase 2: the client portal at <code>/grow/</code>. Branch <code>growth-phase-1</code>, folder <code>workers/brain-vault/</code>.</p>
+<p class="sub">TAHA Studio Labs Growth Department V1. Phase 1: the Vault foundation. Phase 2: the client portal at <code>/grow/</code>. Phase 3: the Growth Clients panel inside ScriptForge. Branches <code>growth-phase-1</code> and <code>growth-phase-3</code>, folder <code>workers/brain-vault/</code>.</p>
 
 <p>The Brain Vault is a Cloudflare Worker that both sides talk to: the client onboarding portal (phase 2) and the Growth Clients panel in ScriptForge (phase 3). It runs on Cloudflare all the time, so you have nothing to start or restart. Phase 1 builds the foundation: the database, file storage, the three data contracts (JSON Schemas), magic link login with the client and admin roles, the invite email and the rate limits.</p>
 
@@ -44,7 +44,7 @@ ol li,ul li{margin:4px 0}
 <tr><td><code>package.json</code></td><td>Lists Wrangler (Cloudflare's deploy tool) and the test commands.</td></tr>
 <tr><td><code>src/index.js</code></td><td>The router: every endpoint, the Origin check, security headers, the daily cleanup.</td></tr>
 <tr><td><code>src/auth.js</code></td><td>Magic link tokens, sessions, roles, rate limits, and the ScriptForge admin bridge.</td></tr>
-<tr><td><code>src/admin.js</code></td><td>Admin endpoints for phase 1: invite a client, list clients, resend an invite.</td></tr>
+<tr><td><code>src/admin.js</code></td><td>Admin endpoints: invite a client, list clients, resend an invite (phase 1); open a client's intake with its consent record and version list, and mark an intake seen so its "New" badge goes away (phase 3).</td></tr>
 <tr><td><code>src/mail.js</code></td><td>The bilingual login and invite emails, plus the provider switch (Gmail, Resend, or log for local tests).</td></tr>
 <tr><td><code>src/smtp.js</code></td><td>A small SMTP client used to send through Gmail with an app password.</td></tr>
 <tr><td><code>src/config.js</code></td><td>Reads every setting, with safe defaults. Also holds the six client status labels in Swedish and English.</td></tr>
@@ -64,6 +64,10 @@ ol li,ul li{margin:4px 0}
 <tr><td><code>src/public/i18n.json</code></td><td>Every portal word in Swedish and English, including the consent text. Edit the wording here without touching code, keep the keys, then push. No em-dashes.</td></tr>
 <tr><td><code>test/portal.test.mjs</code></td><td>45 checks on the portal endpoints: consent lock, auto-save and resume, upload limits, no video, one client can never see another's files, submit and versions, status history, Harry's notice email.</td></tr>
 <tr><td><code>test/schemas.test.mjs</code>, <code>test/fixtures/pilot-intake-v1.json</code></td><td>14 checks on the schemas. Chef Sandy's Kitchen intake v1 must pass and broken documents must fail.</td></tr>
+<tr><td><code>../../assets/growth.js</code></td><td>Phase 3. The Growth Clients panel in ScriptForge. On page load it asks <code>/api/vault/admin/check</code>; only the admin gets the header button and the panel. Lists clients when the panel opens and every 60 seconds, invite form, read-only Intake tab with pictures and files, download of the intake as JSON. Never reads or sends an API key; all client text is written as plain text, never HTML.</td></tr>
+<tr><td><code>../../assets/growth.css</code></td><td>Phase 3. Styles for the panel only. Every rule starts with <code>.gc-</code>, so nothing else in ScriptForge can change.</td></tr>
+<tr><td><code>../../scriptforge/index.html</code>, <code>../../assets/app.js</code></td><td>Phase 3 touches these with three lines only: the growth.css link, the growth.js script tag, and one line in app.js that tells growth.js when someone signs in or out. Sections 1 to 7, the Library, Characters and PDF export are unchanged.</td></tr>
+<tr><td><code>test/panel.test.mjs</code></td><td>Phase 3. 37 checks: public and normal ScriptForge users see nothing, admin through ScriptForge sign-in and through a Vault link, invite from the panel, New badge on submit and after a resubmit, the email to Harry links to the panel and carries no client content, seen never moves backwards, a client can never use admin endpoints.</td></tr>
 <tr><td><code>SETUP-RECORD.html</code></td><td>Cloudflare resource names, setting names and email settings. Contains no secrets.</td></tr>
 <tr><td><code>../../functions/workers/[[path]].js</code></td><td>Stops the website from serving this source folder publicly (Pages serves every file in the repo).</td></tr>
 </table></div>
@@ -102,13 +106,23 @@ ol li,ul li{margin:4px 0}
 </table></div>
 <p>The portal pages themselves are served by the same Worker at <code>/grow/</code> (route <code>tahastudiolabs.com/grow/*</code>), so the main site and ScriptForge are untouched.</p>
 
+<h2>2c. Endpoints added in phase 3 (all admin, except the check)</h2>
+<div class="tw"><table>
+<tr><th>Method and path</th><th>What it does</th></tr>
+<tr><td><code>GET /admin/check</code></td><td>Always answers 200 with only <code>{"admin":true}</code> or <code>{"admin":false}</code>. ScriptForge uses it to decide whether to show the Growth Clients button. Public visitors learn nothing else.</td></tr>
+<tr><td><code>GET /admin/clients</code></td><td>Now also returns <code>isNew</code> (a submitted intake Harry has not opened), <code>latestSubmittedAt</code>, <code>seenIntakeVersion</code>, <code>newCount</code> and <code>checkedAt</code>.</td></tr>
+<tr><td><code>GET /admin/intake/:id</code></td><td>Now also returns the client's latest consent record and the list of submitted versions.</td></tr>
+<tr><td><code>POST /admin/clients/:id/seen</code></td><td>Body <code>{"version":N}</code>. Marks intake version N as opened by Harry. Never moves backwards. Stored in the new column <code>clients.admin_seen_intake_version</code> (migration 2, applied automatically).</td></tr>
+</table></div>
+<p>The "new intake" email to Harry now links to <code>/scriptforge/#growth</code> (setting <code>GROWTH_PANEL_PATH</code>), which opens the panel straight away. It still carries only the company name and the version number.</p>
+
 <h2>3. How login works</h2>
 <ol>
 <li>Someone enters an email. If it belongs to an invited client or is in <code>ADMIN_EMAILS</code>, the Vault creates a random 32-byte token, stores only its SHA-256 hash, and emails the link. Any other email gets the same message and no email. The work happens after the reply is sent, so the reply takes the same time for every email.</li>
 <li>The link opens <code>/api/vault/auth/verify#t=...</code>. The person clicks <b>Logga in / Sign in</b> once. This extra click is deliberate: Outlook and Gmail scanners open links automatically, and without it they would use up the one-time link before the person ever saw it.</li>
 <li>The token gets marked as used in one database step, so a second click always fails. It also stops working after 15 minutes.</li>
 <li>The Vault sets the cookie <code>__Host-tv_session</code>, which is HttpOnly, Secure, SameSite=Lax and lasts 30 days. Only its hash is stored.</li>
-<li>Clients land on <code>CLIENT_HOME</code> and admins on <code>ADMIN_HOME</code>. Both point to the test console in phase 1. In phase 2, <code>CLIENT_HOME</code> becomes the portal. In phase 3, <code>ADMIN_HOME</code> becomes <code>/scriptforge/</code>.</li>
+<li>Clients land on <code>CLIENT_HOME</code> and admins on <code>ADMIN_HOME</code>. In phase 2, <code>CLIENT_HOME</code> became the portal. In phase 3, <code>ADMIN_HOME</code> became <code>/scriptforge/#growth</code>, so an admin magic link opens the Growth Clients panel. The phase 1 test console still works at <code>/api/vault/console</code>.</li>
 </ol>
 
 <h3>Admin role: two ways in</h3>
@@ -170,8 +184,12 @@ npx wrangler deploy</pre>
   --persist-to .wrangler/state &gt; dev.log 2&gt;&amp;1 &amp;
 DEV_LOG=dev.log PERSIST=.wrangler/state WRANGLER=./node_modules/.bin/wrangler node test/e2e.test.mjs
 node test/portal.test.mjs
-node test/schemas.test.mjs</pre>
+node test/schemas.test.mjs
+# phase 3: run the Vault behind a local copy of the site on port 8080 that also fakes
+# ScriptForge's /api/me (cookie sf_sid=admin or sf_sid=user), with SITE_ORIGIN=http://localhost:8080
+DEV_LOG=dev.log VAULT_URL=http://127.0.0.1:8080/api/vault ORIGIN=http://localhost:8080 node test/panel.test.mjs</pre>
 <p>Local note: <code>wrangler dev</code> rewrites the browser's Origin header to the route's domain, so for local browser tests set <code>SITE_ORIGIN</code> to <code>http://tahastudiolabs.com</code> and run the node tests with <code>ORIGIN=http://tahastudiolabs.com</code>.</p>
+<p>Phase 3 results on 5 October 2026: 37 of 37 panel checks passed, and the phase 1 and 2 suites still pass (38, 47 and 14). Browser run at desktop and phone size: no button or panel for a visitor or a normal ScriptForge user; for the admin, the button, the panel, the invite form, the Intake tab with pictures, and a newly submitted intake appearing with a "New" badge 53 seconds after submit while the panel was open.</p>
 <p>Phase 2 results on 3 October 2026: 45 of 45 portal checks, 38 of 38 login checks and 14 of 14 schema checks passed, plus a browser run on phone and desktop size: consent lock, auto-save surviving a reload, a 3200 px photo resized to 2000 px before upload, video refused, submit, status, Swedish and English.</p>
 <p>Phase 1 results on 3 October 2026: 38 of 38 end to end checks and 14 of 14 schema checks passed. A test against a local mail server confirmed the Gmail path sends a correct bilingual email from agborkak@gmail.com. The encrypted connection to Gmail itself is confirmed by the first real invite.</p>
 

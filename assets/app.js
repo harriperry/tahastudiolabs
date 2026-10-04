@@ -1860,6 +1860,8 @@ async function refreshMe(){
   els2.viewSignedOut.style.display = user ? "none" : "block";
   els2.viewSignedIn.style.display  = user ? "block" : "none";
   els2.authTitle.textContent = user ? "Account" : "Sign in / Create account";
+  // Lets the admin-only Growth Clients panel (growth.js) re-check who is signed in.
+  document.dispatchEvent(new CustomEvent("scriptforge:auth"));
 }
 
 function showUpgrade(msg){

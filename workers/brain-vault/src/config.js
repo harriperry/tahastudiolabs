@@ -47,6 +47,8 @@ export function getConfig(env) {
     rateLimitPerIpHour: int(env.RATE_LIMIT_PER_IP_HOUR, 20),
     clientHome: env.CLIENT_HOME || "/grow/",
     adminHome: env.ADMIN_HOME || "/api/vault/console",
+    /* Where the "new intake" email sends Harry: the Growth Clients panel in ScriptForge. */
+    growthPanelUrl: siteOrigin + (env.GROWTH_PANEL_PATH || "/scriptforge/#growth"),
     bridgeOn: String(env.SCRIPTFORGE_ADMIN_BRIDGE || "on").toLowerCase() === "on",
     scriptforgeMeUrl: env.SCRIPTFORGE_ME_URL || siteOrigin + "/api/me"
   };

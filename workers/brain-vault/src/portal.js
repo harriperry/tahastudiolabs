@@ -314,7 +314,7 @@ export async function submitIntake(env, cfg, auth, ctx) {
   const mail = composeSubmitNotice(cfg, {
     company: String(doc.profile.companyName || client.name).slice(0, 120),
     version,
-    link: cfg.siteOrigin + cfg.adminHome
+    link: cfg.growthPanelUrl
   });
   ctx.waitUntil(sendMail(cfg, env, { to: cfg.tahaEmail, ...mail }).catch((e) => console.error("submit notice failed: " + e.message)));
   return json({ ok: true, intakeVersion: version, submittedAt: t, status: "submitted", statusLabel: STATUS_LABELS.submitted });

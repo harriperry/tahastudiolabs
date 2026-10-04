@@ -109,5 +109,14 @@ export const MIGRATIONS = [
         erased_at TEXT NOT NULL
       )`
     ]
+  },
+  {
+    id: 2,
+    name: "phase3-admin-seen",
+    statements: [
+      /* The intake version Harry last opened in ScriptForge. A client whose latest
+         submitted intake is newer than this shows the "New" badge. */
+      `ALTER TABLE clients ADD COLUMN admin_seen_intake_version INTEGER NOT NULL DEFAULT 0`
+    ]
   }
 ];

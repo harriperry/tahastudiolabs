@@ -1,6 +1,7 @@
 /* Brain Vault: the always-on bridge between the TAHA client portal and ScriptForge.
    Routed at tahastudiolabs.com/api/vault/* (the API) and tahastudiolabs.com/grow/* (the client
    portal pages). Phase 1: login, roles and invites. Phase 2: the client portal.
+   Phase 3: admin endpoints behind the ScriptForge Growth Clients panel.
 
    House rules enforced here:
    1. The Vault never receives, stores or logs an LLM API key. No endpoint accepts one.
@@ -20,7 +21,7 @@ import {
   issueLoginLink,
   sessionCookie
 } from "./auth.js";
-import { createClient, getIntakeAdmin, listClients, resendInvite } from "./admin.js";
+import { createClient, getIntakeAdmin, listClients, markSeen, resendInvite } from "./admin.js";
 import {
   deleteFile,
   getFile,
@@ -143,7 +144,7 @@ async function handle(request, env, ctx) {
 
   if (method === "GET" && path === "/health") {
     const db = await env.DB.prepare("SELECT 1 AS ok").first();
-    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 2 });
+    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 3 });
   }
 
   if (method === "GET" && path === "/portal/meta") {
@@ -214,6 +215,11 @@ async function handle(request, env, ctx) {
   }
 
   /* ---------- admin ---------- */
+  /* ScriptForge asks this on page load to decide whether to show the Growth Clients button.
+     Always 200 so public visitors get a quiet {admin:false} and nothing else. */
+  if (method === "GET" && path === "/admin/check") {
+    return respond(json({ admin: !!auth && auth.role === "admin" }));
+  }
   if (path === "/admin" || path.startsWith("/admin/")) {
     if (!auth) return json({ error: "not_signed_in", message: MSG.notSignedIn }, 401);
     if (auth.role !== "admin") return json({ error: "forbidden", message: MSG.forbidden }, 403);
@@ -221,6 +227,8 @@ async function handle(request, env, ctx) {
     if (path === "/admin/clients" && method === "POST") return respond(await createClient(request, env, cfg));
     const inv = path.match(/^\/admin\/clients\/(cl_[a-z0-9]{4,32})\/invite$/);
     if (inv && method === "POST") return respond(await resendInvite(env, cfg, inv[1]));
+    const seen = path.match(/^\/admin\/clients\/(cl_[a-z0-9]{4,32})\/seen$/);
+    if (seen && method === "POST") return respond(await markSeen(request, env, seen[1]));
     const ai = path.match(/^\/admin\/intake\/(cl_[a-z0-9]{4,32})$/);
     if (ai && method === "GET") return respond(await getIntakeAdmin(env, ai[1]));
   }
