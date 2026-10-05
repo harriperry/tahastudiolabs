@@ -104,3 +104,26 @@
 .gc-row-fields{flex:1 1 260px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;min-width:0}
 .gc-thumb{width:72px;aspect-ratio:3/4;object-fit:cover;border-radius:4px;flex:0 0 auto}
 .gc-remove{align-self:flex-start;color:#E0806A}
+/* Phase 5: Campaign Generator */
+.gc-status-ctl{margin-top:10px}
+.gc-cform{gap:12px}
+.gc-cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.gc-cgrid .wide{grid-column:1/-1}
+.gc-cgrid .gc-ed select,.gc-cgrid .gc-ed input{width:100%}
+.gc-cgrid .gc-ed .gc-ta{margin-top:6px}
+.gc-channels{border:1px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px 16px}
+.gc-channels legend{font-size:.72rem;color:var(--muted);padding:0 4px}
+.gc-check{display:inline-flex;align-items:center;gap:6px;margin:0;font-size:.84rem;color:var(--text);min-height:32px;cursor:pointer}
+.gc-check input{width:auto}
+.gc-cards.one{grid-template-columns:1fr}
+.gc-card.flagged{border-color:var(--err)}
+.gc-card-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.gc-send{padding:5px 10px}
+.gc-camp-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.gc-camp-title h4{font-size:1.05rem;margin:0}
+.gc-read{display:flex;flex-direction:column;gap:6px;font-size:.86rem;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.gc-read p{margin:0}
+.gc-read ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;white-space:normal}
+.gc-read-title{font-weight:700;font-size:1rem}
+.gc-read-sub{font-weight:600;font-size:.82rem;color:#F0B94A;margin-top:6px}
+.gc-muted{color:var(--muted)}

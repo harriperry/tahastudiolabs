@@ -1,0 +1,65 @@
+{
+  "concept": {
+    "title": "A Little Extra",
+    "bigIdea": "October at Chef Sandy's Kitchen comes with a little extra on every plate.",
+    "whyNow": "Students are back on campus and short on time; a simple, generous offer gives them a reason to text an order this month.",
+    "keyMessage": "Fresh, hygienic West African food, a text away."
+  },
+  "hook": [
+    "Your lunch is one text away.",
+    "Rich. Spicy. Tender. Ready in minutes.",
+    "This is what home tastes like in Buea.",
+    "Hungry between lectures? Text Sandy.",
+    "Comfort on your plate, delivered hot."
+  ],
+  "offer": {
+    "framing": "Refer ten friends this month and your next plate is on us.",
+    "terms": "Refer 10, get your next plate free",
+    "deadline": "31 October",
+    "riskReversal": "Every plate is cooked fresh to the same hygiene standard."
+  },
+  "shortVideo": {
+    "ratio": "9:16",
+    "seconds": 30,
+    "script": "SEGMENT 1 (0-10s)\nVisual: Steam rises from a plate of pepper stew.\nOn screen: Chef Sandy's Kitchen\nVoice: Hungry between lectures? Chef Sandy's Kitchen cooks it fresh, rich, spicy and tender, right here in Buea.\n\nSEGMENT 2 (10-20s)\nVisual: Sandy plates golden fried plantains.\nOn screen: Cooked fresh. Delivered hot.\nVoice: Every plate is made to the same hygiene standard, and it reaches your door hot or waits for you on the go.\n\nSEGMENT 3 (20-30s)\nVisual: A student grins and takes a first bite.\nOn screen: Text to order\nVoice: Refer ten friends this October and your next plate is free. Text Chef Sandy's Kitchen now."
+  },
+  "socialCopy": [
+    { "channel": "instagram", "text": "Rich. Spicy. Tender.\nYour lunch is one text away.", "hashtags": ["#Buea", "#ChefSandysKitchen", "CameroonFood"] },
+    { "channel": "facebook", "text": "October comes with a little extra: refer ten friends and your next plate is on us.", "hashtags": ["#Buea"] },
+    { "channel": "google_business", "text": "Fresh West African meals in Buea, a text away from 8 AM to 10 PM.", "hashtags": ["#shouldbedropped"] }
+  ],
+  "adVariations": [
+    { "angle": "Taste", "headline": "Rich. Spicy. Tender.", "primaryText": "Pepper stew and golden plantains, cooked fresh today.", "description": "Text to order" },
+    { "angle": "Convenience", "headline": "Lunch in one text", "primaryText": "Order by text, get it hot or ready on the go.", "description": "8 AM to 10 PM" },
+    { "angle": "Trust and hygiene", "headline": "Clean kitchen, real flavour", "primaryText": "Every plate meets the same strict hygiene standard.", "description": "Cooked fresh" },
+    { "angle": "Founder story", "headline": "Sandy chose the kitchen", "primaryText": "She turned her first semester fees into a kitchen people travel to.", "description": "Taste the story" },
+    { "angle": "Offer urgency", "headline": "Refer 10, eat free", "primaryText": "This October only: refer ten friends, your next plate is free.", "description": "Ends 31 October" }
+  ],
+  "cta": [
+    { "text": "Text us your order now.", "button": "Order now" },
+    { "text": "Share with ten friends and eat free.", "button": "Refer friends" },
+    { "text": "See today's dishes.", "button": "See menu" }
+  ],
+  "landingPage": {
+    "headline": "Comfort on your plate, a text away",
+    "subheadline": "Authentic West African food cooked fresh in Buea.",
+    "benefits": [
+      { "title": "Cooked fresh", "text": "Every plate is made the day you order it." },
+      { "title": "Absolute hygiene", "text": "The same strict standard on every dish." },
+      { "title": "Easy ordering", "text": "Text your order, get it delivered hot or pick it up." }
+    ],
+    "proof": ["People travel long distances to eat at Chef Sandy's Kitchen."],
+    "faq": [ { "q": "How do I order?", "a": "Send a text between 8 AM and 10 PM." } ],
+    "cta": "Text to order"
+  },
+  "email": {
+    "subjects": ["A little extra this October", "Your next plate could be free"],
+    "preview": "Refer ten friends, eat free.",
+    "body": "Hello,\n\nThis October Chef Sandy's Kitchen adds a little extra. Refer ten friends and your next plate is on us.\n\nChef Sandy",
+    "cta": "Text your order"
+  },
+  "googleBusinessPost": {
+    "text": "October at Chef Sandy's Kitchen: refer ten friends and your next plate is free. Fresh, hygienic West African meals, a text away.",
+    "ctaType": "ORDER"
+  }
+}

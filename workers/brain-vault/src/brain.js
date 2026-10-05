@@ -33,7 +33,7 @@ export function looksLikeKey(text) {
   return KEY_PATTERNS.some((re) => re.test(text));
 }
 
-function stripDashes(v) {
+export function stripDashes(v) {
   if (typeof v === "string") return v.replace(/\s*\u2014\s*/g, ", ");
   if (Array.isArray(v)) return v.map(stripDashes);
   if (v && typeof v === "object") {

@@ -8,7 +8,7 @@ const ok = (c, n) => { if (c) { pass++; console.log("PASS " + n); } else { fail+
 let sent = null;
 globalThis.fetch = async (url, init) => {
   sent = { url: String(url), body: JSON.parse(init.body) };
-  return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "ok — done" }] } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "ok \u2014 done" }] } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
 };
 const post = (body) => onRequestPost({ request: new Request("https://x/api/format", { method: "POST", body: JSON.stringify(body) }) });
 

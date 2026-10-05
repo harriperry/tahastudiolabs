@@ -11,7 +11,8 @@
      read-only with its files. A submitted intake Harry has not opened yet carries a "New"
      badge; opening it marks that version seen.
    - Phase 4: the Business Brain tab and button live in growth-brain.js, loaded on demand.
-   - The Campaigns tab is a placeholder until phase 5.
+   - Phase 5: the Campaigns tab (Campaign Generator) lives in growth-campaign.js, loaded on
+     demand. Its short video card can hand the script to ScriptForge's own sections 1 to 5.
 
    House rules
    - The AI key stays with ScriptForge. The strip only checks whether the section 2 key field
@@ -51,6 +52,7 @@
   var ui = null;
   var brain = null;
   var brainLoading = null;
+  var camps = null;
 
   /* ---------- small helpers ---------- */
 
@@ -237,7 +239,10 @@
   }
 
   function refresh() {
-    if (!S.admin || S.checking) return Promise.resolve();
+    if (!S.admin) return Promise.resolve();
+    /* A check is already running: run once more right after it, so a change Harry just made
+       (save, status) shows without waiting for the next 60 second check. */
+    if (S.checking) { S.again = true; return Promise.resolve(); }
     S.checking = true;
     return api("/admin/clients").then(function (r) {
       S.checking = false;
@@ -265,6 +270,7 @@
       }
       renderLive();
       updateButton();
+      if (S.again) { S.again = false; refresh(); }
     });
   }
 
@@ -297,25 +303,53 @@
     }
   }
 
-  /* Phase 4: the Business Brain module, loaded only for the admin. */
+  /* Phase 5: the short video card's "Send to ScriptForge". Sets section 1 to Short Advert,
+     section 4 to 9:16, three 10 second segments, pastes the script into section 5, closes the
+     panel and scrolls there. ScriptForge's own Format button and video steps take it from there. */
+  function setField(id, value, evt) {
+    var el = document.getElementById(id);
+    if (!el) return false;
+    el.value = value;
+    el.dispatchEvent(new Event(evt || "change", { bubbles: true }));
+    return true;
+  }
+  function sendToScriptForge(script) {
+    setField("scriptType", "Short Advert");
+    setField("ratio", "9:16");
+    setField("segCount", "3");
+    setField("script", String(script || ""), "input");
+    closePanel();
+    var el = document.getElementById("script");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(function () { el.focus(); }, 400);
+    }
+  }
+
+  /* Phase 4 and 5: the Business Brain and Campaign Generator modules, loaded only for the admin. */
   function loadBrain() {
     if (brain || brainLoading) return brainLoading;
-    brainLoading = import("/assets/growth-brain.js?v=p4").then(function (m) {
-      brain = m.createBrain({
-        h: h,
-        clear: clear,
-        api: api,
-        when: when,
-        providerInfo: providerInfo,
-        pointToSection2: pointToSection2,
-        rerender: function (id) {
-          if (ui && S.selectedId === id) renderDetail();
-        },
-        onSaved: function (id) {
-          if (S.selectedId === id) S.detail = null;
-          refresh();
-        }
-      });
+    var ctx = {
+      h: h,
+      clear: clear,
+      api: api,
+      when: when,
+      providerInfo: providerInfo,
+      pointToSection2: pointToSection2,
+      sendToScriptForge: sendToScriptForge,
+      rerender: function (id) {
+        if (ui && S.selectedId === id) renderDetail();
+      },
+      onSaved: function (id) {
+        /* Reload this client's details directly: the list refresh may be skipped if the
+           60 second check is already running at this moment. */
+        if (S.selectedId === id) loadDetail(id);
+        refresh();
+      }
+    };
+    brainLoading = Promise.all([import("/assets/growth-brain.js?v=p5"), import("/assets/growth-campaign.js?v=p5")]).then(function (mods) {
+      brain = mods[0].createBrain(ctx);
+      camps = mods[1].createCampaigns(ctx);
       if (ui) renderDetail();
     }, function () {
       brainLoading = null;
@@ -531,6 +565,19 @@
     else if (d) chips.appendChild(h("span", { class: "gc-badge warn", text: "No consent yet" }));
     if (c.lastLoginAt) chips.appendChild(h("span", { class: "gc-badge", text: "Last login " + when(c.lastLoginAt) }));
 
+    /* Manual status change (spec section 4: PATCH /admin/status). Normally the steps set it. */
+    var STATUS_EN = [["invited", "Invited"], ["profile_in_progress", "Profile in progress"], ["submitted", "Submitted"], ["brain_ready", "Your strategy is ready"], ["campaign_in_production", "Campaign in production"], ["campaign_delivered", "Campaign delivered"]];
+    var stSel = h("select", { id: "gcStatusSel", class: "gc-select" }, STATUS_EN.map(function (x) { return h("option", { value: x[0], selected: x[0] === c.status }, x[1]); }));
+    stSel.addEventListener("change", function () {
+      stSel.disabled = true;
+      api("/admin/status/" + encodeURIComponent(c.id), { method: "PATCH", body: { status: stSel.value } }).then(function (r) {
+        stSel.disabled = false;
+        if (!r.ok) stSel.value = c.status;
+        refresh();
+      });
+    });
+    var statusCtl = h("div", { class: "gc-verpick gc-status-ctl" }, h("label", { for: "gcStatusSel", class: "gc-label", text: "Status the client sees" }), stSel);
+
     var resendMsg = h("div", { class: "gc-msg", hidden: true, role: "status" });
     var resend = null;
     if (c.status === "invited" || c.status === "profile_in_progress") {
@@ -559,6 +606,7 @@
         h("div", { class: "gc-sub", text: subBits.join(" · ") }),
         chips,
         resend ? h("div", { style: "margin-top:8px" }, resend) : null,
+        statusCtl,
         resendMsg
       ),
       h("div", null, brainBtn, h("div", { class: "gc-hint", id: "gcBrainHint", text: bs.hint || "" }))
@@ -589,8 +637,18 @@
       return;
     }
     if (S.tab === "campaigns") {
-      pane.appendChild(h("div", { class: "gc-soon" }, h("b", { text: "Campaign Generator arrives in phase 5. " }),
-        "It builds a monthly campaign (concept plus hook, offer, short video, social copy, ad variations, CTA, landing page, email and Google Business post) from the saved brain."));
+      if (!camps || !brain) {
+        pane.appendChild(h("div", { class: "gc-msg info" }, h("span", { class: "spin" }), "Loading the Campaign Generator..."));
+        loadBrain();
+        return;
+      }
+      var be = brain.entry(c.id);
+      brain.load(c.id);
+      if (!d || (!be.loaded && !be.latest)) {
+        pane.appendChild(h("div", { class: "gc-msg info" }, h("span", { class: "spin" }), "Loading..."));
+        return;
+      }
+      camps.renderTab(pane, c, d, be.latest);
       return;
     }
 

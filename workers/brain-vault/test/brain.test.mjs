@@ -75,11 +75,11 @@ try {
   ok(r.status === 400 && r.data.error === "api_key", "anything that looks like an API key is refused, never stored");
 
   const dashed = brainBody(1, { brainVersion: 99, clientId: "cl_someoneelse", createdAt: "2000-01-01T00:00:00Z" });
-  dashed.brain.positioning.oneLiner = "Hot food — cooked fresh";
+  dashed.brain.positioning.oneLiner = "Hot food \u2014 cooked fresh";
   r = await call("/admin/brain/" + id, { method: "POST", cookie: ADMIN, body: dashed });
   ok(r.status === 201 && r.data.brainVersion === 1, "valid brain saved as v1");
   ok(r.data.brain.clientId === id && r.data.brain.brainVersion === 1 && r.data.brain.createdAt !== "2000-01-01T00:00:00Z", "the Vault sets client id, version and time itself");
-  ok(!/—/.test(JSON.stringify(r.data.brain)) && r.data.brain.positioning.oneLiner === "Hot food, cooked fresh", "em-dashes are replaced on save");
+  ok(!/\u2014/.test(JSON.stringify(r.data.brain)) && r.data.brain.positioning.oneLiner === "Hot food, cooked fresh", "em-dashes are replaced on save");
   ok(r.data.status === "brain_ready" && r.data.statusLabel.en === "Your strategy is ready", "status becomes Brain ready");
 
   r = await call("/status", { cookie: client });
@@ -110,7 +110,7 @@ try {
   ok(r.status === 201 && r.data.brainVersion === 3 && r.data.brain.builtFromIntakeVersion === 2 && r.data.status === "brain_ready", "brain v3 from intake v2, status Brain ready again");
 
   r = await call("/health");
-  ok(r.data.phase === 4, "health reports phase 4");
+  ok(r.data.phase >= 4, "health reports phase 4 or later");
 } catch (e) {
   fail++;
   console.log("FAIL crashed: " + e.stack);

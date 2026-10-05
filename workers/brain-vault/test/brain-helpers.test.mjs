@@ -17,7 +17,7 @@ ok(extractJson("text {\"a\":{\"b\":2}} trailing").a.b === 2, "extractJson reads 
 let threw = false;
 try { extractJson("no json here"); } catch (e) { threw = true; }
 ok(threw, "extractJson fails clearly when there is no JSON");
-ok(stripDashes({ a: ["x — y"], b: { c: "p—q" } }).b.c === "p, q", "stripDashes cleans nested text");
+ok(stripDashes({ a: ["x \u2014 y"], b: { c: "p\u2014q" } }).b.c === "p, q", "stripDashes cleans nested text");
 const ms = modelSchema(schema);
 ok(!ms.properties.clientId && !ms.required.includes("brainVersion") && ms.properties.personas, "the model sees the schema without the fields the Vault owns");
 ok(JSON.stringify(languagesFor("both")) === '["sv","en"]' && languagesFor("sv")[0] === "sv" && languagesFor("")[0] === "en", "languages follow the campaign language");
@@ -27,7 +27,7 @@ raw.clientId = "cl_wrong";
 raw.brainVersion = 77;
 raw.positioning.oneLiner = "x".repeat(400);
 raw.words = { use: ["comfort on your plate", "New phrase"], avoid: [] };
-raw.imageNotes = [{ fileId: "f_pic1aaaa", caption: "Skewers — grilled", bestUse: "Post" }, { fileId: "f_madeup1", caption: "x", bestUse: "y" }, { fileId: "f_pic1aaaa", caption: "dup", bestUse: "dup" }];
+raw.imageNotes = [{ fileId: "f_pic1aaaa", caption: "Skewers \u2014 grilled", bestUse: "Post" }, { fileId: "f_madeup1", caption: "x", bestUse: "y" }, { fileId: "f_pic1aaaa", caption: "dup", bestUse: "dup" }];
 raw.extraKey = "dropped";
 const doc = normalizeBrain(raw, { intake, clientId: "cl_chefsandy01", schema, languages: ["en"], pictureIds: ["f_pic1aaaa", "f_pic2aaaa"], intakeVersion: 1, nextVersion: 1 });
 const v = validate(schema, doc);
@@ -45,7 +45,7 @@ ok(!validate(schema, d2).valid, "a missing section still fails validation, so th
 
 const prompt = read("../../../assets/growth/brain.prompt.json");
 const all = JSON.stringify(prompt);
-ok(!/—/.test(all), "the prompt file has no em-dash");
+ok(!/\u2014/.test(all), "the prompt file has no em-dash");
 ok(prompt.system.join("\n").includes("{{SCHEMA}}") && prompt.system.join("\n").includes("{{LANGUAGE_RULE}}") && prompt.user.join("\n").includes("{{INTAKE_JSON}}") && prompt.retry.includes("{{ERRORS}}"), "the prompt keeps its placeholders");
 ok(prompt.languageRules.sv && prompt.languageRules.en && prompt.languageRules.both, "the prompt has rules for Swedish, English and both");
 

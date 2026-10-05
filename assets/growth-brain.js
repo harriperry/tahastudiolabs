@@ -21,10 +21,10 @@
 
    No em-dashes: every text the model returns passes through stripDashes before Harry sees it,
    and the Vault strips them again on save. */
-import { validate } from "./growth-validate.js?v=p4";
+import { validate } from "./growth-validate.js?v=p5";
 
 const VAULT = "/api/vault";
-const PROMPT_URL = "/assets/growth/brain.prompt.json?v=p4";
+const PROMPT_URL = "/assets/growth/brain.prompt.json?v=p5";
 const PDFJS = "/assets/vendor/pdfjs-4.10.38.min.js";
 const PDFJS_WORKER = "/assets/vendor/pdfjs-4.10.38.worker.min.js";
 const JSZIP = "/assets/vendor/jszip-3.10.1.min.js";
@@ -143,6 +143,27 @@ export function modelSchema(schema) {
 }
 
 function fill(text, vars) {
+  return String(text).replace(/\{\{([A-Z_]+)\}\}/g, (m, k) => (k in vars ? vars[k] : m));
+}
+
+/* One AI call through ScriptForge's own /api/format relay, exactly like a ScriptForge script
+   run: provider, key and model come from section 2. Shared with growth-campaign.js. */
+export async function callModel(p, system, messages, maxTokens) {
+  const res = await fetch("/api/format", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ provider: p.provider, apiKey: p.key, model: p.model, max_tokens: maxTokens, system, messages })
+  });
+  let data = null;
+  try { data = await res.json(); } catch (err) {}
+  if (!res.ok) throw new Error((data && data.error && data.error.message) || "The provider answered with HTTP " + res.status + ".");
+  const text = ((data && data.content) || []).filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
+  if (!text) throw new Error("The provider returned an empty answer.");
+  return text;
+}
+
+export function fillTemplate(text, vars) {
   return String(text).replace(/\{\{([A-Z_]+)\}\}/g, (m, k) => (k in vars ? vars[k] : m));
 }
 
@@ -371,21 +392,6 @@ export function createBrain(ctx) {
     if (last && last.state === "run") last.state = "done";
     if (text) e.steps.push({ text, state: state || "run" });
     ctx.rerender(id);
-  }
-
-  async function callModel(p, system, messages, maxTokens) {
-    const res = await fetch("/api/format", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: p.provider, apiKey: p.key, model: p.model, max_tokens: maxTokens, system, messages })
-    });
-    let data = null;
-    try { data = await res.json(); } catch (err) {}
-    if (!res.ok) throw new Error((data && data.error && data.error.message) || "The provider answered with HTTP " + res.status + ".");
-    const text = ((data && data.content) || []).filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
-    if (!text) throw new Error("The provider returned an empty answer.");
-    return text;
   }
 
   async function build(c, d) {

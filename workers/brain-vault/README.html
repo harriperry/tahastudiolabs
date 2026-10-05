@@ -31,7 +31,7 @@ ol li,ul li{margin:4px 0}
 <body>
 <main>
 <h1>Brain Vault</h1>
-<p class="sub">TAHA Studio Labs Growth Department V1. Phase 1: the Vault foundation. Phase 2: the client portal at <code>/grow/</code>. Phase 3: the Growth Clients panel inside ScriptForge. Phase 4: the Business Brain. Branches <code>growth-phase-1</code> (the Worker deploys from it) and <code>main</code> (the website), folder <code>workers/brain-vault/</code>.</p>
+<p class="sub">TAHA Studio Labs Growth Department V1. Phase 1: the Vault foundation. Phase 2: the client portal at <code>/grow/</code>. Phase 3: the Growth Clients panel inside ScriptForge. Phase 4: the Business Brain. Phase 5: the Campaign Generator. Branches <code>growth-phase-1</code> (the Worker deploys from it) and <code>main</code> (the website), folder <code>workers/brain-vault/</code>.</p>
 
 <p>The Brain Vault is a Cloudflare Worker that both sides talk to: the client onboarding portal (phase 2) and the Growth Clients panel in ScriptForge (phase 3). It runs on Cloudflare all the time, so you have nothing to start or restart. Phase 1 builds the foundation: the database, file storage, the three data contracts (JSON Schemas), magic link login with the client and admin roles, the invite email and the rate limits.</p>
 
@@ -75,6 +75,10 @@ ol li,ul li{margin:4px 0}
 <tr><td><code>../../assets/vendor/pdfjs-4.10.38*.js</code>, <code>jszip-3.10.1.min.js</code></td><td>Phase 4. pdf.js (Apache 2.0) and JSZip (MIT), served from the site itself, loaded only when a client's founder story, FAQs or reviews are a PDF or Word file.</td></tr>
 <tr><td><code>../../functions/api/format.js</code></td><td>Phase 4 change: the Gemini path now also accepts pictures and a retry conversation. Plain ScriptForge calls send exactly the same request as before (tested).</td></tr>
 <tr><td><code>test/brain.test.mjs</code>, <code>test/brain-helpers.test.mjs</code>, <code>test/format-gemini.test.mjs</code>, <code>test/fixtures/pilot-brain-v1.json</code></td><td>Phase 4. 25 Vault checks (versions, status, schema, roles, key guard), 17 helper and prompt checks, 5 relay checks.</td></tr>
+<tr><td><code>src/campaign.js</code></td><td>Phase 5. Saves a campaign after checking it against <code>campaign.schema.json</code> (status Campaign in production), opens and lists campaigns, marks a campaign delivered or back in production, and the manual status change. Refuses anything that looks like an API key and replaces em-dashes.</td></tr>
+<tr><td><code>../../assets/growth-campaign.js</code></td><td>Phase 5. The Campaigns tab: the form (name, month, goal, offer from the brain or typed, language from the brain or changed, channels), one Generate call through <code>/api/format</code> with the section 2 provider and key, schema and house checks with one retry, the concept and nine output cards with Regenerate (that card only), Copy and Edit, the words-to-avoid check, Send to ScriptForge on the short video, Save campaign, Mark delivered, Export JSON and Export HTML.</td></tr>
+<tr><td><code>../../assets/growth/campaign.prompt.json</code></td><td>Phase 5. The Campaign Generator prompt as JSON: rules per output, language rules (Swedish, English, both), goals, the single-card regenerate message and the retry message. Edit the wording here; keep the <code>{{PLACEHOLDERS}}</code>.</td></tr>
+<tr><td><code>test/campaign.test.mjs</code>, <code>test/campaign-helpers.test.mjs</code>, <code>test/fixtures/pilot-campaign-model.json</code></td><td>Phase 5. 27 Vault checks (save, update, two languages side by side, delivered, manual status, roles, key guard) and 20 helper and prompt checks.</td></tr>
 <tr><td><code>SETUP-RECORD.html</code></td><td>Cloudflare resource names, setting names and email settings. Contains no secrets.</td></tr>
 <tr><td><code>../../functions/workers/[[path]].js</code></td><td>Stops the website from serving this source folder publicly (Pages serves every file in the repo).</td></tr>
 </table></div>
@@ -131,6 +135,17 @@ ol li,ul li{margin:4px 0}
 <tr><td><code>GET /admin/brain/:id/:version</code></td><td>One saved version. Older versions stay readable.</td></tr>
 </table></div>
 <p>Where the AI call happens: in Harry's browser, through ScriptForge's existing <code>/api/format</code> relay, with the key from section 2, exactly like a normal ScriptForge script run. The Brain Vault never receives the key or the prompt.</p>
+
+<h2>2e. Endpoints added in phase 5 (admin only)</h2>
+<div class="tw"><table>
+<tr><th>Method and path</th><th>What it does</th></tr>
+<tr><td><code>POST /admin/campaign/:id</code></td><td>Body <code>{"campaign":{...}}</code>. Saves a new campaign or updates one with the same campaign id. The brain version must exist. The campaign and the client both go to Campaign in production.</td></tr>
+<tr><td><code>GET /admin/campaigns/:id</code></td><td>The client's campaigns, latest change first.</td></tr>
+<tr><td><code>GET /admin/campaign/:id/:campaignId</code></td><td>One campaign.</td></tr>
+<tr><td><code>PATCH /admin/campaign/:id/:campaignId/status</code></td><td>Body <code>{"status":"delivered"}</code> or <code>"in_production"</code>. Delivered sets the client to Campaign delivered.</td></tr>
+<tr><td><code>PATCH /admin/status/:id</code></td><td>Body <code>{"status":"..."}</code>. Manual status change, one of the six client statuses. In ScriptForge: the "Status the client sees" picker.</td></tr>
+</table></div>
+<p>Send to ScriptForge (short video card) sets section 1 to Short Advert, section 4 to 9:16, three segments in section 3, pastes the script into section 5, closes the panel and puts the cursor in the script. ScriptForge's own Format button and video steps take it from there.</p>
 
 <h2>3. How login works</h2>
 <ol>
@@ -205,6 +220,7 @@ node test/schemas.test.mjs
 # ScriptForge's /api/me (cookie sf_sid=admin or sf_sid=user), with SITE_ORIGIN=http://localhost:8080
 DEV_LOG=dev.log VAULT_URL=http://127.0.0.1:8080/api/vault ORIGIN=http://localhost:8080 node test/panel.test.mjs</pre>
 <p>Local note: <code>wrangler dev</code> rewrites the browser's Origin header to the route's domain, so for local browser tests set <code>SITE_ORIGIN</code> to <code>http://tahastudiolabs.com</code> and run the node tests with <code>ORIGIN=http://tahastudiolabs.com</code>.</p>
+<p>Phase 5 results on 5 October 2026 (local, stand-in AI provider): 27 of 27 campaign checks, 20 of 20 helper checks, all earlier suites (25, 17, 5, 37, 38, 47, 14). Browser run: no brain means no form; after a brain, the form defaults to "October campaign for Chef Sandy's Kitchen", the brain's offer and language; the first answer missed a channel post and the retry fixed it; a word to avoid was flagged on its card and cleared by regenerating that card; Copy, Edit, Save campaign (Campaign in production), Export JSON and HTML, Mark delivered (Campaign delivered), a Swedish campaign saved next to the English one, and Send to ScriptForge filled Short Advert, 9:16, 3 segments and the script. The key never appeared in any Vault request.</p>
 <p>Phase 4 results on 5 October 2026 (local, with a stand-in AI provider so no key was spent): 25 of 25 brain checks, 17 of 17 helper checks, 5 of 5 relay checks, and all earlier suites (37, 38, 47, 14). Browser run: Build with no key points to section 2; with a key, 2 documents (PDF and Word) were read, 6 pictures were sent, the first answer was broken on purpose and the retry fixed it, the cards came up with no em-dash, an invented picture id was dropped, typing kept focus, the draft survived a reload, Save Brain created v1 and the client's status became Your strategy is ready. The key never appeared in any Vault request.</p>
 <p>Phase 3 results on 5 October 2026: 37 of 37 panel checks passed, and the phase 1 and 2 suites still pass (38, 47 and 14). Browser run at desktop and phone size: no button or panel for a visitor or a normal ScriptForge user; for the admin, the button, the panel, the invite form, the Intake tab with pictures, and a newly submitted intake appearing with a "New" badge 53 seconds after submit while the panel was open.</p>
 <p>Phase 2 results on 3 October 2026: 45 of 45 portal checks, 38 of 38 login checks and 14 of 14 schema checks passed, plus a browser run on phone and desktop size: consent lock, auto-save surviving a reload, a 3200 px photo resized to 2000 px before upload, video refused, submit, status, Swedish and English.</p>

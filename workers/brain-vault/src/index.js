@@ -3,6 +3,7 @@
    portal pages). Phase 1: login, roles and invites. Phase 2: the client portal.
    Phase 3: admin endpoints behind the ScriptForge Growth Clients panel.
    Phase 4: Business Brain versions (saved from ScriptForge, never built here).
+   Phase 5: campaigns from the Campaign Generator, campaign and manual status changes.
 
    House rules enforced here:
    1. The Vault never receives, stores or logs an LLM API key. No endpoint accepts one.
@@ -24,6 +25,7 @@ import {
 } from "./auth.js";
 import { createClient, getIntakeAdmin, listClients, markSeen, resendInvite } from "./admin.js";
 import { getBrains, getBrainVersion, saveBrain } from "./brain.js";
+import { getCampaign, listCampaigns, saveCampaign, setCampaignStatus, setManualStatus } from "./campaign.js";
 import {
   deleteFile,
   getFile,
@@ -146,7 +148,7 @@ async function handle(request, env, ctx) {
 
   if (method === "GET" && path === "/health") {
     const db = await env.DB.prepare("SELECT 1 AS ok").first();
-    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 4 });
+    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 5 });
   }
 
   if (method === "GET" && path === "/portal/meta") {
@@ -235,6 +237,15 @@ async function handle(request, env, ctx) {
     if (br && method === "POST" && !br[2]) return respond(await saveBrain(request, env, br[1]));
     if (br && method === "GET" && !br[2]) return respond(await getBrains(env, br[1]));
     if (br && method === "GET" && br[2]) return respond(await getBrainVersion(env, br[1], parseInt(br[2], 10)));
+    const cpl = path.match(/^\/admin\/campaigns\/(cl_[a-z0-9]{4,32})$/);
+    if (cpl && method === "GET") return respond(await listCampaigns(env, cpl[1]));
+    const cps = path.match(/^\/admin\/campaign\/(cl_[a-z0-9]{4,32})$/);
+    if (cps && method === "POST") return respond(await saveCampaign(request, env, cps[1]));
+    const cp = path.match(/^\/admin\/campaign\/(cl_[a-z0-9]{4,32})\/(cp_[a-z0-9_]{2,40})(\/status)?$/);
+    if (cp && method === "GET" && !cp[3]) return respond(await getCampaign(env, cp[1], cp[2]));
+    if (cp && method === "PATCH" && cp[3]) return respond(await setCampaignStatus(request, env, cp[1], cp[2]));
+    const ms = path.match(/^\/admin\/status\/(cl_[a-z0-9]{4,32})$/);
+    if (ms && method === "PATCH") return respond(await setManualStatus(request, env, ms[1]));
     const ai = path.match(/^\/admin\/intake\/(cl_[a-z0-9]{4,32})$/);
     if (ai && method === "GET") return respond(await getIntakeAdmin(env, ai[1]));
   }
