@@ -118,5 +118,15 @@ export const MIGRATIONS = [
          submitted intake is newer than this shows the "New" badge. */
       `ALTER TABLE clients ADD COLUMN admin_seen_intake_version INTEGER NOT NULL DEFAULT 0`
     ]
+  },
+  {
+    id: 3,
+    name: "phase6-gdpr",
+    statements: [
+      /* When a client has left. Everything is erased RETENTION_MONTHS after this date. */
+      `ALTER TABLE clients ADD COLUMN left_at TEXT`,
+      /* Who erased: "admin" (Erase now) or "retention" (the 6 month rule). */
+      `ALTER TABLE erasure_log ADD COLUMN reason TEXT`
+    ]
   }
 ];

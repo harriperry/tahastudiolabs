@@ -1,7 +1,8 @@
 /* Admin endpoints. Phase 1: create and invite a client, list clients, resend an invite.
    Phase 3: the ScriptForge Growth Clients panel reads the list, opens an intake and marks it seen.
    Every handler here is reached only after the router has checked the admin role. */
-import { STATUS_LABELS } from "./config.js";
+import { STATUS_LABELS, getConfig } from "./config.js";
+import { eraseAfter } from "./gdpr.js";
 import { createLoginToken, isAdminEmail, signinUrl, verifyLink } from "./auth.js";
 import { composeEmail, sendMail } from "./mail.js";
 import { json, lang, newId, normEmail, nowIso, readJson, validEmail } from "./util.js";
@@ -31,6 +32,8 @@ function publicClient(c) {
     latestBrainVersion: c.latest_brain_version || 0,
     brainBuiltFromIntakeVersion: c.brain_built_from || 0,
     seenIntakeVersion: c.admin_seen_intake_version || 0,
+    leftAt: c.left_at || null,
+    eraseAfter: eraseAfter(c.left_at, RETENTION),
     /* "New": a submitted intake Harry has not opened yet in ScriptForge. */
     isNew: (c.latest_intake_version || 0) > (c.admin_seen_intake_version || 0),
     /* The latest intake is newer than the one the current brain was built from (phase 4). */
@@ -96,7 +99,9 @@ export async function resendInvite(env, cfg, clientId) {
   return json({ ok: true, emailSent });
 }
 
+let RETENTION = 6;
 export async function listClients(env) {
+  RETENTION = getConfig(env).retentionMonths;
   const rows = await env.DB.prepare(
     `SELECT c.*,
        (SELECT MAX(version) FROM intakes i WHERE i.client_id = c.id) AS latest_intake_version,

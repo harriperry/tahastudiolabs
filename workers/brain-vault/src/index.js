@@ -4,6 +4,7 @@
    Phase 3: admin endpoints behind the ScriptForge Growth Clients panel.
    Phase 4: Business Brain versions (saved from ScriptForge, never built here).
    Phase 5: campaigns from the Campaign Generator, campaign and manual status changes.
+   Phase 6: GDPR tools (full export, erase now, leaving and the 6 month retention rule).
 
    House rules enforced here:
    1. The Vault never receives, stores or logs an LLM API key. No endpoint accepts one.
@@ -26,6 +27,7 @@ import {
 import { createClient, getIntakeAdmin, listClients, markSeen, resendInvite } from "./admin.js";
 import { getBrains, getBrainVersion, saveBrain } from "./brain.js";
 import { getCampaign, listCampaigns, saveCampaign, setCampaignStatus, setManualStatus } from "./campaign.js";
+import { eraseNow, exportClient, retentionSweep, setLeft } from "./gdpr.js";
 import {
   deleteFile,
   getFile,
@@ -148,7 +150,7 @@ async function handle(request, env, ctx) {
 
   if (method === "GET" && path === "/health") {
     const db = await env.DB.prepare("SELECT 1 AS ok").first();
-    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 5 });
+    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6 });
   }
 
   if (method === "GET" && path === "/portal/meta") {
@@ -172,7 +174,7 @@ async function handle(request, env, ctx) {
     const row = await consumeToken(env, b && typeof b.t === "string" ? b.t : "");
     if (!row) return json({ error: "bad_link", message: MSG.badLink }, 400);
     if (row.role === "client") {
-      const c = await env.DB.prepare("SELECT id FROM clients WHERE id = ? AND email = ?").bind(row.client_id, row.email).first();
+      const c = await env.DB.prepare("SELECT id FROM clients WHERE id = ? AND email = ? AND left_at IS NULL").bind(row.client_id, row.email).first();
       if (!c) return json({ error: "bad_link", message: MSG.badLink }, 400);
     }
     await destroySession(env, request);
@@ -246,6 +248,12 @@ async function handle(request, env, ctx) {
     if (cp && method === "PATCH" && cp[3]) return respond(await setCampaignStatus(request, env, cp[1], cp[2]));
     const ms = path.match(/^\/admin\/status\/(cl_[a-z0-9]{4,32})$/);
     if (ms && method === "PATCH") return respond(await setManualStatus(request, env, ms[1]));
+    const ex = path.match(/^\/admin\/export\/(cl_[a-z0-9]{4,32})$/);
+    if (ex && method === "GET") return respond(await exportClient(env, cfg, ex[1]));
+    const lf = path.match(/^\/admin\/clients\/(cl_[a-z0-9]{4,32})\/left$/);
+    if (lf && method === "POST") return respond(await setLeft(request, env, cfg, lf[1]));
+    const er = path.match(/^\/admin\/clients\/(cl_[a-z0-9]{4,32})$/);
+    if (er && method === "DELETE") return respond(await eraseNow(request, env, er[1]));
     const ai = path.match(/^\/admin\/intake\/(cl_[a-z0-9]{4,32})$/);
     if (ai && method === "GET") return respond(await getIntakeAdmin(env, ai[1]));
   }
@@ -265,5 +273,7 @@ export default {
   async scheduled(event, env, ctx) {
     await ensureSchema(env);
     ctx.waitUntil(cleanup(env));
+    /* Phase 6: erase clients who left more than RETENTION_MONTHS ago. */
+    ctx.waitUntil(retentionSweep(env, getConfig(env)).catch(() => console.error("retention sweep failed")));
   }
 };

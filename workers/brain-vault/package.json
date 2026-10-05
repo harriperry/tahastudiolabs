@@ -12,6 +12,7 @@
     "test:panel": "node test/panel.test.mjs",
     "test:brain": "node test/brain.test.mjs",
     "test:campaign": "node test/campaign.test.mjs",
+    "test:gdpr": "node test/gdpr.test.mjs",
     "test:helpers": "node test/brain-helpers.test.mjs && node test/campaign-helpers.test.mjs && node test/format-gemini.test.mjs"
   },
   "devDependencies": {

@@ -13,6 +13,8 @@
    - Phase 4: the Business Brain tab and button live in growth-brain.js, loaded on demand.
    - Phase 5: the Campaigns tab (Campaign Generator) lives in growth-campaign.js, loaded on
      demand. Its short video card can hand the script to ScriptForge's own sections 1 to 5.
+   - Phase 6: the Data and privacy tab: full export, Mark as left (erased 6 months later) and
+     Erase now, confirmed by typing the client's email (no browser pop-ups).
 
    House rules
    - The AI key stays with ScriptForge. The strip only checks whether the section 2 key field
@@ -264,8 +266,10 @@
         if (!now) S.selectedId = S.clients.length ? S.clients[0].id : null;
         now = selected();
         var changed = !before || !now || !S.detail || before.id !== now.id || now.latestIntakeVersion !== S.detail.version || now.status !== before.status;
+        var leftChanged = !!(before && now && before.id === now.id && (before.leftAt || null) !== (now.leftAt || null));
         renderList();
         if (S.open && now && changed) loadDetail(now.id);
+        else if (S.open && leftChanged && S.tab === "privacy") renderDetail();
         else if (!now) renderDetail();
       }
       renderLive();
@@ -501,13 +505,15 @@
         if (S.selectedId === c.id && S.detail) return;
         S.selectedId = c.id;
         S.detail = null;
+        S.notice = null;
         S.tab = "intake";
         renderList();
         loadDetail(c.id);
       } } },
         h("span", { class: "gc-row" }, h("span", { class: "gc-name", text: c.name }), c.isNew ? h("span", { class: "gc-new", text: "New" }) : null),
         h("span", { class: "gc-row" }, h("span", { class: "gc-badge st-" + c.status, text: statusLabel(c) })),
-        h("span", { class: "gc-meta", text: meta + (c.latestSubmittedAt ? " · " + when(c.latestSubmittedAt) : "") })
+        h("span", { class: "gc-meta", text: meta + (c.latestSubmittedAt ? " · " + when(c.latestSubmittedAt) : "") }),
+        c.leftAt ? h("span", { class: "gc-meta gc-left", text: "Left · erased " + whenDate(c.eraseAfter) }) : null
       );
       ui.list.appendChild(b);
     });
@@ -546,6 +552,7 @@
   function renderDetail(loading, error) {
     if (!ui) return;
     clear(ui.main);
+    if (S.notice) ui.main.appendChild(h("div", { class: "gc-msg " + S.notice.cls, role: "status", text: S.notice.text }));
     var c = selected();
     if (!c) {
       ui.main.appendChild(h("div", { class: "gc-soon" }, "Select a client on the left, or invite one."));
@@ -612,7 +619,7 @@
       h("div", null, brainBtn, h("div", { class: "gc-hint", id: "gcBrainHint", text: bs.hint || "" }))
     ));
 
-    var tabs = [["intake", "Intake"], ["brain", c.latestBrainVersion ? "Business Brain (v" + c.latestBrainVersion + ")" : "Business Brain"], ["campaigns", "Campaigns"]];
+    var tabs = [["intake", "Intake"], ["brain", c.latestBrainVersion ? "Business Brain (v" + c.latestBrainVersion + ")" : "Business Brain"], ["campaigns", "Campaigns"], ["privacy", "Data and privacy"]];
     var tabBar = h("div", { class: "gc-tabs", role: "tablist" });
     tabs.forEach(function (t) {
       tabBar.appendChild(h("button", { type: "button", role: "tab", class: "gc-tab", "aria-selected": S.tab === t[0] ? "true" : "false", on: { click: function () {
@@ -634,6 +641,10 @@
       } else {
         brain.renderTab(pane, c, d);
       }
+      return;
+    }
+    if (S.tab === "privacy") {
+      renderPrivacy(pane, c);
       return;
     }
     if (S.tab === "campaigns") {
@@ -801,6 +812,108 @@
     if (faqFiles.length) faqBox.appendChild(h("div", { class: "gc-files" }, faqFiles.map(fileLink)));
     if (!rows.length && !faqFiles.length) faqBox.appendChild(h("div", { class: "gc-meta", text: "None given" }));
     pane.appendChild(faqBox);
+  }
+
+  function whenDate(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  /* ---------- Phase 6: data and privacy (GDPR) ---------- */
+
+  function renderPrivacy(pane, c) {
+    var msg = h("div", { class: "gc-msg", hidden: true, role: "status" });
+    function say(cls, text) { msg.className = "gc-msg " + cls; msg.textContent = text; msg.hidden = false; }
+
+    /* 1. Export */
+    var exBtn = h("button", { type: "button", class: "btn-ghost", on: { click: function () {
+      exBtn.disabled = true;
+      fetch(API + "/admin/export/" + encodeURIComponent(c.id), { credentials: "same-origin" }).then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.blob();
+      }).then(function (blob) {
+        var slug = String(c.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "client";
+        var a = h("a", { href: URL.createObjectURL(blob), download: "client-record-" + slug + ".json" });
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        exBtn.disabled = false;
+        say("ok", "Full record downloaded: profile, every intake version, file list, consent log, status history, every brain and campaign.");
+      }).catch(function () {
+        exBtn.disabled = false;
+        say("err", "Could not export. Try again.");
+      });
+    } } }, "Download full record (JSON)");
+    pane.appendChild(h("section", { class: "gc-box" },
+      h("div", { class: "gc-bh" }, "Export", h("span", { text: "For a client who asks for a copy of their data" })),
+      h("div", { class: "gc-meta", text: "One JSON file with everything held about " + c.name + ". Files are listed with links that work while you are signed in." }),
+      h("div", null, exBtn)));
+
+    /* 2. Leaving and the retention rule */
+    var leftBox = h("section", { class: "gc-box" }, h("div", { class: "gc-bh" }, "Leaving", h("span", { text: "Retention: 6 months after the work ends" })));
+    if (c.leftAt) {
+      leftBox.appendChild(h("div", { class: "gc-meta", text: "Marked as left on " + whenDate(c.leftAt) + ". Everything will be erased automatically on " + whenDate(c.eraseAfter) + ". The client can no longer sign in." }));
+      leftBox.appendChild(h("div", null, h("button", { type: "button", class: "btn-ghost", on: { click: function (ev) { setLeft(c, false, ev.target); } } }, "Undo: the client is back")));
+    } else {
+      leftBox.appendChild(h("div", { class: "gc-meta", text: "When you stop working with " + c.name + ", mark them as left. Their sign-in stops at once, and everything is erased automatically 6 months later." }));
+      leftBox.appendChild(h("div", null, h("button", { type: "button", class: "btn-ghost", on: { click: function (ev) { setLeft(c, true, ev.target); } } }, "Mark as left")));
+    }
+    pane.appendChild(leftBox);
+
+    /* 3. Erase now */
+    var confirmIn = h("input", { type: "text", id: "gcEraseConfirm", autocomplete: "off", spellcheck: "false" });
+    var eraseBtn = h("button", { type: "button", class: "gc-danger", disabled: true }, "Erase everything now");
+    confirmIn.addEventListener("input", function () {
+      eraseBtn.disabled = confirmIn.value.trim().toLowerCase() !== String(c.email).toLowerCase();
+    });
+    eraseBtn.addEventListener("click", function () {
+      eraseBtn.disabled = true;
+      say("info", "Erasing...");
+      api("/admin/clients/" + encodeURIComponent(c.id), { method: "DELETE", body: { confirm: confirmIn.value.trim() } }).then(function (r) {
+        if (r.ok && r.d && r.d.erased) {
+          var rem = r.d.remaining || {};
+          S.notice = { cls: rem.rows === 0 && rem.files === 0 ? "ok" : "err", text: c.name + " was erased: " + r.d.filesDeleted + (r.d.filesDeleted === 1 ? " file" : " files") + " and " + r.d.rowsDeleted + " records deleted. Traces left: " + (rem.rows || 0) + " records, " + (rem.files || 0) + " files." };
+          try {
+            localStorage.removeItem("taha-growth-brain-draft:" + c.id);
+            localStorage.removeItem("taha-growth-campaign-draft:" + c.id);
+          } catch (e) {}
+          S.clients = S.clients.filter(function (x) { return x.id !== c.id; });
+          S.selectedId = null;
+          S.detail = null;
+          S.tab = "intake";
+          renderList();
+          renderDetail();
+          updateButton();
+          refresh();
+        } else {
+          eraseBtn.disabled = false;
+          say("err", (r.d && r.d.message && r.d.message.en) || "Could not erase. Try again.");
+        }
+      });
+    });
+    pane.appendChild(h("section", { class: "gc-box gc-danger-box" },
+      h("div", { class: "gc-bh" }, "Erase now", h("span", { text: "Cannot be undone" })),
+      h("div", { class: "gc-meta", text: "Deletes every file and every record for " + c.name + ": profile, intake versions, uploads, consent log, status history, brains, campaigns, sign-ins and login links. Only an anonymous line stays to show that an erasure happened. Download the full record first if you need a copy." }),
+      h("div", { class: "gc-ed" }, h("label", { for: "gcEraseConfirm", text: "Type " + c.email + " to confirm" }), confirmIn),
+      h("div", null, eraseBtn)));
+    pane.appendChild(msg);
+    pane.appendChild(h("div", { class: "gc-meta", text: "The client's data processing agreement (PUB-avtal) is signed outside the portal." }));
+  }
+
+  function setLeft(c, left, btn) {
+    if (btn) btn.disabled = true;
+    api("/admin/clients/" + encodeURIComponent(c.id) + "/left", { method: "POST", body: { left: left } }).then(function (r) {
+      if (r.ok && r.d) {
+        /* Update the client as it is in the list now (the 60 s check may have replaced it). */
+        S.clients.forEach(function (x) {
+          if (x.id === c.id) { x.leftAt = r.d.leftAt; x.eraseAfter = r.d.eraseAfter; }
+        });
+        renderList();
+        renderDetail();
+      } else if (btn) btn.disabled = false;
+      refresh();
+    });
   }
 
   function download(d) {

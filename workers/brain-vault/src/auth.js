@@ -85,8 +85,9 @@ export async function issueLoginLink(env, cfg, email, preferredLang) {
   if (isAdminEmail(cfg, email)) {
     role = "admin";
   } else {
-    client = await env.DB.prepare("SELECT id, name, language FROM clients WHERE email = ?").bind(email).first();
-    if (client) role = "client";
+    client = await env.DB.prepare("SELECT id, name, language, left_at FROM clients WHERE email = ?").bind(email).first();
+    /* A client who has left gets no login link (the reply stays the same neutral message). */
+    if (client && !client.left_at) role = "client";
   }
   if (!role) return;
   const token = await createLoginToken(env, cfg, { email, role, clientId: client && client.id, purpose: "login" });

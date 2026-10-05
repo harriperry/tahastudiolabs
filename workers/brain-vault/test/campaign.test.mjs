@@ -114,7 +114,7 @@ try {
   ok(r.status === 403, "a client cannot change its own status");
 
   r = await call("/health");
-  ok(r.data.phase === 5, "health reports phase 5");
+  ok(r.data.phase >= 5, "health reports phase 5 or later");
 } catch (e) {
   fail++;
   console.log("FAIL crashed: " + e.stack);

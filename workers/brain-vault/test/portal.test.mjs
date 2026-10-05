@@ -111,7 +111,7 @@ try {
   r = await upload(A.cookie, "pictures", "p.png", PNG, "image/png");
   ok(r.status === 403, "cannot upload before consent");
   r = await call("/consent", { method: "POST", cookie: A.cookie, body: { accepted: true, language: "sv" } });
-  ok(r.status === 200 && r.data.version === "c-1", "consent recorded with version c-1");
+  ok(r.status === 200 && /^c-\d+$/.test(r.data.version), "consent recorded with the current version (" + (r.data && r.data.version) + ")");
   await call("/consent", { method: "POST", cookie: B.cookie, body: { accepted: true, language: "en" } });
   r = await call("/portal/state", { cookie: A.cookie });
   ok(r.data.consent.accepted === true, "state shows consent accepted");
@@ -119,7 +119,7 @@ try {
   r = await call("/intake", { method: "PUT", cookie: A.cookie, body: answers() });
   ok(r.status === 200, "draft auto-save works");
   r = await call("/intake", { cookie: A.cookie });
-  ok(r.data.draft.profile.companyName === "Testbageriet " + run && r.data.draft.consent.version === "c-1", "saved answers come back (resume after closing browser)");
+  ok(r.data.draft.profile.companyName === "Testbageriet " + run && /^c-\d+$/.test(r.data.draft.consent.version), "saved answers come back (resume after closing browser)");
   r = await call("/status", { cookie: A.cookie });
   ok(r.data.status === "profile_in_progress", "status moves to Profile in progress on first save");
   const bad = answers();

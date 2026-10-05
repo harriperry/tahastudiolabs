@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Growth Department V1 Handover</title>
+<style>
+:root{--ink:#14161C;--muted:#5E6470;--line:#DDD5C6;--paper:#F6F1E7;--card:#FFFFFF;--amber:#8A5D08;--ok:#1F6B4E;--warn:#B8452A}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.6 Arial,Helvetica,sans-serif}
+main{max-width:980px;margin:0 auto;padding:32px 16px 64px}
+h1{font-size:28px;margin:0 0 4px}
+h2{font-size:15px;text-transform:uppercase;letter-spacing:1px;color:var(--amber);margin:32px 0 10px}
+p{margin:0 0 10px}
+.sub{color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 20px;margin:0 0 12px}
+.tw{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line);font-size:14px}
+th{background:var(--paper);font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+.ok{color:var(--ok);font-weight:700;white-space:nowrap}
+.you{color:var(--warn);font-weight:700;white-space:nowrap}
+code{font-family:Consolas,monospace;font-size:13px;background:var(--paper);padding:1px 5px;border-radius:4px}
+ul{margin:0;padding-left:20px}
+li{margin:0 0 6px}
+</style>
+</head>
+<body>
+<main>
+<h1>TAHA Studio Labs Growth Department V1</h1>
+<p class="sub">Handover, 5 October 2026. Built in six phases, each confirmed by Harry before the next started.</p>
+
+<h2>What is live</h2>
+<div class="card">
+<ul>
+<li><b>Client portal</b> at <code>tahastudiolabs.com/grow/</code>: magic link sign-in, consent first, the business profile in Swedish and English, uploads, review and submit, status.</li>
+<li><b>Brain Vault</b> at <code>tahastudiolabs.com/api/vault/*</code>: a Cloudflare Worker with D1 and R2 in the EU. Deployed by Workers Builds from the GitHub branch <code>growth-phase-1</code>.</li>
+<li><b>ScriptForge Growth Clients panel</b> at <code>tahastudiolabs.com/scriptforge/#growth</code>, admin only: clients, invites, intake, Business Brain, Campaign Generator, Data and privacy. Deployed by Cloudflare Pages from <code>main</code>.</li>
+</ul>
+</div>
+
+<h2>Phases</h2>
+<div class="tw"><table>
+<tr><th>Phase</th><th>What</th><th>Gate</th><th>Result</th></tr>
+<tr><td>1</td><td>Brain Vault, magic link login, roles, invites</td><td>Harry and a test client both sign in</td><td class="ok">Passed 3 Oct</td></tr>
+<tr><td>2</td><td>Client portal, six screens, SV and EN</td><td>Full profile in both languages, phone and desktop</td><td class="ok">Passed 4 Oct</td></tr>
+<tr><td>3</td><td>Growth Clients panel in ScriptForge</td><td>A submitted intake shows within 60 s and Harry gets the email</td><td class="ok">Passed 5 Oct</td></tr>
+<tr><td>4</td><td>Business Brain</td><td>Brain v1 for the pilot, visible as status in the portal</td><td class="ok">Passed 5 Oct</td></tr>
+<tr><td>5</td><td>Campaign Generator</td><td>October campaign for the pilot in English and Swedish</td><td class="ok">Passed 5 Oct</td></tr>
+<tr><td>6</td><td>GDPR tools and hardening</td><td>An erasure removes every trace of a test client</td><td class="you">Harry to run live</td></tr>
+</table></div>
+
+<h2>Acceptance criteria (spec section 9)</h2>
+<div class="tw"><table>
+<tr><th>Criterion</th><th>How it was checked</th><th>Status</th></tr>
+<tr><td>A public ScriptForge user sees no Growth button, panel or endpoint response; sections 1 to 7 behave as before</td><td>Browser runs as visitor and as a normal user; <code>/admin/check</code> answers only <code>{admin:false}</code>; panel code loads but does nothing for them</td><td class="ok">Done</td></tr>
+<tr><td>An uninvited email gets the neutral message and no email</td><td>e2e test; also for clients who left or were erased</td><td class="ok">Done</td></tr>
+<tr><td>A magic link works once, expires after 15 minutes, a second click is rejected</td><td>e2e test</td><td class="ok">Done</td></tr>
+<tr><td>No typing before consent; consent stored with version, language and time</td><td>portal test; live with the pilot</td><td class="ok">Done</td></tr>
+<tr><td>Every label, hint, error and email in Swedish and English; switching language keeps answers</td><td>portal test and browser run; all wording in <code>i18n.json</code></td><td class="ok">Done</td></tr>
+<tr><td>Closing the browser mid-form restores every saved answer</td><td>portal test and browser run</td><td class="ok">Done</td></tr>
+<tr><td>Pictures over 10 MB or video refused with a bilingual message; pictures resized before upload</td><td>portal test and browser run (3200 px to 2000 px)</td><td class="ok">Done</td></tr>
+<tr><td>A client can only ever read its own record</td><td>portal test tries another client's id and files</td><td class="ok">Done</td></tr>
+<tr><td>A submitted intake reaches ScriptForge within 60 seconds and triggers Harry's email</td><td>panel test; live gate 5 Oct</td><td class="ok">Done</td></tr>
+<tr><td>The Business Brain button produces schema-valid JSON; Harry can edit; saving creates a new version</td><td>brain tests; live gate with the pilot (one automatic retry fixed the first answer)</td><td class="ok">Done</td></tr>
+<tr><td>Campaign Generator returns the concept and nine outputs in the selected language, no em-dashes, no avoid words</td><td>campaign tests; live gate in English and Swedish</td><td class="ok">Done</td></tr>
+<tr><td>Send to ScriptForge fills section 5 with Short Advert, 9:16, three segments</td><td>browser run; live by Harry 5 Oct</td><td class="ok">Done</td></tr>
+<tr><td>Portal status updates at each step</td><td>live: Submitted, Your strategy is ready, Campaign in production, Campaign delivered</td><td class="ok">Done</td></tr>
+<tr><td>No API key ever appears in Vault requests, D1, R2 or logs</td><td>Every Vault request body captured in the browser runs: no key. The Vault refuses any brain or campaign that looks like it contains a key.</td><td class="ok">Done</td></tr>
+<tr><td>Erasure removes all D1 rows and R2 files for a test client</td><td>gdpr test: full scan of all 13 tables and the R2 folder finds nothing; only an anonymous log line stays</td><td class="you">Live gate</td></tr>
+<tr><td>Code archive and README delivered as HTML and JSON files</td><td><code>README.html</code>, <code>SETUP-RECORD.html</code>, this page, the schemas and prompts as JSON, in <code>D:\tahastudiolabs</code> and on GitHub</td><td class="ok">Done</td></tr>
+</table></div>
+
+<h2>Open items for Harry</h2>
+<div class="card">
+<ul>
+<li><b>Legal wording.</b> Consent version c-2 and section 12 of <code>privacy.html</code> were drafted by Claude, not a lawyer. Have them checked once by an advisor, and the Swedish read by your Swedish checker. Any change: edit <code>i18n.json</code> or <code>privacy.html</code>, and raise <code>CONSENT_VERSION</code> if the consent text changes, so clients see it again.</li>
+<li><b>Data processing agreement</b> (PUB-avtal) with each client, signed outside the portal.</li>
+<li><b>hej@tahastudiolabs.com.</b> When the mailbox exists: change <code>TAHA_EMAIL</code> (and <code>ADMIN_EMAILS</code> if you sign in with it), and update the email in <code>privacy.html</code>. See README section 4.</li>
+<li><b>Gemini free tier.</b> Google may use free-tier API traffic to improve its products. For client work, use Anthropic or a paid Gemini key.</li>
+<li><b>Branches.</b> The Worker deploys from <code>growth-phase-1</code>, the site from <code>main</code>. Both now hold the same code. Keep pushing Vault changes to <code>growth-phase-1</code>, or switch the Workers Builds branch to <code>main</code> in Cloudflare.</li>
+</ul>
+</div>
+
+<h2>Where to start reading</h2>
+<div class="card">
+<p><code>README.html</code> explains every file and how to redeploy. <code>SETUP-RECORD.html</code> lists the Cloudflare resources and setting names (no secrets). The prompts are <code>assets/growth/brain.prompt.json</code> and <code>assets/growth/campaign.prompt.json</code>.</p>
+</div>
+</main>
+</body>
+</html>

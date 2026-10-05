@@ -52,11 +52,11 @@
         },
         {
           "h": "AI-tjänster",
-          "b": "Materialet skickas till externa AI-leverantörer, till exempel Anthropic och Google, för att skapa innehåll."
+          "b": "Materialet skickas till externa AI-leverantörer, till exempel Anthropic och Google, för att skapa innehåll. De kan behandla det utanför EU, till exempel i USA, enligt sina egna dataskyddsvillkor."
         },
         {
           "h": "Lagring",
-          "b": "Allt lagras inom EU hos Cloudflare."
+          "b": "Din profil och dina filer lagras inom EU hos Cloudflare. Inloggnings- och aviseringsmejl skickas via Google Gmail och innehåller bara ditt namn och en länk."
         },
         {
           "h": "Kundomdömen",
@@ -64,7 +64,7 @@
         },
         {
           "h": "Hur länge och dina rättigheter",
-          "b": "Vi sparar uppgifterna i {months} månader efter att samarbetet avslutats och raderar dem sedan. Du kan när som helst be om en kopia eller att allt raderas genom att mejla {email}."
+          "b": "Vi sparar uppgifterna i {months} månader efter att samarbetet avslutats och raderar dem sedan. Du kan när som helst be om en kopia, en rättelse eller att allt raderas genom att mejla {email}. Du kan också klaga hos Integritetsskyddsmyndigheten (IMY)."
         }
       ],
       "policy": "Läs hela integritetspolicyn",
@@ -72,7 +72,7 @@
       "check": "Jag har läst informationen och godkänner att TAHA Studio Labs använder mina företagsuppgifter på det här sättet.",
       "err": "Kryssa i rutan för att fortsätta.",
       "button": "Godkänn och fortsätt",
-      "version": "Samtyckesversion {version}. Du kan ta tillbaka ditt samtycke när som helst."
+      "version": "Samtyckesversion {version}. Du kan när som helst ta tillbaka ditt samtycke; då slutar vi använda ditt material och raderar det."
     },
     "steps": {
       "profile": "Steg 1 av 3 · Företagsprofil",
@@ -329,11 +329,11 @@
         },
         {
           "h": "AI services",
-          "b": "Your material is sent to third-party AI providers, for example Anthropic and Google, to create content."
+          "b": "Your material is sent to third-party AI providers, for example Anthropic and Google, to create content. They may process it outside the EU, for example in the USA, under their own data protection terms."
         },
         {
           "h": "Storage",
-          "b": "Everything is stored in the EU with Cloudflare."
+          "b": "Your profile and files are stored in the EU with Cloudflare. Login and notification emails are sent through Google Gmail and contain only your name and a link."
         },
         {
           "h": "Customer reviews",
@@ -341,7 +341,7 @@
         },
         {
           "h": "How long, and your rights",
-          "b": "We keep your information for {months} months after we stop working together, then delete it. You can ask for a copy, or for everything to be deleted, at any time by emailing {email}."
+          "b": "We keep your information for {months} months after we stop working together, then delete it. You can ask for a copy, a correction, or for everything to be deleted at any time by emailing {email}. You can also complain to the Swedish data protection authority, IMY."
         }
       ],
       "policy": "Read the full privacy policy",
@@ -349,7 +349,7 @@
       "check": "I have read the information and agree that TAHA Studio Labs uses my business information in this way.",
       "err": "Tick the box to continue.",
       "button": "Agree and continue",
-      "version": "Consent version {version}. You can withdraw your consent at any time."
+      "version": "Consent version {version}. You can withdraw your consent at any time; we then stop using your material and delete it."
     },
     "steps": {
       "profile": "Step 1 of 3 · Business profile",

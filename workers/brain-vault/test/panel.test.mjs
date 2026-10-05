@@ -129,7 +129,7 @@ try {
   r = await call("/intake", { method: "PUT", cookie: client, body: answers() });
   ok(r.status === 200, "client draft saved");
   r = await call("/admin/intake/" + id, { cookie: ADMIN_BRIDGE });
-  ok(r.data.source === "draft" && r.data.consent && r.data.consent.version === "c-1", "intake tab shows the draft and the consent record");
+  ok(r.data.source === "draft" && r.data.consent && /^c-\d+$/.test(r.data.consent.version), "intake tab shows the draft and the consent record");
 
   mark = logSize();
   const t0 = Date.now();
