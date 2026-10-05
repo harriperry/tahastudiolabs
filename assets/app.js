@@ -1977,7 +1977,7 @@ els2.libFile.addEventListener("change", () => {
 
 /* ═════════════════════════  VIDEO GENERATION (Veo 3.1 / Grok Imagine / HeyGen)  ═════════════════════════
    Calls our own /api/video-start, /api/video-poll, /api/video-download relays - never the
-   provider directly - using whichever of your own keys you entered in "5 · Video Generation".
+   provider directly - using whichever of your own keys you entered in "6 · Video Generation".
    Ported from the standalone local pilot that validated all three providers; the only change
    is that every provider call now goes through our server instead of straight from the browser,
    for the same reason the Anthropic "Format" call does (real customers' ad blockers / antivirus
@@ -2033,7 +2033,7 @@ window.genClip = async function (num, btn) {
   const provider = $("vidGen" + num).value;
   const providerMeta = VIDEO_PROVIDERS[provider];
   const apiKey = els[providerMeta.keyEl].value.trim();
-  if (!apiKey) { vidSetStatus(num, "err", `Enter your ${provider === "veo" ? "Gemini" : provider === "grok" ? "xAI" : "HeyGen"} API key in the "5 · Video Generation" section first.`); return; }
+  if (!apiKey) { vidSetStatus(num, "err", `Enter your ${provider === "veo" ? "Gemini" : provider === "grok" ? "xAI" : "HeyGen"} API key in the "6 · Video Generation" section first (the "Google Gemini API key (for Veo 3.1)" box).`); return; }
 
   /* Duration: only Grok Imagine’s API actually accepts a variable duration (1-15s, confirmed
      via docs.x.ai/developers/model-capabilities/video/generation). Veo 3.1 generates fixed
