@@ -78,3 +78,29 @@
 .gc-msg.info{background:rgba(59,130,246,.1);border:1px solid var(--accent);color:var(--accent2)}
 .gc-msg[hidden]{display:none}
 .gc-link{background:none;border:none;padding:0;color:var(--accent2);font-size:.8rem;font-weight:600;text-decoration:underline;cursor:pointer}
+/* Phase 4: Business Brain tab */
+.gc-brain-btn:disabled{opacity:.55}
+.gc-brain-hdr{display:flex;flex-direction:column;gap:8px}
+.gc-verpick{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.gc-select{width:auto;max-width:100%;padding:7px 9px;font-size:.8rem}
+.gc-brain-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gc-brain-tools .gc-brain-btn,.gc-brain-tools .btn-ghost{padding:8px 14px;font-size:.82rem}
+.gc-steps{list-style:none;display:flex;flex-direction:column;gap:6px;font-size:.84rem}
+.gc-step{color:var(--muted)}
+.gc-step.done::before{content:"\2713  ";color:var(--ok)}
+.gc-step.fail::before{content:"\2715  ";color:var(--err)}
+.gc-step.run{color:var(--text)}
+.gc-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.gc-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.gc-card.wide{grid-column:1/-1}
+.gc-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.gc-card-head h4{font-size:.78rem;text-transform:uppercase;letter-spacing:1px;color:#F0B94A;margin:0}
+.gc-card-body{display:flex;flex-direction:column;gap:10px}
+.gc-ed label{margin:0 0 3px;font-size:.72rem}
+.gc-ed .gc-ta{font-family:inherit;font-size:.84rem;line-height:1.5}
+.gc-ed input[readonly],.gc-ed textarea[readonly],.gc-ed select:disabled{opacity:.8}
+.gc-row-ed{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;background:var(--panel2);border-radius:8px;padding:10px}
+.gc-row-title{flex-basis:100%;font-weight:600;font-size:.85rem}
+.gc-row-fields{flex:1 1 260px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;min-width:0}
+.gc-thumb{width:72px;aspect-ratio:3/4;object-fit:cover;border-radius:4px;flex:0 0 auto}
+.gc-remove{align-self:flex-start;color:#E0806A}

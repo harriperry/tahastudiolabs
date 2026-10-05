@@ -1,4 +1,4 @@
-/* ScriptForge Growth Clients panel (TAHA Growth Department V1, phase 3).
+/* ScriptForge Growth Clients panel (TAHA Growth Department V1, phases 3 and 4).
 
    What it does
    - On page load, and whenever the ScriptForge account changes, it asks the Brain Vault
@@ -10,11 +10,14 @@
      seconds while it is open, invites new clients, and shows the selected client's intake
      read-only with its files. A submitted intake Harry has not opened yet carries a "New"
      badge; opening it marks that version seen.
-   - The Business Brain and Campaigns tabs are placeholders until phases 4 and 5.
+   - Phase 4: the Business Brain tab and button live in growth-brain.js, loaded on demand.
+   - The Campaigns tab is a placeholder until phase 5.
 
    House rules
-   - No API key ever leaves this browser. This file only checks whether the section 2 key
-     field is filled in; it never reads the key value into a request.
+   - The AI key stays with ScriptForge. The strip only checks whether the section 2 key field
+     is filled in. When Harry presses Build Business Brain, the key is read at that moment and
+     sent only to ScriptForge's own /api/format relay, exactly as a normal ScriptForge script
+     run does. It is never sent to the Brain Vault.
    - Client content is always written with textContent, never as HTML.
    - Nothing in ScriptForge sections 1 to 7, the Library, Characters or PDF export changes. */
 (function () {
@@ -46,6 +49,8 @@
   };
 
   var ui = null;
+  var brain = null;
+  var brainLoading = null;
 
   /* ---------- small helpers ---------- */
 
@@ -165,6 +170,7 @@
     ui.panel = panel;
 
     watchSection2();
+    loadBrain();
     /* A background check keeps the header badge honest even while the panel is closed. */
     refresh();
     schedule();
@@ -264,15 +270,57 @@
 
   /* ---------- section 2 strip ---------- */
 
-  function providerInfo() {
+  function providerInfo(withKey) {
     var sel = document.getElementById("formatProvider");
     var p = sel ? sel.value : "anthropic";
-    var map = PROVIDERS[p] || PROVIDERS.anthropic;
+    if (!PROVIDERS[p]) p = "anthropic";
+    var map = PROVIDERS[p];
     var label = sel && sel.selectedOptions[0] ? sel.selectedOptions[0].textContent.replace(/\s*\(.*\)\s*$/, "") : "Anthropic Claude";
     var m = document.getElementById(map.model);
     var model = m && m.value ? m.value : "";
     var k = document.getElementById(map.key);
-    return { label: label, model: model, hasKey: !!(k && k.value && k.value.length) };
+    var val = k && k.value ? k.value.trim() : "";
+    var hasKey = !!val && val !== "sk-ant-YOUR_KEY_HERE";
+    var out = { provider: p, label: label, model: model, hasKey: hasKey };
+    /* Only the Build Business Brain call asks for the key itself, at the moment it is pressed. */
+    if (withKey === true && hasKey) out.key = val;
+    return out;
+  }
+
+  /* No key yet: take Harry to the key field in section 2. */
+  function pointToSection2() {
+    var p = providerInfo();
+    var k = document.getElementById((PROVIDERS[p.provider] || PROVIDERS.anthropic).key);
+    if (k) {
+      k.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(function () { k.focus(); }, 400);
+    }
+  }
+
+  /* Phase 4: the Business Brain module, loaded only for the admin. */
+  function loadBrain() {
+    if (brain || brainLoading) return brainLoading;
+    brainLoading = import("/assets/growth-brain.js?v=p4").then(function (m) {
+      brain = m.createBrain({
+        h: h,
+        clear: clear,
+        api: api,
+        when: when,
+        providerInfo: providerInfo,
+        pointToSection2: pointToSection2,
+        rerender: function (id) {
+          if (ui && S.selectedId === id) renderDetail();
+        },
+        onSaved: function (id) {
+          if (S.selectedId === id) S.detail = null;
+          refresh();
+        }
+      });
+      if (ui) renderDetail();
+    }, function () {
+      brainLoading = null;
+    });
+    return brainLoading;
   }
 
   function renderStrip() {
@@ -281,7 +329,11 @@
     clear(ui.provider);
     ui.provider.appendChild(h("b", { text: p.label + (p.model ? " · " + p.model : "") }));
     ui.provider.appendChild(document.createTextNode(", from section 2. "));
-    ui.provider.appendChild(document.createTextNode(p.hasKey ? "Key set. Your key stays in this browser." : "No key in section 2 yet. You will need one for the Business Brain (phase 4)."));
+    ui.provider.appendChild(document.createTextNode(p.hasKey ? "Key set. It is used only for calls to your AI provider, never sent to the Brain Vault." : "No key in section 2 yet. Add one to build a Business Brain."));
+    if (ui && ui.main && S.detail && !(brain && brain.entry(S.detail.client.id).building)) {
+      var bb = document.getElementById("gcBrainBtn");
+      if (bb) renderDetail();
+    }
   }
 
   function watchSection2() {
@@ -493,7 +545,13 @@
       } } }, "Resend invite");
     }
 
-    var brainBtn = h("button", { type: "button", class: "gc-brain-btn", disabled: true, "aria-describedby": "gcBrainHint" }, "Build Business Brain");
+    var bs = brain && d ? brain.buttonState(c, d) : { label: "Build Business Brain", disabled: true, hint: d ? "Loading..." : "" };
+    var brainBtn = h("button", { type: "button", class: "gc-brain-btn", id: "gcBrainBtn", disabled: bs.disabled, "aria-describedby": "gcBrainHint", on: { click: function () {
+      if (!brain || !S.detail) return;
+      if (bs.noKey) { pointToSection2(); return; }
+      S.tab = "brain";
+      brain.build(c, S.detail);
+    } } }, bs.label);
 
     ui.main.appendChild(h("div", { class: "gc-title" },
       h("div", null,
@@ -503,10 +561,10 @@
         resend ? h("div", { style: "margin-top:8px" }, resend) : null,
         resendMsg
       ),
-      h("div", null, brainBtn, h("div", { class: "gc-hint", id: "gcBrainHint", text: "Arrives in phase 4. It will use the provider and key from section 2." }))
+      h("div", null, brainBtn, h("div", { class: "gc-hint", id: "gcBrainHint", text: bs.hint || "" }))
     ));
 
-    var tabs = [["intake", "Intake"], ["brain", "Business Brain"], ["campaigns", "Campaigns"]];
+    var tabs = [["intake", "Intake"], ["brain", c.latestBrainVersion ? "Business Brain (v" + c.latestBrainVersion + ")" : "Business Brain"], ["campaigns", "Campaigns"]];
     var tabBar = h("div", { class: "gc-tabs", role: "tablist" });
     tabs.forEach(function (t) {
       tabBar.appendChild(h("button", { type: "button", role: "tab", class: "gc-tab", "aria-selected": S.tab === t[0] ? "true" : "false", on: { click: function () {
@@ -520,8 +578,14 @@
     ui.main.appendChild(pane);
 
     if (S.tab === "brain") {
-      pane.appendChild(h("div", { class: "gc-soon" }, h("b", { text: "Business Brain arrives in phase 4. " }),
-        "One button will turn the latest intake into a structured brain (positioning, personas, voice rules, words to use and avoid, proof points, offers, competitor gaps, FAQ bank, image notes) that you can edit and save as a new version. Latest saved brain: v" + c.latestBrainVersion + "."));
+      if (!brain) {
+        pane.appendChild(h("div", { class: "gc-msg info" }, h("span", { class: "spin" }), "Loading the Business Brain tools..."));
+        loadBrain();
+      } else if (!d) {
+        pane.appendChild(h("div", { class: "gc-msg info" }, h("span", { class: "spin" }), "Loading..."));
+      } else {
+        brain.renderTab(pane, c, d);
+      }
       return;
     }
     if (S.tab === "campaigns") {

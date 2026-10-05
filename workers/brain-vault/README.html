@@ -31,7 +31,7 @@ ol li,ul li{margin:4px 0}
 <body>
 <main>
 <h1>Brain Vault</h1>
-<p class="sub">TAHA Studio Labs Growth Department V1. Phase 1: the Vault foundation. Phase 2: the client portal at <code>/grow/</code>. Phase 3: the Growth Clients panel inside ScriptForge. Branches <code>growth-phase-1</code> and <code>growth-phase-3</code>, folder <code>workers/brain-vault/</code>.</p>
+<p class="sub">TAHA Studio Labs Growth Department V1. Phase 1: the Vault foundation. Phase 2: the client portal at <code>/grow/</code>. Phase 3: the Growth Clients panel inside ScriptForge. Phase 4: the Business Brain. Branches <code>growth-phase-1</code> (the Worker deploys from it) and <code>main</code> (the website), folder <code>workers/brain-vault/</code>.</p>
 
 <p>The Brain Vault is a Cloudflare Worker that both sides talk to: the client onboarding portal (phase 2) and the Growth Clients panel in ScriptForge (phase 3). It runs on Cloudflare all the time, so you have nothing to start or restart. Phase 1 builds the foundation: the database, file storage, the three data contracts (JSON Schemas), magic link login with the client and admin roles, the invite email and the rate limits.</p>
 
@@ -68,6 +68,13 @@ ol li,ul li{margin:4px 0}
 <tr><td><code>../../assets/growth.css</code></td><td>Phase 3. Styles for the panel only. Every rule starts with <code>.gc-</code>, so nothing else in ScriptForge can change.</td></tr>
 <tr><td><code>../../scriptforge/index.html</code>, <code>../../assets/app.js</code></td><td>Phase 3 touches these with three lines only: the growth.css link, the growth.js script tag, and one line in app.js that tells growth.js when someone signs in or out. Sections 1 to 7, the Library, Characters and PDF export are unchanged.</td></tr>
 <tr><td><code>test/panel.test.mjs</code></td><td>Phase 3. 37 checks: public and normal ScriptForge users see nothing, admin through ScriptForge sign-in and through a Vault link, invite from the panel, New badge on submit and after a resubmit, the email to Harry links to the panel and carries no client content, seen never moves backwards, a client can never use admin endpoints.</td></tr>
+<tr><td><code>src/brain.js</code></td><td>Phase 4. Saves a Business Brain as the next version after checking it against <code>brain.schema.json</code>, sets the client's status to Brain ready (Din strategi är klar), lists versions and serves older ones. Refuses anything that looks like an API key and replaces em-dashes.</td></tr>
+<tr><td><code>../../assets/growth-brain.js</code></td><td>Phase 4. The Business Brain button and tab in ScriptForge: reads uploaded documents in the browser, shrinks pictures, sends one prompt through ScriptForge's own <code>/api/format</code> with the provider, key and model from section 2, validates the answer, retries once with the errors, shows editable cards, keeps an unsaved draft in this browser, saves versions to the Vault.</td></tr>
+<tr><td><code>../../assets/growth/brain.prompt.json</code></td><td>Phase 4. The Business Brain prompt as JSON: system rules, the user message, the language rules for Swedish, English or both, the retry message and the output budget per provider. Edit the wording here; keep the <code>{{PLACEHOLDERS}}</code>.</td></tr>
+<tr><td><code>../../assets/growth-validate.js</code></td><td>Phase 4. An exact copy of <code>src/validate.js</code> so ScriptForge validates the brain with the same rules as the Vault. A test fails if the two ever differ.</td></tr>
+<tr><td><code>../../assets/vendor/pdfjs-4.10.38*.js</code>, <code>jszip-3.10.1.min.js</code></td><td>Phase 4. pdf.js (Apache 2.0) and JSZip (MIT), served from the site itself, loaded only when a client's founder story, FAQs or reviews are a PDF or Word file.</td></tr>
+<tr><td><code>../../functions/api/format.js</code></td><td>Phase 4 change: the Gemini path now also accepts pictures and a retry conversation. Plain ScriptForge calls send exactly the same request as before (tested).</td></tr>
+<tr><td><code>test/brain.test.mjs</code>, <code>test/brain-helpers.test.mjs</code>, <code>test/format-gemini.test.mjs</code>, <code>test/fixtures/pilot-brain-v1.json</code></td><td>Phase 4. 25 Vault checks (versions, status, schema, roles, key guard), 17 helper and prompt checks, 5 relay checks.</td></tr>
 <tr><td><code>SETUP-RECORD.html</code></td><td>Cloudflare resource names, setting names and email settings. Contains no secrets.</td></tr>
 <tr><td><code>../../functions/workers/[[path]].js</code></td><td>Stops the website from serving this source folder publicly (Pages serves every file in the repo).</td></tr>
 </table></div>
@@ -115,6 +122,15 @@ ol li,ul li{margin:4px 0}
 <tr><td><code>POST /admin/clients/:id/seen</code></td><td>Body <code>{"version":N}</code>. Marks intake version N as opened by Harry. Never moves backwards. Stored in the new column <code>clients.admin_seen_intake_version</code> (migration 2, applied automatically).</td></tr>
 </table></div>
 <p>The "new intake" email to Harry now links to <code>/scriptforge/#growth</code> (setting <code>GROWTH_PANEL_PATH</code>), which opens the panel straight away. It still carries only the company name and the version number.</p>
+
+<h2>2d. Endpoints added in phase 4 (admin only)</h2>
+<div class="tw"><table>
+<tr><th>Method and path</th><th>What it does</th></tr>
+<tr><td><code>POST /admin/brain/:id</code></td><td>Body <code>{"brain":{...}}</code>. The intake version it was built from must exist. The Vault sets client id, version (N+1) and time, checks the schema, and moves the status to Brain ready unless the client is already further along (campaign in production or delivered).</td></tr>
+<tr><td><code>GET /admin/brain/:id</code></td><td>The latest brain and the list of versions, newest first.</td></tr>
+<tr><td><code>GET /admin/brain/:id/:version</code></td><td>One saved version. Older versions stay readable.</td></tr>
+</table></div>
+<p>Where the AI call happens: in Harry's browser, through ScriptForge's existing <code>/api/format</code> relay, with the key from section 2, exactly like a normal ScriptForge script run. The Brain Vault never receives the key or the prompt.</p>
 
 <h2>3. How login works</h2>
 <ol>
@@ -189,6 +205,7 @@ node test/schemas.test.mjs
 # ScriptForge's /api/me (cookie sf_sid=admin or sf_sid=user), with SITE_ORIGIN=http://localhost:8080
 DEV_LOG=dev.log VAULT_URL=http://127.0.0.1:8080/api/vault ORIGIN=http://localhost:8080 node test/panel.test.mjs</pre>
 <p>Local note: <code>wrangler dev</code> rewrites the browser's Origin header to the route's domain, so for local browser tests set <code>SITE_ORIGIN</code> to <code>http://tahastudiolabs.com</code> and run the node tests with <code>ORIGIN=http://tahastudiolabs.com</code>.</p>
+<p>Phase 4 results on 5 October 2026 (local, with a stand-in AI provider so no key was spent): 25 of 25 brain checks, 17 of 17 helper checks, 5 of 5 relay checks, and all earlier suites (37, 38, 47, 14). Browser run: Build with no key points to section 2; with a key, 2 documents (PDF and Word) were read, 6 pictures were sent, the first answer was broken on purpose and the retry fixed it, the cards came up with no em-dash, an invented picture id was dropped, typing kept focus, the draft survived a reload, Save Brain created v1 and the client's status became Your strategy is ready. The key never appeared in any Vault request.</p>
 <p>Phase 3 results on 5 October 2026: 37 of 37 panel checks passed, and the phase 1 and 2 suites still pass (38, 47 and 14). Browser run at desktop and phone size: no button or panel for a visitor or a normal ScriptForge user; for the admin, the button, the panel, the invite form, the Intake tab with pictures, and a newly submitted intake appearing with a "New" badge 53 seconds after submit while the panel was open.</p>
 <p>Phase 2 results on 3 October 2026: 45 of 45 portal checks, 38 of 38 login checks and 14 of 14 schema checks passed, plus a browser run on phone and desktop size: consent lock, auto-save surviving a reload, a 3200 px photo resized to 2000 px before upload, video refused, submit, status, Swedish and English.</p>
 <p>Phase 1 results on 3 October 2026: 38 of 38 end to end checks and 14 of 14 schema checks passed. A test against a local mail server confirmed the Gmail path sends a correct bilingual email from agborkak@gmail.com. The encrypted connection to Gmail itself is confirmed by the first real invite.</p>

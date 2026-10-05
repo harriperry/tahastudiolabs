@@ -2,6 +2,7 @@
    Routed at tahastudiolabs.com/api/vault/* (the API) and tahastudiolabs.com/grow/* (the client
    portal pages). Phase 1: login, roles and invites. Phase 2: the client portal.
    Phase 3: admin endpoints behind the ScriptForge Growth Clients panel.
+   Phase 4: Business Brain versions (saved from ScriptForge, never built here).
 
    House rules enforced here:
    1. The Vault never receives, stores or logs an LLM API key. No endpoint accepts one.
@@ -22,6 +23,7 @@ import {
   sessionCookie
 } from "./auth.js";
 import { createClient, getIntakeAdmin, listClients, markSeen, resendInvite } from "./admin.js";
+import { getBrains, getBrainVersion, saveBrain } from "./brain.js";
 import {
   deleteFile,
   getFile,
@@ -144,7 +146,7 @@ async function handle(request, env, ctx) {
 
   if (method === "GET" && path === "/health") {
     const db = await env.DB.prepare("SELECT 1 AS ok").first();
-    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 3 });
+    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 4 });
   }
 
   if (method === "GET" && path === "/portal/meta") {
@@ -229,6 +231,10 @@ async function handle(request, env, ctx) {
     if (inv && method === "POST") return respond(await resendInvite(env, cfg, inv[1]));
     const seen = path.match(/^\/admin\/clients\/(cl_[a-z0-9]{4,32})\/seen$/);
     if (seen && method === "POST") return respond(await markSeen(request, env, seen[1]));
+    const br = path.match(/^\/admin\/brain\/(cl_[a-z0-9]{4,32})(?:\/([0-9]{1,6}))?$/);
+    if (br && method === "POST" && !br[2]) return respond(await saveBrain(request, env, br[1]));
+    if (br && method === "GET" && !br[2]) return respond(await getBrains(env, br[1]));
+    if (br && method === "GET" && br[2]) return respond(await getBrainVersion(env, br[1], parseInt(br[2], 10)));
     const ai = path.match(/^\/admin\/intake\/(cl_[a-z0-9]{4,32})$/);
     if (ai && method === "GET") return respond(await getIntakeAdmin(env, ai[1]));
   }

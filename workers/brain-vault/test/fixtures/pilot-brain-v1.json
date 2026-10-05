@@ -1,0 +1,26 @@
+{
+  "languages": ["en"],
+  "positioning": {
+    "oneLiner": "Authentic West African home cooking in Buea, cooked fresh, hygienic and a text away from 8 AM to 10 PM.",
+    "category": "Home-cooked West African meals, delivery and pickup",
+    "differentiators": ["Absolute hygiene standards", "Ordering by text, delivered hot or ready on the go", "A founder story of choosing cooking over a degree"]
+  },
+  "personas": [
+    { "name": "Busy student", "who": "University students in Buea juggling classes and tight budgets.", "wants": "Quick, reliable, filling meals they can trust.", "fears": "Unhygienic food and long waits.", "whereTheyAre": ["Instagram", "WhatsApp groups", "Campus"] },
+    { "name": "Busy executive", "who": "Professionals with demanding workdays.", "wants": "Fast, high-quality food without lowering standards.", "fears": "Wasting a lunch break on a bad meal.", "whereTheyAre": ["WhatsApp", "Office districts"] }
+  ],
+  "voice": {
+    "summary": "Warm, direct and energetic, like a friendly cook texting you that your food is ready.",
+    "do": ["Lead with taste and freshness", "Invite a reply by text"],
+    "dont": ["Sound corporate", "Promise delivery times you cannot keep"],
+    "sampleLines": ["You got it! Our sweet spicy fish is fresh and ready to fuel your day."]
+  },
+  "words": { "use": ["Comfort on your plate"], "avoid": [] },
+  "proofPoints": [ { "claim": "People travel long distances to eat at Chef Sandy's Kitchen.", "source": "founder" } ],
+  "offers": [ { "name": "Refer 10, get your next plate free", "terms": "Refer ten new customers and your next plate is on us.", "validUntil": "" } ],
+  "competitorGaps": [],
+  "founderStory": { "short": "Chef Sandy turned her first semester fees into a kitchen, and built a destination.", "long": "Chef Sandy chose cooking over a degree and built Chef Sandy's Kitchen on taste and hygiene." },
+  "faqBank": [ { "q": "How do I order?", "a": "Send a text between 8 AM and 10 PM." } ],
+  "contentPillars": ["Behind the stove", "Dish of the day", "Customer moments"],
+  "imageNotes": []
+}

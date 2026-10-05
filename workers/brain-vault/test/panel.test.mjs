@@ -182,7 +182,7 @@ try {
   ok(r.data.admin === true, "admin with a Vault session: admin/check says admin:true");
 
   r = await call("/health");
-  ok(r.data.phase === 3, "health reports phase 3");
+  ok(r.data.phase >= 3, "health reports phase 3 or later");
 } catch (e) {
   fail++;
   console.log("FAIL crashed: " + e.stack);

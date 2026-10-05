@@ -9,7 +9,9 @@
     "deploy": "wrangler deploy",
     "test:schemas": "node test/schemas.test.mjs",
     "test:e2e": "node test/e2e.test.mjs",
-    "test:panel": "node test/panel.test.mjs"
+    "test:panel": "node test/panel.test.mjs",
+    "test:brain": "node test/brain.test.mjs",
+    "test:helpers": "node test/brain-helpers.test.mjs && node test/format-gemini.test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.40.0"

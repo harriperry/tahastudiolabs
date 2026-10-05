@@ -104,8 +104,26 @@ async function formatAnthropic(apiKey, model, max_tokens, system, messages) {
    truncated/empty responses on plain formatting calls like this one). This task is a mechanical
    reformatting job with no need for a hidden reasoning pass, so thinking is explicitly disabled
    to keep the entire token budget available for the actual segment output. */
+/* Growth Clients panel (Business Brain, phase 4): a message's content may be an array of
+   Anthropic-style blocks ({type:"text"} and {type:"image", source:{type:"base64"}}) so Gemini
+   can see the client's pictures, and a retry sends a short multi-turn conversation. Plain string
+   messages, which is everything the rest of ScriptForge sends, keep the original single-turn
+   request exactly as before. */
+function geminiContents(messages) {
+  if (messages.every(m => typeof m.content === "string" && m.role !== "assistant")) {
+    return [{ role: "user", parts: [{ text: messages.map(m => m.content).join("\n\n") }] }];
+  }
+  return messages.map(m => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: (Array.isArray(m.content) ? m.content : [{ type: "text", text: String(m.content || "") }]).map(b =>
+      b && b.type === "image" && b.source && b.source.type === "base64"
+        ? { inline_data: { mime_type: b.source.media_type, data: b.source.data } }
+        : { text: String((b && b.text) || "") }
+    )
+  }));
+}
+
 async function formatGemini(apiKey, model, max_tokens, system, messages) {
-  const userText = messages.map(m => m.content).join("\n\n");
   let res;
   try {
     res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model || "gemini-2.5-flash")}:generateContent`, {
@@ -113,7 +131,7 @@ async function formatGemini(apiKey, model, max_tokens, system, messages) {
       headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: system || "" }] },
-        contents: [{ role: "user", parts: [{ text: userText }] }],
+        contents: geminiContents(messages),
         generationConfig: { maxOutputTokens: Number(max_tokens || 4096), thinkingConfig: { thinkingBudget: 0 } }
       })
     });
