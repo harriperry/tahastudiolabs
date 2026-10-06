@@ -199,3 +199,4 @@
 .lp-lead{background:var(--panel);border-radius:8px;padding:9px 12px;display:flex;flex-direction:column;gap:3px;font-size:.84rem}
 .lp-lead p{margin:0;white-space:pre-wrap}
 @media (max-width:640px){.lp-roi-h,.lp-roi-r{grid-template-columns:1fr 1fr 1fr 54px}.lp-roi-h span:first-child{display:none}.lp-roi-r span:first-child{grid-column:1/-1}}
+.lp-short{font-size:1.05rem;color:#E3A21A}

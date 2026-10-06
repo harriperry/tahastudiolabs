@@ -1007,7 +1007,19 @@ export function createCampaigns(ctx) {
     pane.appendChild(hdr);
 
     /* Visual Pack (V2 phase G1): brand kit, Make or Add visuals, progress and the finished images. */
-    const savedDoc = !(e.isNew && e.working === doc) ? e.saved[doc.campaignId] || (doc !== e.working ? doc : null) : null;
+    /* G2b fix: with unsaved edits (or a draft kept from an earlier visit) the view shows the
+       working copy, and the saved copy was never fetched, so the Landing page, Performance and
+       photo request boxes disappeared. Fetch the saved copy in the background instead. */
+    const savedOnServer = !e.isNew || e.list.some((x) => x.campaignId === doc.campaignId);
+    if (savedOnServer && doc === e.working && !e.saved[doc.campaignId] && !e.opening[doc.campaignId]) {
+      e.opening[doc.campaignId] = true;
+      api("/admin/campaign/" + encodeURIComponent(c.id) + "/" + encodeURIComponent(doc.campaignId)).then((r) => {
+        delete e.opening[doc.campaignId];
+        if (r.ok && r.d) e.saved[doc.campaignId] = r.d.campaign;
+        ctx.rerender(c.id);
+      });
+    }
+    const savedDoc = savedOnServer ? e.saved[doc.campaignId] || (doc !== e.working ? doc : null) : null;
     const savedCampaignId = savedDoc ? doc.campaignId : null;
     const savedVisualIds = new Set(((savedDoc && savedDoc.visuals) || []).map((v) => v.id));
     const vbox = h("div", { class: "gc-box gv-pack" });
@@ -1073,6 +1085,7 @@ export function createCampaigns(ctx) {
         kit: vis.kitState(c.id).kit,
         deliveries: vis.loadDeliveries(c.id, savedCampaignId).list
       };
+      if (e.dirty && doc === e.working) pane.appendChild(h("div", { class: "gc-msg info", text: "You have unsaved changes to this campaign. The landing page below uses the saved version; save your changes to use them on the page." }));
       lp.renderBox(pane, info);
       lp.renderPerformance(pane, info);
     }

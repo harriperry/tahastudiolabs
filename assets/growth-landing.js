@@ -132,8 +132,8 @@ export function codePrefix(company) {
   const w = words.find((x) => !GENERIC.test(x)) || words[0] || "TAHA";
   return w.toUpperCase().slice(0, 8);
 }
-const CODE_SUFFIX = { instagram: "IG", facebook: "FB", tiktok: "TT", linkedin: "LI", google: "GB", email: "EM", print: "QR", video: "VID", bio: "BIO" };
-export const CHANNEL_LABEL = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google: "Google Business", email: "Email", print: "Print (QR)", video: "Video", bio: "Profile link", download: "Downloaded page", direct: "Direct or unknown", other: "Other" };
+const CODE_SUFFIX = { share: "WEB", instagram: "IG", facebook: "FB", tiktok: "TT", linkedin: "LI", google: "GB", email: "EM", print: "QR", video: "VID", bio: "BIO" };
+export const CHANNEL_LABEL = { share: "Short link (shared anywhere)", instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google: "Google Business", email: "Email", print: "Print (QR)", video: "Video", bio: "Profile link", download: "Downloaded page", direct: "Direct or unknown", other: "Other" };
 
 /* Which buttons the page can show, from the contact details Harry filled in. */
 export function availableActions(s) {
@@ -163,6 +163,8 @@ export function linkPlan(doc, prefix, settings) {
   const code = (ch) => P + "-" + (CODE_SUFFIX[ch] || "WEB");
   const plan = [];
   const add = (outputKey, channel, medium, label) => plan.push({ outputKey, channel, medium, label, offerCode: medium === "button" ? "" : code(channel) });
+  /* The one short link to give out anywhere: WhatsApp, SMS, email signatures, business cards. */
+  add("share.main", "share", "share", "Short link to share anywhere");
   channels.forEach((ch) => {
     if (ch === "email") add("email.body", "email", "email", "Email");
     else add("post." + ch, ch, "social", CHANNEL_LABEL[ch] + " post");
@@ -180,7 +182,7 @@ export function linkPlan(doc, prefix, settings) {
 
 /* The link to give each output: short for print, video and bios, the full UTM link online. */
 export function linkUrl(link, page, campaignId) {
-  if (["print", "video", "bio", "button"].includes(link.medium)) return link.url;
+  if (["print", "video", "bio", "button", "share"].includes(link.medium)) return link.url;
   const q = new URLSearchParams({ utm_source: link.channel, utm_medium: link.medium, utm_campaign: String(campaignId || "").replace(/^cp_/, ""), utm_content: link.outputKey, c: link.code });
   return page.url + "?" + q.toString();
 }
@@ -897,11 +899,22 @@ export function createLandingUi(ctx) {
     const set = (k) => (v) => { f.settings[k] = v; dirty(); };
     const origin = s.origin || location.origin;
 
+    /* Every published page gets a short link; pages published before it existed get one here. */
+    const share = s.links.find((l) => l.outputKey === "share.main");
+    if (p && !share && !s.busy && !s.shareTried && !(s.form && s.form.dirty)) {
+      s.shareTried = true;
+      formOf(s, info);
+      save(info, true).then(() => ctx.rerender(client.id), () => {});
+    }
     if (p && p.state === "published") {
-      const linkRow = h("div", { class: "lp-live" },
-        h("a", { href: p.url, target: "_blank", rel: "noopener", class: "lp-url", text: p.url }));
+      const linkRow = h("div", { class: "lp-live" });
       const m = h("span", { class: "gc-meta", role: "status" });
-      linkRow.appendChild(h("button", { type: "button", class: "gc-link", on: { click: () => copy(p.url, m) } }, "Copy link"));
+      if (share) {
+        linkRow.appendChild(h("a", { href: share.url, target: "_blank", rel: "noopener", class: "lp-url lp-short", text: share.url.replace(/^https?:\/\//, "") }));
+        linkRow.appendChild(h("button", { type: "button", class: "btn-copy", on: { click: () => copy(share.url, m) } }, "Copy short link"));
+      }
+      linkRow.appendChild(h("a", { href: p.url, target: "_blank", rel: "noopener", class: "lp-url", text: p.url }));
+      linkRow.appendChild(h("button", { type: "button", class: "gc-link", on: { click: () => copy(p.url, m) } }, "Copy full link"));
       linkRow.appendChild(h("button", { type: "button", class: "gc-link", on: { click: () => copy(embedCode(p.url, doc.name), m) } }, "Copy embed code"));
       linkRow.appendChild(m);
       box.appendChild(linkRow);
