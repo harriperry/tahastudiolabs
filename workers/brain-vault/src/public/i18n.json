@@ -59,6 +59,10 @@
           "b": "Din profil och dina filer lagras inom EU hos Cloudflare. Inloggnings- och aviseringsmejl skickas via Google Gmail och innehåller bara ditt namn och en länk."
         },
         {
+          "h": "Kampanjsidor och förfrågningar",
+          "b": "När vi publicerar en kampanjsida åt dig räknar vi besök och klick utan kakor och utan att spara någons IP-adress. Den som skickar en förfrågan via sidan lämnar sitt namn och ett telefonnummer eller en e-postadress. Du bestämmer vad som händer med förfrågningarna, och vi raderar dem 90 dagar efter att erbjudandet har slutat."
+        },
+        {
           "h": "Kundomdömen",
           "b": "Omdömen kan innehålla dina kunders namn. Genom att dela dem intygar du att du har rätt att göra det."
         },
@@ -296,6 +300,94 @@
       "thanks": "Tack! Bilden är mottagen.",
       "back": "Tillbaka till status",
       "rule": "JPG, PNG eller WebP · max 10 MB"
+    },
+    "pages": {
+      "kicker": "DIN KAMPANJSIDA",
+      "title": "Din kampanjsida är publicerad",
+      "titleEnded": "Din kampanjsida",
+      "open": "Öppna sidan",
+      "copy": "Kopiera länken",
+      "copied": "Länken är kopierad",
+      "ended": "Erbjudandet slutade {date}. Sidan visar nu att det har slutat.",
+      "until": "Erbjudandet gäller till och med {date}.",
+      "report": "Se hur det går",
+      "enquiries": "Dina förfrågningar",
+      "newOnes": "{n} nya"
+    },
+    "enquiries": {
+      "kicker": "DINA FÖRFRÅGNINGAR",
+      "title": "Förfrågningar från dina kampanjsidor",
+      "lead": "Personer som har fyllt i formuläret på din sida. Du ansvarar för uppgifterna: svara dem och radera det du inte längre behöver. Vi raderar dem automatiskt 90 dagar efter att erbjudandet har slutat.",
+      "none": "Inga förfrågningar ännu. De dyker upp här så fort någon skickar en.",
+      "new": "Ny",
+      "contacted": "Kontaktad",
+      "markContacted": "Markera som kontaktad",
+      "markNew": "Markera som ny",
+      "delete": "Radera",
+      "confirmDelete": "Ja, radera den",
+      "cancel": "Avbryt",
+      "deleted": "Förfrågan är raderad.",
+      "csv": "Ladda ner alla som CSV (Excel)",
+      "wantsOffers": "Vill ha dina erbjudanden",
+      "noOffers": "Har inte bett om erbjudanden",
+      "from": "Från {channel}",
+      "campaign": "Kampanj: {name}",
+      "back": "Tillbaka till status"
+    },
+    "report": {
+      "kicker": "KAMPANJRAPPORT",
+      "title": "Så går det för {name}",
+      "lead": "Räknat på din kampanjsida, utan kakor. Dina egna besök när du är inloggad hos TAHA räknas inte.",
+      "visits": "Besök",
+      "visitors": "Besökare",
+      "clicks": "Knapptryck",
+      "scans": "QR-skanningar",
+      "enquiries": "Förfrågningar",
+      "best": "Bästa kanalen hittills: {channel}",
+      "byChannel": "Varifrån besökarna kom",
+      "channel": "Kanal",
+      "beforeAfter": "Före och efter",
+      "before": "Före",
+      "after": "Efter",
+      "change": "Förändring",
+      "period": "Före = {period}",
+      "noNumbers": "Siffror för före och efter läggs in när kampanjmånaden är slut.",
+      "buttons": "Vilka knappar folk tryckte på",
+      "print": "Skriv ut rapporten",
+      "back": "Tillbaka till status",
+      "metrics": {
+        "orders": "Beställningar eller bokningar",
+        "new_customers": "Nya kunder",
+        "gbp_views": "Visningar av Google-profilen",
+        "gbp_calls": "Samtal via Google",
+        "followers_instagram": "Följare på Instagram",
+        "followers_facebook": "Följare på Facebook",
+        "followers_tiktok": "Följare på TikTok",
+        "followers_linkedin": "Följare på LinkedIn"
+      },
+      "btn": {
+        "call": "Ring",
+        "whatsapp": "WhatsApp",
+        "booking": "Bokning",
+        "directions": "Vägbeskrivning",
+        "order": "Beställ",
+        "form": "Formulär",
+        "other": "Annat"
+      },
+      "ch": {
+        "instagram": "Instagram",
+        "facebook": "Facebook",
+        "tiktok": "TikTok",
+        "linkedin": "LinkedIn",
+        "google": "Google",
+        "email": "E-post",
+        "print": "Flygblad och QR-koder",
+        "video": "Video",
+        "bio": "Profillänk",
+        "download": "Din egen webbplats",
+        "direct": "Direkt eller okänt",
+        "other": "Annat"
+      }
     }
   },
   "en": {
@@ -355,6 +447,10 @@
         {
           "h": "Storage",
           "b": "Your profile and files are stored in the EU with Cloudflare. Login and notification emails are sent through Google Gmail and contain only your name and a link."
+        },
+        {
+          "h": "Campaign pages and enquiries",
+          "b": "When we publish a campaign page for you, we count visits and button clicks without cookies and without storing anyone's IP address. People who send an enquiry through the page give their name and a phone number or email address. You decide what happens with those enquiries, and we delete them 90 days after the offer ends."
         },
         {
           "h": "Customer reviews",
@@ -594,6 +690,94 @@
       "thanks": "Thank you! The photo is in.",
       "back": "Back to status",
       "rule": "JPG, PNG or WebP · max 10 MB"
+    },
+    "pages": {
+      "kicker": "YOUR CAMPAIGN PAGE",
+      "title": "Your campaign page is live",
+      "titleEnded": "Your campaign page",
+      "open": "Open the page",
+      "copy": "Copy the link",
+      "copied": "Link copied",
+      "ended": "The offer ended {date}. The page now shows an ended message.",
+      "until": "The offer runs until {date}.",
+      "report": "See how it is going",
+      "enquiries": "Your enquiries",
+      "newOnes": "{n} new"
+    },
+    "enquiries": {
+      "kicker": "YOUR ENQUIRIES",
+      "title": "Enquiries from your campaign pages",
+      "lead": "People who filled in the form on your page. You are responsible for these details: answer them, and delete what you no longer need. We delete them automatically 90 days after the offer ends.",
+      "none": "No enquiries yet. They show up here as soon as someone sends one.",
+      "new": "New",
+      "contacted": "Contacted",
+      "markContacted": "Mark as contacted",
+      "markNew": "Mark as new",
+      "delete": "Delete",
+      "confirmDelete": "Yes, delete it",
+      "cancel": "Cancel",
+      "deleted": "The enquiry is deleted.",
+      "csv": "Download all as CSV (Excel)",
+      "wantsOffers": "Wants your offers",
+      "noOffers": "Has not asked for offers",
+      "from": "From {channel}",
+      "campaign": "Campaign: {name}",
+      "back": "Back to status"
+    },
+    "report": {
+      "kicker": "CAMPAIGN REPORT",
+      "title": "How {name} is going",
+      "lead": "Counted on your campaign page, without cookies. Your own visits while signed in to TAHA are not counted.",
+      "visits": "Visits",
+      "visitors": "Visitors",
+      "clicks": "Button clicks",
+      "scans": "QR scans",
+      "enquiries": "Enquiries",
+      "best": "Best channel so far: {channel}",
+      "byChannel": "Where your visitors came from",
+      "channel": "Channel",
+      "beforeAfter": "Before and after",
+      "before": "Before",
+      "after": "After",
+      "change": "Change",
+      "period": "Before = {period}",
+      "noNumbers": "Before and after numbers are added when the campaign month is over.",
+      "buttons": "Which buttons people pressed",
+      "print": "Print this report",
+      "back": "Back to status",
+      "metrics": {
+        "orders": "Orders or bookings",
+        "new_customers": "New customers",
+        "gbp_views": "Google profile views",
+        "gbp_calls": "Calls from Google",
+        "followers_instagram": "Instagram followers",
+        "followers_facebook": "Facebook followers",
+        "followers_tiktok": "TikTok followers",
+        "followers_linkedin": "LinkedIn followers"
+      },
+      "btn": {
+        "call": "Call",
+        "whatsapp": "WhatsApp",
+        "booking": "Booking",
+        "directions": "Directions",
+        "order": "Order",
+        "form": "Enquiry form",
+        "other": "Other"
+      },
+      "ch": {
+        "instagram": "Instagram",
+        "facebook": "Facebook",
+        "tiktok": "TikTok",
+        "linkedin": "LinkedIn",
+        "google": "Google",
+        "email": "Email",
+        "print": "Flyers and QR codes",
+        "video": "Video",
+        "bio": "Profile link",
+        "download": "Your own website",
+        "direct": "Direct or unknown",
+        "other": "Other"
+      }
     }
   }
 }

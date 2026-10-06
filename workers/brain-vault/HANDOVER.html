@@ -29,7 +29,33 @@ li{margin:0 0 6px}
 <body>
 <main>
 <h1>TAHA Studio Labs Growth Department</h1>
-<p class="sub">V1 handover, 5 October 2026, built in six phases. V2 phase G1 added 6 October 2026 (below), on the branch <code>growth-g1</code>, not live yet.</p>
+<p class="sub">V1 handover, 5 October 2026, built in six phases. V2 phases G1, G2a and G2b added 6 October 2026 (below). G2b is on the branch <code>growth-g2b</code>, not live yet.</p>
+
+<h2>V2 phase G2b: landing pages, tracking and enquiries</h2>
+<div class="card">
+<ul>
+<li>A <b>Landing page</b> box under the Visual Pack on every saved campaign: the address (tahastudiolabs.com/go/&lt;client&gt;/&lt;campaign&gt;), how customers reach the business (WhatsApp, phone, booking or order link, address, hours), the offer's end date, which of the client's own photos and real reviews to show, and the enquiry form on or off.</li>
+<li><b>Publish</b> builds the page in your browser from <code>assets/growth/landing.template.html</code>, makes the images (WebP in two widths, plus a 1200 x 630 link preview), uploads them and sends the finished HTML to the Vault. Updates keep the same link. <b>Preview</b> shows it at phone and desktop width and the ended message. <b>Take down</b> answers 410.</li>
+<li><b>Download as HTML</b> gives one self-contained file (images embedded, under 3 MB) and a bilingual guide for WordPress, Wix and Squarespace. Its buttons go through tracked short links and its form posts with the page's token. <b>Copy embed code</b> gives an iframe for site builders.</li>
+<li><b>Tracked links and offer codes</b>: one link per post, ad, bio, the video and two QR codes (flyer, counter), each with its own offer code (SANDY-IG, SANDY-FB...). Copy link, Copy text with link, QR as PNG or SVG. Codes never change once made.</li>
+<li><b>Performance</b> box: visits, visitors, clicks, QR scans and enquiries per channel; before and after numbers; fee, ad spend and average order value; cost per enquiry, cost per new customer, estimated return and best channel, as in spec 9.4. Your own signed-in visits are never counted.</li>
+<li>Portal: a <b>Your campaign page</b> card on the status screen, <b>Your enquiries</b> (mark contacted, delete, CSV) and a printable <b>Campaign report</b>. Enquiry emails carry no content.</li>
+<li>Counting is cookieless: no IP address stored, a daily salted hash for unique visitors, raw events deleted after 90 days, enquiries 90 days after the offer ends, pages taken down 30 days after it. Mark as left takes every page down at once; erasure removes pages, links, events, totals, enquiries and costs.</li>
+<li>Consent moves to <b>c-3</b> (one new point about campaign pages and enquiries), and privacy.html section 12 has a new paragraph in both languages. Existing clients confirm once on their next visit.</li>
+<li>Part H hook: every campaign text reaches the page through <code>campaignText()</code> in <code>assets/growth-landing.js</code>. Part H only changes that function to read approved Swedish text.</li>
+</ul>
+</div>
+<div class="tw"><table>
+<tr><th>G2b is done when</th><th>How it was checked</th><th>Status</th></tr>
+<tr><td>Chef Sandy's page is live</td><td>pages test; browser run: panel Save, Preview, Publish on local pilot data</td><td class="you">Harry live</td></tr>
+<tr><td>A test enquiry arrives (email without content, in Your enquiries, CSV works); honeypot and a sixth send in an hour are refused</td><td>pages test; browser run: form sent on a phone width, thank-you shown, enquiry in the portal</td><td class="you">Harry live</td></tr>
+<tr><td>The Performance tab shows clicks from at least three channels against a baseline</td><td>pages test (Instagram, Facebook, TikTok, print, download)</td><td class="you">Harry live</td></tr>
+<tr><td>The page loads fast, makes no third-party requests and sets no cookies</td><td>browser run on a phone: 8 requests, 0 third-party, 0 cookies, about 15 KB before images; Lighthouse to be run by Harry on the live page</td><td class="you">Harry live</td></tr>
+<tr><td>The downloaded file opens offline and looks like the hosted page; the embed code shows the page</td><td>landing-helpers test (same template, data URI images, under 3 MB)</td><td class="you">Harry live</td></tr>
+<tr><td>Ended message, 410 after take down and Mark as left, erasure removes everything</td><td>pages test with the daily job</td><td class="ok">Done</td></tr>
+<tr><td>Every earlier test suite still passes</td><td><code>node test/run-all.mjs</code>: all 16 suites</td><td class="ok">Done</td></tr>
+</table></div>
+<div class="card"><p><b>To go live (needs your approval):</b> merge <code>growth-g2b</code> into <code>main</code> (site) and push the Vault to <code>growth-phase-1</code> (Worker). This one has a <b>Cloudflare route change</b>: <code>wrangler.json</code> adds the route <code>tahastudiolabs.com/go/*</code> to the brain-vault Worker, applied on deploy. The new tables create themselves on the first request. Not in G2b: ad pixels (open item 11), pages on the client's own domain (V3), brand font files (pages use the kit's font names with system fallbacks), a logo image (the page shows the business name as text).</p></div>
 
 <h2>V2 phase G2a: photo requests to the portal</h2>
 <div class="card">

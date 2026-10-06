@@ -94,6 +94,19 @@ const COPY = {
       sv: "Är du inte inloggad? Ange din e-postadress i portalen så får du en inloggningslänk.",
       en: "Not signed in? Enter your email address in the portal and you will get a login link."
     }
+  },
+  /* V2 phase G2b. No enquiry content: only that one is waiting, and where to read it. */
+  enquiry: {
+    subject: { sv: "Ny förfrågan från din kampanjsida", en: "New enquiry from your campaign page" },
+    intro: {
+      sv: "Hej {name}! Någon har skickat en förfrågan via din kampanjsida. Logga in i portalen för att läsa den och svara kunden.",
+      en: "Hi {name}! Someone has sent an enquiry through your campaign page. Sign in to the portal to read it and get back to them."
+    },
+    button: { sv: "Läs förfrågan", en: "Read the enquiry" },
+    note: {
+      sv: "Av integritetsskäl står förfrågan aldrig i e-posten. Inte inloggad? Ange din e-postadress i portalen så får du en inloggningslänk.",
+      en: "For privacy, the enquiry itself is never in the email. Not signed in? Enter your email address in the portal and you will get a login link."
+    }
   }
 };
 
@@ -177,6 +190,26 @@ export function composePhotoNotice(cfg, { company, open, link }) {
     '<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#111;max-width:560px;margin:0 auto;padding:24px">' +
     "<p><b>" + escapeHtml(company) + "</b> har skickat en bild till en bildförfrågan (" + escapeHtml(left.sv) + ").</p>" +
     "<p><b>" + escapeHtml(company) + "</b> has sent a photo for a photo request (" + escapeHtml(left.en) + ").</p>" +
+    '<p><a href="' + escapeHtml(link) + '">' + escapeHtml(link) + "</a></p></body></html>";
+  return { subject, text, html };
+}
+
+/* V2 phase G2b: the client has a new enquiry. No content, only a link to the portal. */
+export function composeEnquiryEmail(cfg, { name, language, link }) {
+  return composeEmail("enquiry", cfg, { link, name, language, signinUrl: link });
+}
+
+/* V2 phase G2b: notice to Harry about a new enquiry. Company name only. */
+export function composeEnquiryNotice(cfg, { company, link }) {
+  const subject = "Ny förfrågan / New enquiry: " + company;
+  const text =
+    company + " har fått en förfrågan via kampanjsidan.\n" +
+    company + " has a new enquiry from the campaign page.\n\n" +
+    link + "\n";
+  const html =
+    '<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#111;max-width:560px;margin:0 auto;padding:24px">' +
+    "<p><b>" + escapeHtml(company) + "</b> har fått en förfrågan via kampanjsidan.</p>" +
+    "<p><b>" + escapeHtml(company) + "</b> has a new enquiry from the campaign page.</p>" +
     '<p><a href="' + escapeHtml(link) + '">' + escapeHtml(link) + "</a></p></body></html>";
   return { subject, text, html };
 }

@@ -7,14 +7,18 @@
 
    Erasure removes every R2 file under the client's folder and every D1 row that belongs to the
    client: the client record, consents, intake drafts and versions, file records, brains,
-   campaigns, attached finished files (deliveries), the brand kit, status history, sessions,
-   login links and the rate-limit entries for the email.
+   campaigns, attached finished files (deliveries), the brand kit, photo requests, landing
+   pages and their tracked links, counting events and daily totals, enquiries, before and after
+   numbers, costs, status history, sessions, login links and the rate-limit entries for the
+   email.
    Only an anonymous line stays in erasure_log: a SHA-256 hash of the client id, the date and
    whether Harry or the retention rule erased it. No name, email or content is kept. */
 import { STATUS_LABELS } from "./config.js";
 import { json, normEmail, nowIso, readJson, sha256hex } from "./util.js";
 import { deliveryOut } from "./delivery.js";
 import { requestOut } from "./photos.js";
+import { linkOut, pageOut } from "./pages.js";
+import { leadOut, readBaselines, readCosts } from "./roi.js";
 
 const M = {
   badRequest: { sv: "Ogiltig förfrågan.", en: "Bad request." },
@@ -35,6 +39,13 @@ const CLIENT_TABLES = [
   ["deliveries", "client_id"],
   ["brand_kits", "client_id"],
   ["photo_requests", "client_id"],
+  ["links", "client_id"],
+  ["events", "client_id"],
+  ["daily_stats", "client_id"],
+  ["leads", "client_id"],
+  ["baselines", "client_id"],
+  ["costs", "client_id"],
+  ["pages", "client_id"],
   ["consents", "client_id"],
   ["status_history", "client_id"],
   ["sessions", "client_id"],
@@ -86,7 +97,18 @@ export async function exportClient(env, cfg, clientId) {
       Object.assign(deliveryOut(r), { url: cfg.siteOrigin + deliveryOut(r).url })
     ),
     photoRequests: (await all(env, "SELECT * FROM photo_requests WHERE client_id = ? ORDER BY created_at ASC", clientId)).map(requestOut),
-    brandKit: (await all(env, "SELECT data, updated_at AS updatedAt FROM brand_kits WHERE client_id = ?", clientId)).map((r) => ({ kit: JSON.parse(r.data), updatedAt: r.updatedAt }))[0] || null
+    brandKit: (await all(env, "SELECT data, updated_at AS updatedAt FROM brand_kits WHERE client_id = ?", clientId)).map((r) => ({ kit: JSON.parse(r.data), updatedAt: r.updatedAt }))[0] || null,
+    /* V2 phase G2b */
+    landingPages: (await all(env, "SELECT * FROM pages WHERE client_id = ? ORDER BY created_at ASC", clientId)).map((p) => Object.assign(pageOut(p, cfg), { token: undefined })),
+    trackedLinks: (await all(env, "SELECT * FROM links WHERE client_id = ? ORDER BY created_at ASC", clientId)).map((l) => linkOut(l, cfg)),
+    enquiries: (await all(env, "SELECT * FROM leads WHERE client_id = ? ORDER BY at ASC", clientId)).map(leadOut),
+    pageDailyTotals: await all(env, "SELECT page_id AS pageId, day, channel, type, n FROM daily_stats WHERE client_id = ? ORDER BY day ASC", clientId),
+    pageEventsKept: ((await all(env, "SELECT COUNT(*) AS n FROM events WHERE client_id = ?", clientId))[0] || { n: 0 }).n,
+    results: await Promise.all((await all(env, "SELECT DISTINCT campaign_id FROM campaigns WHERE client_id = ?", clientId)).map(async (r) => ({
+      campaignId: r.campaign_id,
+      baselines: await readBaselines(env, clientId, r.campaign_id),
+      costs: await readCosts(env, clientId, r.campaign_id)
+    })))
   };
   const slug = String(c.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "client";
   return json(doc, 200, { "Content-Disposition": 'attachment; filename="client-record-' + slug + '.json"' });

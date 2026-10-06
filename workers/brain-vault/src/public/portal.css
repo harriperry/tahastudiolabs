@@ -159,3 +159,24 @@ input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--ree
 .pr-badge.ok { background: #E3F3EA; color: #1F6B4E; }
 .pr-text { margin: 0; font-size: 16px; line-height: 1.55; }
 .pr-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; position: relative; }
+
+/* V2 phase G2b: campaign page, Your enquiries, Campaign report */
+.page-card { border-color: var(--reel-gold); }
+.page-card h2 { margin: 0; }
+.page-url { font-weight: 700; overflow-wrap: anywhere; color: var(--ink); }
+.lead.new { border-color: var(--reel-gold); }
+.lead-name { margin: 0; font-size: 19px; }
+.lead-contact a { color: var(--ink); font-weight: 600; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.tile { border: 1px solid var(--hairline); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 2px; }
+.tile b { font-size: 24px; }
+.tile span { font-size: 13px; color: var(--muted); }
+.best { font-weight: 700; margin: 0; }
+.rtable { width: 100%; border-collapse: collapse; font-size: 15px; }
+.rtable th, .rtable td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--hairline); }
+.rtable th { font-size: 13px; color: var(--muted); font-weight: 600; }
+@media print {
+  .top, .foot, .progress, .no-print, .lang, .signout { display: none !important; }
+  body { background: #fff; }
+  .card { break-inside: avoid; border-color: #ccc; }
+}

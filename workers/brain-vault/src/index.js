@@ -8,6 +8,9 @@
    V2 phase G1: campaign-2 documents with a Visual Pack, finished images attached to a
    campaign (deliveries) and the client's brand kit. Admin only; the portal is unchanged.
    V2 phase G2a: photo requests from Visual Pack briefs to the portal (Photos we need).
+   V2 phase G2b: hosted landing pages at /go/<client>/<campaign>, short links and QR codes at
+   /go/r/<code>, cookieless counting, enquiries, before and after numbers, costs, the
+   Performance tab, and the portal's Your enquiries and Campaign report.
 
    House rules enforced here:
    1. The Vault never receives, stores or logs an LLM API key. No endpoint accepts one.
@@ -45,6 +48,9 @@ import {
   putLanguage,
   submitIntake
 } from "./portal.js";
+import { getPageAdmin, publishPage, putPageAdmin, putPageAsset, serveAsset, servePage, serveTracker, shortLink, unpublishPage } from "./pages.js";
+import { corsPreflight, pubEvent, pubLead } from "./track.js";
+import { adminLeads, deleteLead, g2bSweep, getBaseline, getCosts, getStats, patchLead, portalLeads, portalLeadsCsv, portalPages, portalReport, putBaseline, putCosts } from "./roi.js";
 import { SCHEMAS } from "./schemas.js";
 import { json, lang, normEmail, readJson, validEmail, withCookies } from "./util.js";
 
@@ -126,6 +132,20 @@ function sameOrigin(request, cfg) {
 async function handle(request, env, ctx) {
   const cfg = getConfig(env);
   const url = new URL(request.url);
+  /* V2 phase G2b: public landing pages, their images, short links and the counting script. */
+  if (url.pathname === "/go" || url.pathname.startsWith("/go/")) {
+    if (request.method !== "GET" && request.method !== "HEAD") return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, HEAD" } });
+    if (url.pathname === "/go/t.js") return serveTracker();
+    await ensureSchema(env);
+    const ga = url.pathname.match(/^\/go\/a\/(pg_[a-z0-9]{4,32})\/([a-z0-9][a-z0-9.-]{0,50})$/);
+    if (ga) return serveAsset(env, ga[1], ga[2]);
+    const gr = url.pathname.match(/^\/go\/r\/([a-z0-9]{4,12})\/?$/);
+    if (gr) return shortLink(request, env, cfg, gr[1], ctx);
+    const gp = url.pathname.match(/^\/go\/([a-z0-9-]{1,40})\/([a-z0-9-]{1,40})(\/?)$/);
+    if (gp && gp[3]) return Response.redirect(cfg.siteOrigin + "/go/" + gp[1] + "/" + gp[2] + url.search, 301);
+    if (gp) return servePage(request, env, cfg, gp[1], gp[2]);
+    return servePage(request, env, cfg, "", "");
+  }
   if ((url.pathname === "/grow" || url.pathname.startsWith("/grow/")) && (request.method === "GET" || request.method === "HEAD")) {
     if (url.pathname === "/grow") return Response.redirect(cfg.siteOrigin + "/grow/", 301);
     return servePortal(url.pathname);
@@ -147,6 +167,18 @@ async function handle(request, env, ctx) {
     if (sm) return json(SCHEMAS[sm[1]], 200, { "Cache-Control": "public, max-age=300" });
   }
 
+  /* V2 phase G2b: counting and enquiries. Open to other origins so a downloaded copy of a page
+     works; no cookies are set, and an enquiry from another site needs the page's token. */
+  if (path === "/pub/event" || path.startsWith("/pub/lead/")) {
+    if (method === "OPTIONS") return corsPreflight();
+    if (method !== "POST") return json({ error: "not_found", message: MSG.notFound }, 404);
+    await ensureSchema(env);
+    if (path === "/pub/event") return pubEvent(request, env, cfg);
+    const pl = path.match(/^\/pub\/lead\/(pg_[a-z0-9]{4,32})$/);
+    if (pl) return pubLead(request, env, cfg, ctx, pl[1]);
+    return json({ error: "not_found", message: MSG.notFound }, 404);
+  }
+
   if (method !== "GET" && method !== "HEAD" && !sameOrigin(request, cfg)) {
     return json({ error: "bad_origin", message: MSG.badOrigin }, 403);
   }
@@ -155,7 +187,7 @@ async function handle(request, env, ctx) {
 
   if (method === "GET" && path === "/health") {
     const db = await env.DB.prepare("SELECT 1 AS ok").first();
-    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "g2a" });
+    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "g2b" });
   }
 
   if (method === "GET" && path === "/portal/meta") {
@@ -208,9 +240,11 @@ async function handle(request, env, ctx) {
   }
 
   /* ---------- client portal ---------- */
-  const clientPaths = ["/portal/state", "/consent", "/intake", "/uploads", "/intake/submit", "/status", "/me/language", "/portal/photo-requests"];
+  const clientPaths = ["/portal/state", "/consent", "/intake", "/uploads", "/intake/submit", "/status", "/me/language", "/portal/photo-requests", "/portal/pages", "/portal/leads", "/portal/leads.csv"];
   const fileMatch = path.match(/^\/files\/(f_[a-z0-9]{4,32})$/);
-  if (clientPaths.includes(path) || fileMatch) {
+  const leadMatch = path.match(/^\/portal\/leads\/(ld_[a-z0-9]{4,32})$/);
+  const reportMatch = path.match(/^\/portal\/report\/(cp_[a-z0-9_]{2,40})$/);
+  if (clientPaths.includes(path) || fileMatch || leadMatch || reportMatch) {
     if (!auth) return json({ error: "not_signed_in", message: MSG.notSignedIn }, 401);
     if (fileMatch && method === "GET") return respond(await getFile(env, auth, fileMatch[1]));
     if (auth.role !== "client") return json({ error: "forbidden", message: MSG.forbidden }, 403);
@@ -224,6 +258,13 @@ async function handle(request, env, ctx) {
     if (path === "/intake/submit" && method === "POST") return submitIntake(env, cfg, auth, ctx);
     if (path === "/status" && method === "GET") return getStatus(env, auth);
     if (path === "/me/language" && method === "PUT") return putLanguage(request, env, auth);
+    /* V2 phase G2b */
+    if (path === "/portal/pages" && method === "GET") return portalPages(env, cfg, auth);
+    if (path === "/portal/leads" && method === "GET") return portalLeads(env, auth);
+    if (path === "/portal/leads.csv" && method === "GET") return portalLeadsCsv(env, auth);
+    if (leadMatch && method === "PATCH") return patchLead(request, env, auth, leadMatch[1]);
+    if (leadMatch && method === "DELETE") return deleteLead(env, auth, leadMatch[1]);
+    if (reportMatch && method === "GET") return portalReport(env, cfg, auth, reportMatch[1]);
   }
 
   /* ---------- admin ---------- */
@@ -276,6 +317,20 @@ async function handle(request, env, ctx) {
     if (pr && method === "POST" && !pr[3]) return respond(await sendPhotoRequests(request, env, cfg, ctx, pr[1], pr[2]));
     if (pr && method === "GET" && !pr[3]) return respond(await listPhotoRequestsAdmin(env, pr[1], pr[2]));
     if (pr && method === "DELETE" && pr[3]) return respond(await cancelPhotoRequest(env, pr[1], pr[2], pr[3]));
+    /* V2 phase G2b */
+    const pg = path.match(/^\/admin\/page\/(cl_[a-z0-9]{4,32})\/(cp_[a-z0-9_]{2,40})(?:\/(asset|publish|unpublish))?$/);
+    if (pg && method === "GET" && !pg[3]) return respond(await getPageAdmin(env, cfg, pg[1], pg[2]));
+    if (pg && method === "PUT" && !pg[3]) return respond(await putPageAdmin(request, env, cfg, pg[1], pg[2]));
+    if (pg && method === "POST" && pg[3] === "asset") return respond(await putPageAsset(request, env, pg[1], pg[2], url));
+    if (pg && method === "POST" && pg[3] === "publish") return respond(await publishPage(request, env, cfg, pg[1], pg[2]));
+    if (pg && method === "POST" && pg[3] === "unpublish") return respond(await unpublishPage(env, cfg, pg[1], pg[2]));
+    const roi = path.match(/^\/admin\/(stats|baseline|costs|leads)\/(cl_[a-z0-9]{4,32})\/(cp_[a-z0-9_]{2,40})$/);
+    if (roi && method === "GET" && roi[1] === "stats") return respond(await getStats(env, cfg, roi[2], roi[3]));
+    if (roi && method === "GET" && roi[1] === "baseline") return respond(await getBaseline(env, roi[2], roi[3]));
+    if (roi && method === "PUT" && roi[1] === "baseline") return respond(await putBaseline(request, env, roi[2], roi[3]));
+    if (roi && method === "GET" && roi[1] === "costs") return respond(await getCosts(env, roi[2], roi[3]));
+    if (roi && method === "PUT" && roi[1] === "costs") return respond(await putCosts(request, env, roi[2], roi[3]));
+    if (roi && method === "GET" && roi[1] === "leads") return respond(await adminLeads(env, roi[2], roi[3]));
   }
 
   return json({ error: "not_found", message: MSG.notFound }, 404);
@@ -295,5 +350,7 @@ export default {
     ctx.waitUntil(cleanup(env));
     /* Phase 6: erase clients who left more than RETENTION_MONTHS ago. */
     ctx.waitUntil(retentionSweep(env, getConfig(env)).catch(() => console.error("retention sweep failed")));
+    /* V2 phase G2b: raw events after 90 days, old salts, old enquiries, ended pages. */
+    ctx.waitUntil(g2bSweep(env).catch(() => console.error("g2b sweep failed")));
   }
 };

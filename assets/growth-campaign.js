@@ -39,6 +39,7 @@ import {
   sizeLabel,
   withVisuals
 } from "./growth-visuals.js?v=g2a";
+import { createLandingUi } from "./growth-landing.js?v=g2b";
 
 const VAULT = "/api/vault";
 const PROMPT_URL = "/assets/growth/campaign.prompt.json?v=p5";
@@ -290,6 +291,7 @@ export function createCampaigns(ctx) {
   let visualsPrompt = null;
   let platforms = null;
   const vis = createVisualsUi(ctx);
+  const lp = createLandingUi(ctx);
 
   function entry(id) {
     if (!cache[id]) {
@@ -1059,6 +1061,21 @@ export function createCampaigns(ctx) {
       });
     }
     pane.appendChild(vbox);
+
+    /* V2 phase G2b: the hosted landing page and its numbers, built from the saved campaign. */
+    if (savedCampaignId && savedDoc) {
+      const info = {
+        client: c,
+        campaignId: savedCampaignId,
+        doc: savedDoc,
+        d,
+        brain,
+        kit: vis.kitState(c.id).kit,
+        deliveries: vis.loadDeliveries(c.id, savedCampaignId).list
+      };
+      lp.renderBox(pane, info);
+      lp.renderPerformance(pane, info);
+    }
 
     const list = h("div", { class: "gc-cards one" });
     CARDS.forEach((card) => {

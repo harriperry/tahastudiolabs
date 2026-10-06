@@ -23,6 +23,10 @@
   var showMissing = false;
   var msgs = {};
   var PR = [];
+  var PAGES = [];
+  var LEADS = [];
+  var REPORT = { cp: "", data: null, loading: false, error: false };
+  var confirmDel = "";
   var app = document.getElementById("app");
 
   var PIC_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -228,7 +232,7 @@
     app.textContent = "";
     var view = currentView();
     shell(view);
-    var fn = { signin: viewSignin, admin: viewAdmin, consent: viewConsent, profile: viewProfile, uploads: viewUploads, review: viewReview, status: viewStatus, photos: viewPhotos }[view];
+    var fn = { signin: viewSignin, admin: viewAdmin, consent: viewConsent, profile: viewProfile, uploads: viewUploads, review: viewReview, status: viewStatus, photos: viewPhotos, enquiries: viewEnquiries, report: viewReport }[view];
     add(app, fn());
     if (active && document.getElementById(active)) document.getElementById(active).focus({ preventScroll: true });
     window.scrollTo(0, y);
@@ -246,7 +250,8 @@
     if (ME.role === "admin") return "admin";
     if (!S.consent.accepted) return "consent";
     var hsh = location.hash.replace("#", "");
-    if (["profile", "uploads", "review", "status", "photos"].indexOf(hsh) > -1) return hsh;
+    if (["profile", "uploads", "review", "status", "photos", "enquiries"].indexOf(hsh) > -1) return hsh;
+    if (/^report-cp_[a-z0-9_]{2,40}$/.test(hsh)) return "report";
     return S.latestIntakeVersion > 0 ? "status" : "profile";
   }
   window.addEventListener("hashchange", function () {
@@ -782,6 +787,7 @@
         h("p", { class: "lead", text: t("status.lead") })),
       h("div", { class: "now" }, h("div", { class: "kicker", text: t("status.nowLabel") }), h("h2", { text: now.t }), h("p", { text: now.b })),
       photoCard(),
+      pageCards(),
       steps,
       h("div", { class: "note" }, svg(SHIELD, "#1F6B4E"), h("span", { text: t("review.pub") })),
       h("div", { class: "actions" }, h("button", { type: "button", class: "btn" + (submitted ? " secondary" : ""), text: submitted ? t("status.edit") : t("status.continue"), onClick: function () { go("profile"); } }))
@@ -858,6 +864,150 @@
     ];
   }
 
+  /* ---------- campaign pages, enquiries and report (V2 phase G2b) ---------- */
+  function loadPages() {
+    return Promise.all([api("/portal/pages"), api("/portal/leads")]).then(function (rs) {
+      PAGES = rs[0].ok && rs[0].data && rs[0].data.pages ? rs[0].data.pages : [];
+      LEADS = rs[1].ok && rs[1].data && rs[1].data.leads ? rs[1].data.leads : [];
+    });
+  }
+  function newLeads() {
+    return LEADS.filter(function (x) { return x.state === "new"; }).length;
+  }
+  function copyText(text, done) {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () {});
+  }
+  function pageCards() {
+    if (!PAGES.length) return LEADS.length ? enquiryLinkCard() : null;
+    var n = newLeads();
+    return PAGES.map(function (pg, i) {
+      var links = h("div", { class: "actions" },
+        h("a", { class: "btn", href: pg.url, target: "_blank", rel: "noopener", text: t("pages.open") }),
+        h("button", { type: "button", class: "btn secondary", text: t("pages.copy"), onClick: function (ev) {
+          var b = ev.target;
+          copyText(pg.url, function () { b.textContent = t("pages.copied"); });
+        } }));
+      var more = h("div", { class: "actions" },
+        h("button", { type: "button", class: "btn secondary", text: t("pages.report"), onClick: function () { go("report-" + pg.campaignId); } }),
+        i === 0 && (pg.formOn || LEADS.length) ? h("button", { type: "button", class: "btn secondary", text: t("pages.enquiries") + (n ? " (" + t("pages.newOnes", { n: n }) + ")" : ""), onClick: function () { go("enquiries"); } }) : null);
+      return h("div", { class: "card page-card" },
+        h("div", { class: "kicker", text: t("pages.kicker") }),
+        h("h2", { text: pg.ended ? t("pages.titleEnded") : t("pages.title") }),
+        pg.campaignName ? h("p", { class: "muted small", text: pg.campaignName }) : null,
+        h("a", { class: "page-url", href: pg.url, target: "_blank", rel: "noopener", text: pg.url.replace(/^https?:\/\//, "") }),
+        h("p", { class: "small", text: pg.ended ? t("pages.ended", { date: fmtDay(pg.offerEnd) }) : t("pages.until", { date: fmtDay(pg.offerEnd) }) }),
+        links, more);
+    });
+  }
+  function enquiryLinkCard() {
+    var n = newLeads();
+    return h("div", { class: "card page-card" }, h("div", { class: "kicker", text: t("enquiries.kicker") }),
+      h("button", { type: "button", class: "btn", text: t("pages.enquiries") + (n ? " (" + t("pages.newOnes", { n: n }) + ")" : ""), onClick: function () { go("enquiries"); } }));
+  }
+  function fmtDay(iso) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || "")) return iso || "";
+    try {
+      return new Date(iso + "T12:00:00Z").toLocaleDateString(L === "en" ? "en-GB" : "sv-SE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+    } catch (e) { return iso; }
+  }
+  function chLabel(c) {
+    return t("report.ch." + c) === "report.ch." + c ? c : t("report.ch." + c);
+  }
+  function setLeadState(lead, state) {
+    api("/portal/leads/" + lead.id, { method: "PATCH", json: { state: state } }).then(function (r) {
+      if (r.ok) lead.state = state;
+      else toast(both(r.data && r.data.message) || t("networkError"), true);
+      render();
+    });
+  }
+  function removeLead(lead) {
+    api("/portal/leads/" + lead.id, { method: "DELETE" }).then(function (r) {
+      confirmDel = "";
+      if (r.ok) {
+        LEADS = LEADS.filter(function (x) { return x.id !== lead.id; });
+        toast(t("enquiries.deleted"));
+      } else toast(both(r.data && r.data.message) || t("networkError"), true);
+      render();
+    });
+  }
+  function viewEnquiries() {
+    var items = LEADS.map(function (l) {
+      var contact = [];
+      if (l.phone) contact.push(h("a", { href: "tel:" + l.phone.replace(/[^\d+]/g, ""), text: l.phone }));
+      if (l.email) contact.push(h("a", { href: "mailto:" + l.email, text: l.email }));
+      var acts = confirmDel === l.id
+        ? h("div", { class: "actions" },
+            h("button", { type: "button", class: "btn small", text: t("enquiries.confirmDelete"), onClick: function () { removeLead(l); } }),
+            h("button", { type: "button", class: "btn small secondary", text: t("enquiries.cancel"), onClick: function () { confirmDel = ""; render(); } }))
+        : h("div", { class: "actions" },
+            h("button", { type: "button", class: "btn small secondary", text: l.state === "new" ? t("enquiries.markContacted") : t("enquiries.markNew"), onClick: function () { setLeadState(l, l.state === "new" ? "contacted" : "new"); } }),
+            h("button", { type: "button", class: "btn small link", text: t("enquiries.delete"), onClick: function () { confirmDel = l.id; render(); } }));
+      return h("div", { class: "card lead" + (l.state === "new" ? " new" : "") },
+        h("div", { class: "pr-head" },
+          h("span", { class: "pr-badge" + (l.state === "new" ? "" : " ok"), text: l.state === "new" ? t("enquiries.new") : t("enquiries.contacted") }),
+          h("span", { class: "muted small", text: fmtDate(l.at) })),
+        h("h2", { class: "lead-name", text: l.name }),
+        h("div", { class: "lead-contact" }, contact.map(function (x, i) { return i ? [" · ", x] : x; })),
+        l.message ? h("p", { class: "pr-text", text: l.message }) : null,
+        h("div", { class: "muted small", text: [l.futureOffers ? t("enquiries.wantsOffers") : t("enquiries.noOffers"), l.channel ? t("enquiries.from", { channel: chLabel(l.channel) }) : "", l.campaignName ? t("enquiries.campaign", { name: l.campaignName }) : ""].filter(Boolean).join(" · ") }),
+        acts);
+    });
+    return [
+      h("div", { class: "head" }, h("div", { class: "kicker", text: t("enquiries.kicker") }), h("h1", { text: t("enquiries.title") }), h("p", { class: "lead", text: t("enquiries.lead") })),
+      items.length ? items : h("div", { class: "card" }, h("p", { text: t("enquiries.none") })),
+      h("div", { class: "actions" },
+        LEADS.length ? h("a", { class: "btn secondary", href: API + "/portal/leads.csv", download: "enquiries.csv", text: t("enquiries.csv") }) : null,
+        h("button", { type: "button", class: "btn secondary", text: t("enquiries.back"), onClick: function () { go("status"); } }))
+    ];
+  }
+  function loadReport(cp) {
+    REPORT = { cp: cp, data: null, loading: true, error: false };
+    api("/portal/report/" + cp).then(function (r) {
+      REPORT.loading = false;
+      if (r.ok) REPORT.data = r.data;
+      else REPORT.error = true;
+      render();
+    });
+  }
+  function pctText(v) {
+    if (v == null) return "";
+    return (v > 0 ? "+" : "") + Math.round(v * 100) + " %";
+  }
+  function viewReport() {
+    var cp = location.hash.replace("#report-", "");
+    if (REPORT.cp !== cp) loadReport(cp);
+    var back = h("div", { class: "actions no-print" }, h("button", { type: "button", class: "btn secondary", text: t("report.back"), onClick: function () { go("status"); } }));
+    if (REPORT.loading) return [h("p", { class: "muted", text: t("loading") })];
+    if (REPORT.error || !REPORT.data) return [h("div", { class: "card" }, h("p", { text: t("networkError") })), back];
+    var d = REPORT.data;
+    var tile = function (n, label) { return h("div", { class: "tile" }, h("b", { text: String(n) }), h("span", { text: label })); };
+    var tiles = h("div", { class: "tiles" }, tile(d.visits, t("report.visits")), tile(d.visitors, t("report.visitors")), tile(d.clicks, t("report.clicks")), tile(d.enquiries, t("report.enquiries")), d.scans ? tile(d.scans, t("report.scans")) : null);
+    var chRows = d.channels.filter(function (c) { return c.visits || c.clicks || c.enquiries || c.scans; }).map(function (c) {
+      return h("tr", {}, h("td", { text: chLabel(c.channel) }), h("td", { text: String(c.visits + c.scans) }), h("td", { text: String(c.clicks) }), h("td", { text: String(c.enquiries) }));
+    });
+    var btnKeys = Object.keys(d.buttons || {});
+    var metricKeys = Object.keys(d.before || {}).concat(Object.keys(d.after || {})).filter(function (k, i, a) { return a.indexOf(k) === i && !/^redemptions-/.test(k); });
+    var ba = metricKeys.length ? h("table", { class: "rtable" },
+      h("thead", {}, h("tr", {}, h("th", { text: "" }), h("th", { text: t("report.before") }), h("th", { text: t("report.after") }), h("th", { text: t("report.change") }))),
+      h("tbody", {}, metricKeys.map(function (k) {
+        var label = t("report.metrics." + k) === "report.metrics." + k ? k.replace(/_/g, " ") : t("report.metrics." + k);
+        var b = d.before[k], a = d.after[k];
+        return h("tr", {}, h("td", { text: label }), h("td", { text: b == null ? "" : String(b) }), h("td", { text: a == null ? "" : String(a) }), h("td", { text: pctText(d.change[k]) }));
+      }))) : h("p", { class: "muted small", text: t("report.noNumbers") });
+    return [
+      h("div", { class: "head" }, h("div", { class: "kicker", text: t("report.kicker") }), h("h1", { text: t("report.title", { name: d.campaignName || "" }) }), h("p", { class: "lead", text: t("report.lead") })),
+      h("div", { class: "card" }, tiles, d.bestChannel ? h("p", { class: "best", text: t("report.best", { channel: chLabel(d.bestChannel) }) }) : null,
+        h("p", { class: "muted small", text: d.ended ? t("pages.ended", { date: fmtDay(d.offerEnd) }) : t("pages.until", { date: fmtDay(d.offerEnd) }) })),
+      chRows.length ? h("div", { class: "card" }, h("h2", { text: t("report.byChannel") }), h("table", { class: "rtable" },
+        h("thead", {}, h("tr", {}, h("th", { text: t("report.channel") }), h("th", { text: t("report.visits") }), h("th", { text: t("report.clicks") }), h("th", { text: t("report.enquiries") }))),
+        h("tbody", {}, chRows))) : null,
+      btnKeys.length ? h("div", { class: "card" }, h("h2", { text: t("report.buttons") }), h("div", { class: "tiles" }, btnKeys.map(function (k) { return tile(d.buttons[k], t("report.btn." + k)); }))) : null,
+      h("div", { class: "card" }, h("h2", { text: t("report.beforeAfter") }), d.baselinePeriod ? h("p", { class: "muted small", text: t("report.period", { period: d.baselinePeriod }) }) : null, ba),
+      h("div", { class: "actions no-print" }, h("button", { type: "button", class: "btn", text: t("report.print"), onClick: function () { window.print(); } }),
+        h("button", { type: "button", class: "btn secondary", text: t("report.back"), onClick: function () { go("status"); } }))
+    ];
+  }
+
   /* ---------- boot ---------- */
   function loadState() {
     return api("/portal/state").then(function (r) {
@@ -903,7 +1053,7 @@
       render();
       return;
     }
-    return loadState().then(loadPhotos).then(function () {
+    return loadState().then(loadPhotos).then(loadPages).then(function () {
       var stored = null;
       try { stored = localStorage.getItem("tv_lang"); } catch (e) {}
       if (S.client.language && !stored) setLang(S.client.language, false);

@@ -185,5 +185,132 @@ export const MIGRATIONS = [
       )`,
       `CREATE INDEX IF NOT EXISTS idx_photo_requests_client ON photo_requests (client_id, state, created_at)`
     ]
+  },
+  {
+    id: 6,
+    name: "g2b-pages-tracking-enquiries",
+    statements: [
+      /* One hosted landing page per campaign, at /go/<client_slug>/<slug>. The HTML is built in
+         ScriptForge (in the browser) and stored in R2 at c/<clientId>/p/<pageId>/... so erasing
+         the client's folder removes it. ended_key holds the "offer has ended" version. The token
+         lets a downloaded copy of the page post enquiries. */
+      `CREATE TABLE IF NOT EXISTS pages (
+        id TEXT PRIMARY KEY,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        campaign_id TEXT NOT NULL,
+        client_slug TEXT NOT NULL,
+        slug TEXT NOT NULL,
+        version INTEGER NOT NULL DEFAULT 0,
+        state TEXT NOT NULL DEFAULT 'draft' CHECK (state IN ('draft','published','unpublished')),
+        language TEXT NOT NULL DEFAULT 'sv',
+        offer_end TEXT,
+        html_key TEXT,
+        ended_key TEXT,
+        token TEXT NOT NULL,
+        form_on INTEGER NOT NULL DEFAULT 0 CHECK (form_on IN (0,1)),
+        notice_version TEXT,
+        settings TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        published_at TEXT,
+        unpublished_at TEXT,
+        UNIQUE (client_slug, slug),
+        UNIQUE (client_id, campaign_id)
+      )`,
+      /* Tracked short links: /go/r/<code>. One per output and per printed item (QR codes). */
+      `CREATE TABLE IF NOT EXISTS links (
+        code TEXT PRIMARY KEY,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        page_id TEXT NOT NULL,
+        channel TEXT NOT NULL,
+        medium TEXT NOT NULL,
+        output_key TEXT NOT NULL,
+        label TEXT,
+        offer_code TEXT,
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_links_page ON links (page_id)`,
+      /* Raw counting events, kept 90 days. No cookies, no IP address: visitor is a hash of IP
+         and browser with a salt that changes and is deleted every day. */
+      `CREATE TABLE IF NOT EXISTS events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        page_id TEXT NOT NULL,
+        link_code TEXT,
+        type TEXT NOT NULL,
+        button TEXT,
+        channel TEXT NOT NULL,
+        utm_source TEXT,
+        utm_medium TEXT,
+        utm_campaign TEXT,
+        utm_content TEXT,
+        device TEXT,
+        country TEXT,
+        visitor TEXT,
+        day TEXT NOT NULL,
+        hour INTEGER NOT NULL,
+        at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_events_page_day ON events (page_id, day)`,
+      `CREATE INDEX IF NOT EXISTS idx_events_visitor ON events (page_id, day, visitor)`,
+      /* Daily totals per page, channel and event type. They identify no one and stay while the
+         client is active. type: view, unique, click_<button>, form, scan. */
+      `CREATE TABLE IF NOT EXISTS daily_stats (
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        page_id TEXT NOT NULL,
+        day TEXT NOT NULL,
+        channel TEXT NOT NULL,
+        type TEXT NOT NULL,
+        n INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (page_id, day, channel, type)
+      )`,
+      /* Enquiries from the page form. The client business is the controller; deleted 90 days
+         after the offer ends. */
+      `CREATE TABLE IF NOT EXISTS leads (
+        id TEXT PRIMARY KEY,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        page_id TEXT NOT NULL,
+        campaign_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        phone TEXT,
+        email TEXT,
+        message TEXT,
+        future_offers INTEGER NOT NULL DEFAULT 0 CHECK (future_offers IN (0,1)),
+        notice_version TEXT,
+        channel TEXT,
+        state TEXT NOT NULL DEFAULT 'new' CHECK (state IN ('new','contacted')),
+        at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_leads_client ON leads (client_id, at)`,
+      /* Before and after numbers per campaign (metric keys such as orders, new_customers,
+         followers_instagram, redemptions_SANDY-IG). period: before or after. */
+      `CREATE TABLE IF NOT EXISTS baselines (
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        campaign_id TEXT NOT NULL,
+        metric TEXT NOT NULL,
+        period TEXT NOT NULL CHECK (period IN ('before','after')),
+        value REAL NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (client_id, campaign_id, metric, period)
+      )`,
+      /* What the campaign cost: Harry's fee, ad spend per channel, and the client's average
+         order value for the estimated return. */
+      `CREATE TABLE IF NOT EXISTS costs (
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        campaign_id TEXT NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'SEK',
+        fee REAL NOT NULL DEFAULT 0,
+        ad_spend TEXT NOT NULL DEFAULT '{}',
+        avg_order_value REAL,
+        baseline_period TEXT,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (client_id, campaign_id)
+      )`,
+      /* The daily salt for visitor hashes. Today's row only; older rows are deleted daily. */
+      `CREATE TABLE IF NOT EXISTS salts (
+        day TEXT PRIMARY KEY,
+        salt TEXT NOT NULL
+      )`
+    ]
   }
 ];
