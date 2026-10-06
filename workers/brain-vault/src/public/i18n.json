@@ -275,6 +275,27 @@
       "brain_ready": "Din strategi är klar",
       "campaign_in_production": "Kampanjen produceras",
       "campaign_delivered": "Kampanjen är levererad"
+    },
+    "photos": {
+      "kicker": "BILDER VI BEHÖVER",
+      "title": "Bilder till din kampanj",
+      "lead": "Till de här bilderna i kampanjen vill vi använda riktiga foton från dig. Ta dem med mobilen, i bra ljus, och ladda upp dem här. En bild per förfrågan räcker.",
+      "cardTitle": "Vi behöver {n} {word} från dig",
+      "one": "bild",
+      "many": "bilder",
+      "cardDone": "Tack, vi har fått alla bilder vi bad om",
+      "open": "Visa vad vi behöver",
+      "for": "Till: {placement}",
+      "campaign": "Kampanj: {name}",
+      "upload": "Ladda upp bild",
+      "replace": "Byt bild",
+      "received": "Mottagen {date}",
+      "waiting": "Väntar på bild",
+      "tips": "Tips: håll mobilen stilla, använd dagsljus och ta gärna två eller tre bilder och välj den bästa.",
+      "none": "Just nu behöver vi inga bilder från dig.",
+      "thanks": "Tack! Bilden är mottagen.",
+      "back": "Tillbaka till status",
+      "rule": "JPG, PNG eller WebP · max 10 MB"
     }
   },
   "en": {
@@ -552,6 +573,27 @@
       "brain_ready": "Your strategy is ready",
       "campaign_in_production": "Campaign in production",
       "campaign_delivered": "Campaign delivered"
+    },
+    "photos": {
+      "kicker": "PHOTOS WE NEED",
+      "title": "Photos for your campaign",
+      "lead": "For these pictures in the campaign we want to use real photos from you. Take them with your phone, in good light, and upload them here. One photo per request is enough.",
+      "cardTitle": "We need {n} {word} from you",
+      "one": "photo",
+      "many": "photos",
+      "cardDone": "Thank you, we have every photo we asked for",
+      "open": "See what we need",
+      "for": "For: {placement}",
+      "campaign": "Campaign: {name}",
+      "upload": "Upload photo",
+      "replace": "Replace photo",
+      "received": "Received {date}",
+      "waiting": "Waiting for a photo",
+      "tips": "Tip: hold the phone still, use daylight, and take two or three shots and pick the best.",
+      "none": "Right now we don't need any photos from you.",
+      "thanks": "Thank you! The photo is in.",
+      "back": "Back to status",
+      "rule": "JPG, PNG or WebP · max 10 MB"
     }
   }
 }

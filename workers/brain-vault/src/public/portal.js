@@ -1,5 +1,6 @@
 /* TAHA Studio Labs Growth Department: client onboarding portal.
-   Screens: Sign in, Consent, Business profile, Uploads, Review and submit, Status.
+   Screens: Sign in, Consent, Business profile, Uploads, Review and submit, Status, and from
+   V2 phase G2a Photos we need (photo requests from the campaign's Visual Pack).
    All wording comes from /grow/i18n.json. Every answer is saved to the Brain Vault as the
    client types (debounced) and on leaving each field, so closing the browser loses nothing.
    No AI runs here and no API key is ever involved: the portal only stores business information. */
@@ -21,6 +22,7 @@
   var signinSent = false;
   var showMissing = false;
   var msgs = {};
+  var PR = [];
   var app = document.getElementById("app");
 
   var PIC_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -226,7 +228,7 @@
     app.textContent = "";
     var view = currentView();
     shell(view);
-    var fn = { signin: viewSignin, admin: viewAdmin, consent: viewConsent, profile: viewProfile, uploads: viewUploads, review: viewReview, status: viewStatus }[view];
+    var fn = { signin: viewSignin, admin: viewAdmin, consent: viewConsent, profile: viewProfile, uploads: viewUploads, review: viewReview, status: viewStatus, photos: viewPhotos }[view];
     add(app, fn());
     if (active && document.getElementById(active)) document.getElementById(active).focus({ preventScroll: true });
     window.scrollTo(0, y);
@@ -244,7 +246,7 @@
     if (ME.role === "admin") return "admin";
     if (!S.consent.accepted) return "consent";
     var hsh = location.hash.replace("#", "");
-    if (["profile", "uploads", "review", "status"].indexOf(hsh) > -1) return hsh;
+    if (["profile", "uploads", "review", "status", "photos"].indexOf(hsh) > -1) return hsh;
     return S.latestIntakeVersion > 0 ? "status" : "profile";
   }
   window.addEventListener("hashchange", function () {
@@ -779,9 +781,80 @@
         h("h1", { text: submitted ? t("status.titleDone") : t("status.titleOpen") }),
         h("p", { class: "lead", text: t("status.lead") })),
       h("div", { class: "now" }, h("div", { class: "kicker", text: t("status.nowLabel") }), h("h2", { text: now.t }), h("p", { text: now.b })),
+      photoCard(),
       steps,
       h("div", { class: "note" }, svg(SHIELD, "#1F6B4E"), h("span", { text: t("review.pub") })),
       h("div", { class: "actions" }, h("button", { type: "button", class: "btn" + (submitted ? " secondary" : ""), text: submitted ? t("status.edit") : t("status.continue"), onClick: function () { go("profile"); } }))
+    ];
+  }
+
+  /* ---------- photos we need (V2 phase G2a) ---------- */
+  function openPhotos() {
+    return PR.filter(function (r) { return r.state === "open"; });
+  }
+  function photoCard() {
+    if (!PR.length) return null;
+    var n = openPhotos().length;
+    if (!n) return h("div", { class: "card photo-card done" }, h("div", { class: "kicker", text: t("photos.kicker") }), h("p", { text: t("photos.cardDone") }));
+    return h("div", { class: "card photo-card" },
+      h("div", { class: "kicker", text: t("photos.kicker") }),
+      h("h2", { text: t("photos.cardTitle", { n: n, word: n === 1 ? t("photos.one") : t("photos.many") }) }),
+      h("button", { type: "button", class: "btn", text: t("photos.open"), onClick: function () { go("photos"); } }));
+  }
+  function loadPhotos() {
+    return api("/portal/photo-requests").then(function (r) {
+      PR = r.ok && r.data && r.data.requests ? r.data.requests : [];
+    });
+  }
+  function uploadForRequest(req, file) {
+    var key = "pr_" + req.id;
+    if (!precheck(file, "pictures", key)) return render();
+    setMsg(key, t("uploads.uploading", { name: file.name }), false);
+    render();
+    resizeImage(file).then(function (item) {
+      return fetch(API + "/uploads?section=pictures&request=" + encodeURIComponent(req.id), {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": item.type || "application/octet-stream", "X-File-Name": encodeURIComponent(item.name) },
+        body: item.blob
+      }).then(function (r) {
+        return r.json().then(function (d) { return { ok: r.ok, data: d }; }, function () { return { ok: false, data: {} }; });
+      }, function () { return { ok: false, data: {} }; });
+    }).then(function (r) {
+      if (r.ok) {
+        S.files.push(r.data.file);
+        req.state = "received";
+        req.fileId = r.data.file.id;
+        req.receivedAt = new Date().toISOString();
+        setMsg(key, t("photos.thanks"), false);
+      } else {
+        setMsg(key, r.data && r.data.message ? both(r.data.message) : t("uploads.uploadFailed", { name: file.name }), true);
+      }
+      render();
+    });
+  }
+  function viewPhotos() {
+    var list = PR.slice().sort(function (a, b) { return (a.state === "open" ? 0 : 1) - (b.state === "open" ? 0 : 1); });
+    var items = list.map(function (req) {
+      var text = (L === "sv" ? req.text.sv : req.text.en) || req.text.en || req.text.sv;
+      var done = req.state === "received";
+      var id = "up_pr_" + req.id;
+      var input = h("input", { type: "file", id: id, accept: "image/jpeg,image/png,image/webp", class: "sr-file" });
+      input.addEventListener("change", function () { if (input.files && input.files[0]) uploadForRequest(req, input.files[0]); });
+      return h("div", { class: "card photo-req" + (done ? " done" : "") },
+        h("div", { class: "pr-head" },
+          h("span", { class: "pr-badge" + (done ? " ok" : ""), text: done ? t("photos.received", { date: fmtDate(req.receivedAt) }) : t("photos.waiting") }),
+          req.placement ? h("span", { class: "muted small", text: t("photos.for", { placement: req.placement }) }) : null),
+        h("p", { class: "pr-text", text: text }),
+        req.campaignName ? h("div", { class: "muted small", text: t("photos.campaign", { name: req.campaignName }) }) : null,
+        done ? null : h("div", { class: "pr-actions" }, input, h("label", { for: id, class: "btn", text: t("photos.upload") }), h("span", { class: "muted small", text: t("photos.rule") })),
+        msgLine("pr_" + req.id));
+    });
+    return [
+      h("div", { class: "head" }, h("div", { class: "kicker", text: t("photos.kicker") }), h("h1", { text: t("photos.title") }), h("p", { class: "lead", text: t("photos.lead") })),
+      items.length ? items : h("div", { class: "card" }, h("p", { text: t("photos.none") })),
+      h("div", { class: "note" }, h("span", { text: t("photos.tips") })),
+      h("div", { class: "actions" }, h("button", { type: "button", class: "btn secondary", text: t("photos.back"), onClick: function () { go("status"); } }))
     ];
   }
 
@@ -830,7 +903,7 @@
       render();
       return;
     }
-    return loadState().then(function () {
+    return loadState().then(loadPhotos).then(function () {
       var stored = null;
       try { stored = localStorage.getItem("tv_lang"); } catch (e) {}
       if (S.client.language && !stored) setLang(S.client.language, false);

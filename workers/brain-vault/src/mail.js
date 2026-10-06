@@ -81,6 +81,19 @@ const COPY = {
       sv: "Länken fungerar en gång och gäller i {min} minuter. Har den gått ut? Begär en ny länk här: {signin}",
       en: "The link works once and is valid for {min} minutes. Has it expired? Request a new link here: {signin}"
     }
+  },
+  /* V2 phase G2a. No campaign content: only that photos are wanted, and where. */
+  photos: {
+    subject: { sv: "Vi behöver några bilder från dig", en: "We need a few photos from you" },
+    intro: {
+      sv: "Hej {name}! Till din nästa kampanj behöver vi {count} {photoWordSv} från dig. I portalen ser du exakt vad vi behöver, och du laddar upp dem direkt där.",
+      en: "Hi {name}! For your next campaign we need {count} {photoWordEn} from you. The portal shows exactly what we need, and you upload them right there."
+    },
+    button: { sv: "Öppna portalen", en: "Open the portal" },
+    note: {
+      sv: "Är du inte inloggad? Ange din e-postadress i portalen så får du en inloggningslänk.",
+      en: "Not signed in? Enter your email address in the portal and you will get a login link."
+    }
   }
 };
 
@@ -89,10 +102,10 @@ function fill(s, vars) {
 }
 
 /* Builds one email holding both languages; the client's language comes first. */
-export function composeEmail(kind, cfg, { link, name, language, signinUrl }) {
+export function composeEmail(kind, cfg, { link, name, language, signinUrl, extra }) {
   const c = COPY[kind];
   const order = language === "en" ? ["en", "sv"] : ["sv", "en"];
-  const vars = { min: cfg.tokenTtlMinutes, product: cfg.productName, name: name || "", signin: signinUrl };
+  const vars = Object.assign({ min: cfg.tokenTtlMinutes, product: cfg.productName, name: name || "", signin: signinUrl }, extra || {});
   const subject = order.map((l) => fill(c.subject[l], vars)).join(" / ");
   const sign = "TAHA Studio Labs, Örebro. " + cfg.tahaEmail;
   const text =
@@ -137,6 +150,33 @@ export function composeSubmitNotice(cfg, { company, version, link }) {
     '<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#111;max-width:560px;margin:0 auto;padding:24px">' +
     "<p><b>" + escapeHtml(company) + "</b> har skickat in version " + version + " av sin profil.</p>" +
     "<p><b>" + escapeHtml(company) + "</b> has submitted version " + version + " of their profile.</p>" +
+    '<p><a href="' + escapeHtml(link) + '">' + escapeHtml(link) + "</a></p></body></html>";
+  return { subject, text, html };
+}
+
+/* V2 phase G2a: the client is asked for photos. */
+export function composePhotoRequestEmail(cfg, { name, language, count, link }) {
+  return composeEmail("photos", cfg, {
+    link,
+    name,
+    language,
+    signinUrl: link,
+    extra: { count, photoWordSv: count === 1 ? "bild" : "bilder", photoWordEn: count === 1 ? "photo" : "photos" }
+  });
+}
+
+/* V2 phase G2a: notice to Harry when a client answers a photo request. Company name only. */
+export function composePhotoNotice(cfg, { company, open, link }) {
+  const left = { sv: open ? open + " kvar att få" : "alla bilder är inne", en: open ? open + " still to come" : "all photos are in" };
+  const subject = "Ny bild / New photo: " + company;
+  const text =
+    company + " har skickat en bild till en bildförfrågan (" + left.sv + ").\n" +
+    company + " has sent a photo for a photo request (" + left.en + ").\n\n" +
+    link + "\n";
+  const html =
+    '<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#111;max-width:560px;margin:0 auto;padding:24px">' +
+    "<p><b>" + escapeHtml(company) + "</b> har skickat en bild till en bildförfrågan (" + escapeHtml(left.sv) + ").</p>" +
+    "<p><b>" + escapeHtml(company) + "</b> has sent a photo for a photo request (" + escapeHtml(left.en) + ").</p>" +
     '<p><a href="' + escapeHtml(link) + '">' + escapeHtml(link) + "</a></p></body></html>";
   return { subject, text, html };
 }

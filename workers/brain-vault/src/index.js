@@ -7,6 +7,7 @@
    Phase 6: GDPR tools (full export, erase now, leaving and the 6 month retention rule).
    V2 phase G1: campaign-2 documents with a Visual Pack, finished images attached to a
    campaign (deliveries) and the client's brand kit. Admin only; the portal is unchanged.
+   V2 phase G2a: photo requests from Visual Pack briefs to the portal (Photos we need).
 
    House rules enforced here:
    1. The Vault never receives, stores or logs an LLM API key. No endpoint accepts one.
@@ -31,6 +32,7 @@ import { getBrains, getBrainVersion, saveBrain } from "./brain.js";
 import { getCampaign, listCampaigns, saveCampaign, setCampaignStatus, setManualStatus } from "./campaign.js";
 import { eraseNow, exportClient, retentionSweep, setLeft } from "./gdpr.js";
 import { addDelivery, deleteDelivery, getBrandKit, getDelivery, listDeliveries, putBrandKit } from "./delivery.js";
+import { cancelPhotoRequest, listPhotoRequestsAdmin, listPhotoRequestsPortal, sendPhotoRequests } from "./photos.js";
 import {
   deleteFile,
   getFile,
@@ -153,7 +155,7 @@ async function handle(request, env, ctx) {
 
   if (method === "GET" && path === "/health") {
     const db = await env.DB.prepare("SELECT 1 AS ok").first();
-    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "g1" });
+    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "g2a" });
   }
 
   if (method === "GET" && path === "/portal/meta") {
@@ -206,7 +208,7 @@ async function handle(request, env, ctx) {
   }
 
   /* ---------- client portal ---------- */
-  const clientPaths = ["/portal/state", "/consent", "/intake", "/uploads", "/intake/submit", "/status", "/me/language"];
+  const clientPaths = ["/portal/state", "/consent", "/intake", "/uploads", "/intake/submit", "/status", "/me/language", "/portal/photo-requests"];
   const fileMatch = path.match(/^\/files\/(f_[a-z0-9]{4,32})$/);
   if (clientPaths.includes(path) || fileMatch) {
     if (!auth) return json({ error: "not_signed_in", message: MSG.notSignedIn }, 401);
@@ -217,7 +219,8 @@ async function handle(request, env, ctx) {
     if (path === "/consent" && method === "POST") return postConsent(request, env, cfg, auth);
     if (path === "/intake" && method === "GET") return getIntake(env, cfg, auth);
     if (path === "/intake" && method === "PUT") return putIntake(request, env, cfg, auth);
-    if (path === "/uploads" && method === "POST") return postUpload(request, env, cfg, auth, url);
+    if (path === "/uploads" && method === "POST") return postUpload(request, env, cfg, auth, url, ctx);
+    if (path === "/portal/photo-requests" && method === "GET") return listPhotoRequestsPortal(env, auth);
     if (path === "/intake/submit" && method === "POST") return submitIntake(env, cfg, auth, ctx);
     if (path === "/status" && method === "GET") return getStatus(env, auth);
     if (path === "/me/language" && method === "PUT") return putLanguage(request, env, auth);
@@ -268,6 +271,11 @@ async function handle(request, env, ctx) {
     const bk = path.match(/^\/admin\/brandkit\/(cl_[a-z0-9]{4,32})$/);
     if (bk && method === "GET") return respond(await getBrandKit(env, bk[1]));
     if (bk && method === "PUT") return respond(await putBrandKit(request, env, bk[1]));
+    /* V2 phase G2a */
+    const pr = path.match(/^\/admin\/photo-requests\/(cl_[a-z0-9]{4,32})\/(cp_[a-z0-9_]{2,40})(?:\/(pr_[a-z0-9]{4,32}))?$/);
+    if (pr && method === "POST" && !pr[3]) return respond(await sendPhotoRequests(request, env, cfg, ctx, pr[1], pr[2]));
+    if (pr && method === "GET" && !pr[3]) return respond(await listPhotoRequestsAdmin(env, pr[1], pr[2]));
+    if (pr && method === "DELETE" && pr[3]) return respond(await cancelPhotoRequest(env, pr[1], pr[2], pr[3]));
   }
 
   return json({ error: "not_found", message: MSG.notFound }, 404);

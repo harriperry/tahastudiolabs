@@ -556,6 +556,25 @@
               "sv",
               "en"
             ]
+          },
+          "photo_request": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "sv": {
+                "type": "string",
+                "maxLength": 1500
+              },
+              "en": {
+                "type": "string",
+                "maxLength": 1500
+              }
+            },
+            "required": [
+              "sv",
+              "en"
+            ],
+            "description": "Only when a client photo is needed (source client_photo, photo_ref null): what to shoot, written to the client in plain words, in Swedish and English. Sent to the portal as a photo request (V2 phase G2a)."
           }
         },
         "required": [

@@ -14,6 +14,7 @@ import {
   overlayText,
   packSummary,
   photoList,
+  requestDefault,
   splitProblems,
   textInPrompt,
   withVisuals
@@ -147,6 +148,9 @@ try {
   const overlayDoc = JSON.parse(JSON.stringify(avoidDoc));
   overlayDoc.visuals[0].overlay.sub = "Cheap eats this week";
   ok(findAvoidWords(overlayDoc, ["cheap"]).visuals, "a word to avoid in an overlay is still flagged");
+
+  ok(requestDefault({ prompt: "Ask the client for a wide, daylight photo of the kitchen counter." }).en === "Please send us a wide, daylight photo of the kitchen counter.", "an older brief's request is turned to the client");
+  ok(requestDefault({ prompt: "x", photo_request: { sv: "Ta en bild", en: "Take a photo" } }).sv === "Ta en bild", "a brief's own Swedish and English request is used as it is");
 
   /* cards and copy */
   const v0 = c2.visuals[0];

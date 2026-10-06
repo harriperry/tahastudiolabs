@@ -20,7 +20,7 @@ import { validate } from "./growth-validate.js?v=p5";
 import { stripDashes } from "./growth-brain.js?v=p5";
 
 export const PLATFORMS_URL = "/assets/growth/platforms.json?v=g1";
-export const VISUALS_PROMPT_URL = "/assets/growth/visuals.prompt.json?v=g1c";
+export const VISUALS_PROMPT_URL = "/assets/growth/visuals.prompt.json?v=g2a";
 
 /* Fields ScriptForge sets from platforms.json; the model never writes them. */
 const SET_BY_SCRIPTFORGE = ["output_key", "platform", "placement", "ratio", "width", "height", "clear_zone"];
@@ -161,7 +161,8 @@ export function normalizeVisuals(raw, slots, ctx) {
       if (!v.overlay_alt) problems.push(slot.id + ": overlay_alt (the English overlay) is missing");
     } else delete v.overlay_alt;
     const ordered = {};
-    ["id", "output_key", "platform", "placement", "ratio", "width", "height", "subject", "source", "photo_ref", "cast", "prompt", "avoid", "overlay", "overlay_alt", "clear_zone", "alt_text"].forEach((k) => { if (k in v) ordered[k] = v[k]; });
+    if (!(v.source === "client_photo" && !v.photo_ref)) delete v.photo_request;
+    ["id", "output_key", "platform", "placement", "ratio", "width", "height", "subject", "source", "photo_ref", "cast", "prompt", "avoid", "overlay", "overlay_alt", "clear_zone", "alt_text", "photo_request"].forEach((k) => { if (k in v) ordered[k] = v[k]; });
     visuals.push(ordered);
   }
   return { visuals, problems, fixes };
@@ -195,6 +196,18 @@ export function withVisuals(doc, visuals, at) {
 
 export function briefsFor(doc, cardKey) {
   return (doc && Array.isArray(doc.visuals) ? doc.visuals : []).filter((v) => v.output_key === cardKey || v.output_key.split(".")[0] === cardKey);
+}
+
+/* Default wording of a photo request for briefs made before G2a (no photo_request): the
+   brief's prompt is written to Harry ("Ask the client for..."), so it is turned around. */
+export function requestDefault(v) {
+  if (v.photo_request && v.photo_request.en) return { en: v.photo_request.en, sv: v.photo_request.sv || "" };
+  let en = String(v.prompt || "").trim()
+    .replace(/^(please )?ask (the )?(client|owner|business)( to send| to take| for)?\s*/i, "Please send us ")
+    .replace(/^request (from the client )?/i, "Please send us ")
+    .replace(/\bthe client('s)?\b/gi, (m, s1) => (s1 ? "your" : "you"));
+  if (en && !/^please/i.test(en)) en = "Please send us this photo: " + en.charAt(0).toLowerCase() + en.slice(1);
+  return { en, sv: "" };
 }
 
 export function photoNeeded(v) {
@@ -303,6 +316,7 @@ export function photoList(files, brain) {
 
 export function createVisualsUi(ctx) {
   const { h, clear, api } = ctx;
+  const when = ctx.when || ((x) => x || "");
   const deliveries = {};
   const kits = {};
 
@@ -568,7 +582,117 @@ export function createVisualsUi(ctx) {
     }
   }
 
-  return { renderBriefs, renderKit, renderStrip, kitState, loadDeliveries };
+  /* ----- V2 phase G2a: photo requests to the client portal ----- */
+
+  const requests = {};
+  function reqState(clientId, campaignId, force) {
+    const k = dkey(clientId, campaignId);
+    const s = requests[k] || (requests[k] = { loaded: false, loading: false, list: [], editing: false, texts: {}, busy: false, msg: null, applied: {}, at: 0 });
+    /* Checks again at most once a minute while the panel is open, so new photos show up. */
+    const stale = s.loaded && Date.now() - s.at > 60000 && !s.editing && !s.busy;
+    if ((s.loaded && !force && !stale) || s.loading) return s;
+    s.loading = true;
+    s.at = Date.now();
+    api("/admin/photo-requests/" + encodeURIComponent(clientId) + "/" + encodeURIComponent(campaignId)).then((r) => {
+      s.loading = false;
+      s.loaded = true;
+      s.list = r.ok && r.d ? r.d.requests || [] : [];
+      ctx.rerender(clientId);
+    });
+    return s;
+  }
+
+  async function sendRequests(clientId, campaignId, items) {
+    const s = reqState(clientId, campaignId);
+    s.busy = true;
+    s.msg = null;
+    ctx.rerender(clientId);
+    const r = await api("/admin/photo-requests/" + encodeURIComponent(clientId) + "/" + encodeURIComponent(campaignId), { method: "POST", body: { requests: items } });
+    s.busy = false;
+    if (r.ok && r.d) {
+      s.list = r.d.requests || [];
+      s.editing = false;
+      s.msg = { cls: "ok", text: (r.d.created ? r.d.created + (r.d.created === 1 ? " request" : " requests") + " sent to the client's portal" + (r.d.emailed ? ", and the client was emailed (no campaign content in it)." : ".") : "") + (r.d.updated ? (r.d.created ? " " : "") + r.d.updated + " open " + (r.d.updated === 1 ? "request" : "requests") + " updated." : "") };
+    } else s.msg = { cls: "err", text: (r.d && r.d.message && r.d.message.en) || "Could not send the photo requests." };
+    ctx.rerender(clientId);
+  }
+
+  async function cancelRequest(clientId, campaignId, req) {
+    const s = reqState(clientId, campaignId);
+    const r = await api("/admin/photo-requests/" + encodeURIComponent(clientId) + "/" + encodeURIComponent(campaignId) + "/" + encodeURIComponent(req.id), { method: "DELETE" });
+    if (r.ok) s.list = s.list.map((x) => (x.id === req.id ? Object.assign({}, x, { state: "cancelled" }) : x));
+    ctx.rerender(clientId);
+  }
+
+  /* opts: { clientId, campaignId, doc, files, onReceived(visualId, fileId) } */
+  function renderRequests(box, opts) {
+    const { clientId, campaignId, doc } = opts;
+    const s = reqState(clientId, campaignId);
+    const needed = (doc.visuals || []).filter(photoNeeded);
+    const active = s.list.filter((r) => r.state !== "cancelled");
+    /* A received photo becomes the brief's photo: the Vault already saved that; show it here too. */
+    active.filter((r) => r.state === "received" && r.fileId && !s.applied[r.id]).forEach((r) => {
+      s.applied[r.id] = true;
+      opts.onReceived(r.visualId, r.fileId);
+    });
+    if (!needed.length && !active.length) return;
+    const wrap = h("div", { class: "gv-req" });
+    const openN = active.filter((r) => r.state === "open").length;
+    const gotN = active.filter((r) => r.state === "received").length;
+    const notSent = needed.filter((v) => !active.some((r) => r.visualId === v.id && r.state === "open"));
+    wrap.appendChild(h("div", { class: "gv-head" },
+      h("b", { text: "Photo requests" }),
+      h("span", { class: "gc-meta", text: active.length ? openN + " waiting · " + gotN + " received" + (notSent.length ? " · " + notSent.length + " not sent yet" : "") : needed.length + (needed.length === 1 ? " brief needs" : " briefs need") + " a photo from the client" })));
+    if (!s.loaded) {
+      wrap.appendChild(h("div", { class: "gc-meta" }, h("span", { class: "spin" }), "Loading photo requests..."));
+      box.appendChild(wrap);
+      return;
+    }
+    if (active.length) {
+      wrap.appendChild(h("div", { class: "gv-req-list" }, active.map((r) => {
+        const f = r.fileId ? (opts.files || []).find((x) => x.id === r.fileId) : null;
+        return h("div", { class: "gv-req-row" },
+          r.state === "received"
+            ? (f ? h("a", { href: f.url, target: "_blank", rel: "noopener" }, h("img", { src: f.url, alt: "Photo from the client", class: "gv-req-img" })) : h("span", { class: "gc-badge ok", text: "Received" }))
+            : h("span", { class: "gc-badge warn", text: "Waiting" }),
+          h("div", { class: "gv-req-txt" }, h("b", { text: r.placement || r.visualId }), h("span", { class: "gc-meta", text: r.text.en })),
+          r.state === "open" ? h("button", { type: "button", class: "gc-link", on: { click: () => cancelRequest(clientId, campaignId, r) } }, "Cancel") : h("span", { class: "gc-meta", text: when(r.receivedAt) }));
+      })));
+    }
+    if (notSent.length && !s.editing) {
+      wrap.appendChild(h("button", { type: "button", class: "gc-brain-btn", on: { click: () => { s.editing = true; ctx.rerender(clientId); } } },
+        "Send photo requests to client (" + notSent.length + ")"));
+    }
+    if (s.editing) {
+      const form = h("form", { class: "gv-req-ed", novalidate: true });
+      form.appendChild(h("p", { class: "gc-meta", text: "Check the wording: the client reads it exactly as written, in the portal under Photos we need, in her portal language. Leave Swedish empty and she sees the English. The email she gets says only that photos are wanted." }));
+      notSent.forEach((v) => {
+        const t0 = s.texts[v.id] || (s.texts[v.id] = requestDefault(v));
+        const mk = (lang, label) => {
+          const id = "gv-req-" + v.id + "-" + lang;
+          const ta = h("textarea", { id, class: "gc-ta", rows: "3" });
+          ta.value = t0[lang];
+          ta.addEventListener("input", () => { t0[lang] = ta.value; });
+          return h("div", { class: "gc-ed" }, h("label", { for: id, text: label }), ta);
+        };
+        form.appendChild(h("div", { class: "gv-brief" }, h("b", { text: v.placement + " · " + sizeLabel(v) }), mk("en", "Request in English"), mk("sv", "Request in Swedish (optional)")));
+      });
+      form.appendChild(h("div", { class: "gc-brain-tools" },
+        h("button", { type: "submit", class: "gc-brain-btn", disabled: s.busy }, s.busy ? "Sending..." : "Send to client portal"),
+        h("button", { type: "button", class: "btn-ghost", on: { click: () => { s.editing = false; ctx.rerender(clientId); } } }, "Cancel")));
+      form.addEventListener("submit", (ev) => {
+        ev.preventDefault();
+        const items = notSent.map((v) => ({ visualId: v.id, text: { en: String(s.texts[v.id].en || "").trim(), sv: String(s.texts[v.id].sv || "").trim() } }));
+        if (items.some((x) => !x.text.en)) { s.msg = { cls: "err", text: "Every request needs the English text." }; ctx.rerender(clientId); return; }
+        sendRequests(clientId, campaignId, items);
+      });
+      wrap.appendChild(form);
+    }
+    if (s.msg) wrap.appendChild(h("div", { class: "gc-msg " + s.msg.cls, role: "status", text: s.msg.text }));
+    box.appendChild(wrap);
+  }
+
+  return { renderBriefs, renderKit, renderStrip, renderRequests, reqState, kitState, loadDeliveries };
 }
 
 export { CHANNEL_LABEL };

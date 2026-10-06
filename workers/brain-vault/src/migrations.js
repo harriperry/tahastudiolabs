@@ -162,5 +162,28 @@ export const MIGRATIONS = [
         updated_at TEXT NOT NULL
       )`
     ]
+  },
+  {
+    id: 5,
+    name: "g2a-photo-requests",
+    statements: [
+      /* Photos Harry asks the client for, one per Visual Pack brief marked Photo needed from
+         client. The client answers in the portal; the uploaded picture (file_id) then becomes
+         that brief's photo. text_sv and text_en say what to shoot. */
+      `CREATE TABLE IF NOT EXISTS photo_requests (
+        id TEXT PRIMARY KEY,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        campaign_id TEXT NOT NULL,
+        visual_id TEXT NOT NULL,
+        placement TEXT,
+        text_sv TEXT,
+        text_en TEXT NOT NULL,
+        state TEXT NOT NULL DEFAULT 'open' CHECK (state IN ('open','received','cancelled')),
+        file_id TEXT,
+        created_at TEXT NOT NULL,
+        received_at TEXT
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_photo_requests_client ON photo_requests (client_id, state, created_at)`
+    ]
   }
 ];

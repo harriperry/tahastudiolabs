@@ -18,6 +18,7 @@ import { SCHEMAS } from "./schemas.js";
 import { validate } from "./validate.js";
 import { SECTIONS, TYPES, extOf, looksLikeVideo, magicOk, r2Key } from "./files.js";
 import { composeSubmitNotice, sendMail } from "./mail.js";
+import { fileRemoved, openRequest, receivePhoto } from "./photos.js";
 import { json, lang, newId, nowIso, readJson } from "./util.js";
 
 const M = {
@@ -32,7 +33,8 @@ const M = {
   count: { sv: "Du har nått maxantalet filer för den här delen.", en: "You have reached the maximum number of files for this section." },
   content: { sv: "Filens innehåll matchar inte filtypen.", en: "The file content doesn't match its type." },
   notFound: { sv: "Hittades inte.", en: "Not found." },
-  files: { sv: "En bifogad fil finns inte längre. Ladda upp den igen.", en: "An attached file no longer exists. Please upload it again." }
+  files: { sv: "En bifogad fil finns inte längre. Ladda upp den igen.", en: "An attached file no longer exists. Please upload it again." },
+  request: { sv: "Den bildförfrågan är redan besvarad eller borttagen.", en: "That photo request has already been answered or cancelled." }
 };
 
 /* Fields that must be filled before submit, as listed in the intake schema. */
@@ -223,12 +225,20 @@ export async function putIntake(request, env, cfg, auth) {
   return json({ ok: true, savedAt: t });
 }
 
-export async function postUpload(request, env, cfg, auth, url) {
+export async function postUpload(request, env, cfg, auth, url, ctx) {
   const consent = await consentOk(env, cfg, auth.clientId);
   if (!consent) return json({ error: "consent_required", message: M.consent }, 403);
   const section = url.searchParams.get("section") || "";
   const rule = SECTIONS[section];
   if (!rule) return json({ error: "section", message: M.section }, 400);
+  /* V2 phase G2a: a picture that answers a photo request. It does not count towards the 20
+     pictures of the profile (at most 20 more), and it becomes the brief's photo. */
+  const reqId = url.searchParams.get("request");
+  let photoReq = null;
+  if (reqId) {
+    photoReq = section === "pictures" ? await openRequest(env, auth.clientId, reqId) : null;
+    if (!photoReq) return json({ error: "request", message: M.request }, 409);
+  }
   let name = "";
   try {
     name = decodeURIComponent(request.headers.get("X-File-Name") || "").slice(0, 200);
@@ -242,7 +252,7 @@ export async function postUpload(request, env, cfg, auth, url) {
   const len = parseInt(request.headers.get("Content-Length") || "0", 10);
   if (!len || len > rule.maxBytes) return json({ error: "size", message: M.size }, 413);
   const count = await env.DB.prepare("SELECT COUNT(*) AS n FROM files WHERE client_id = ? AND section = ?").bind(auth.clientId, section).first();
-  if (count.n >= rule.maxCount) return json({ error: "count", message: M.count }, 409);
+  if (count.n >= rule.maxCount + (photoReq ? 20 : 0)) return json({ error: "count", message: M.count }, 409);
   const buf = new Uint8Array(await request.arrayBuffer());
   if (!buf.length || buf.length > rule.maxBytes) return json({ error: "size", message: M.size }, 413);
   const type = TYPES[ext];
@@ -254,7 +264,9 @@ export async function postUpload(request, env, cfg, auth, url) {
   await env.DB.prepare("INSERT INTO files (id, client_id, section, mime, size, r2_key, original_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
     .bind(id, auth.clientId, section, type.mime, buf.length, key, name, t)
     .run();
-  return json({ ok: true, file: { id, section, mime: type.mime, size: buf.length, name, createdAt: t } }, 201);
+  const out = { ok: true, file: { id, section, mime: type.mime, size: buf.length, name, createdAt: t } };
+  if (photoReq) out.request = Object.assign({ id: photoReq.id, state: "received" }, await receivePhoto(env, cfg, ctx, auth.clientId, photoReq, id));
+  return json(out, 201);
 }
 
 export async function getFile(env, auth, fileId) {
@@ -280,6 +292,7 @@ export async function deleteFile(env, auth, fileId) {
   if (!f) return json({ error: "not_found", message: M.notFound }, 404);
   await env.FILES.delete(f.r2_key);
   await env.DB.prepare("DELETE FROM files WHERE id = ? AND client_id = ?").bind(fileId, auth.clientId).run();
+  await fileRemoved(env, auth.clientId, fileId);
   return json({ ok: true });
 }
 

@@ -145,3 +145,17 @@ input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--ree
   .wrap { padding-top: 36px; }
   h1 { font-size: 34px; line-height: 40px; }
 }
+/* V2 phase G2a: Photos we need */
+.small { font-size: 13px; }
+.sr-file { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.sr-file:focus-visible + label { outline: 3px solid var(--reel-gold); outline-offset: 2px; }
+.photo-card { border-color: var(--reel-gold); }
+.photo-card.done { border-color: var(--hairline); }
+.photo-card h2 { margin: 0; }
+.photo-req { position: relative; gap: 10px; }
+.photo-req.done { opacity: 0.8; }
+.pr-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pr-badge { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 10px; background: #FFF3D6; color: #6B4A05; }
+.pr-badge.ok { background: #E3F3EA; color: #1F6B4E; }
+.pr-text { margin: 0; font-size: 16px; line-height: 1.55; }
+.pr-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; position: relative; }

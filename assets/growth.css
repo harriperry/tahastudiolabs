@@ -158,3 +158,10 @@
 .gv-attach-btn{cursor:pointer;padding:5px 10px;display:inline-block}
 .gv-file:focus-visible+label{outline:2px solid var(--accent2);outline-offset:2px}
 .gv-attach,.gv-kit{position:relative}
+/* V2 phase G2a: photo requests */
+.gv-req{display:flex;flex-direction:column;gap:10px;border-top:1px dashed var(--border);padding-top:10px}
+.gv-req-list{display:flex;flex-direction:column;gap:8px}
+.gv-req-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.gv-req-txt{display:flex;flex-direction:column;gap:2px;flex:1;min-width:200px;font-size:.84rem}
+.gv-req-img{width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border)}
+.gv-req-ed{display:flex;flex-direction:column;gap:10px}

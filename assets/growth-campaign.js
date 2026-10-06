@@ -38,7 +38,7 @@ import {
   photoList,
   sizeLabel,
   withVisuals
-} from "./growth-visuals.js?v=g1c";
+} from "./growth-visuals.js?v=g2a";
 
 const VAULT = "/api/vault";
 const PROMPT_URL = "/assets/growth/campaign.prompt.json?v=p5";
@@ -1036,6 +1036,28 @@ export function createCampaigns(ctx) {
       vbox.appendChild(vtools);
     }
     if (hasVisuals) vis.renderStrip(vbox, doc, c.id, savedCampaignId);
+    /* V2 phase G2a: photo requests go from the saved Visual Pack to the client's portal. */
+    if (hasVisuals && savedCampaignId && savedDoc && Array.isArray(savedDoc.visuals)) {
+      vis.renderRequests(vbox, {
+        clientId: c.id,
+        campaignId: savedCampaignId,
+        doc: savedDoc,
+        files: (d && d.files) || [],
+        onReceived: (visualId, fileId) => {
+          /* The Vault already put the photo on the saved brief; mirror it in this browser. */
+          let changed = false;
+          [e.saved[savedCampaignId], e.working && e.working.campaignId === savedCampaignId ? e.working : null].forEach((x) => {
+            const v = x && (x.visuals || []).find((y) => y.id === visualId);
+            if (v && !v.photo_ref) { v.photo_ref = fileId; changed = true; }
+          });
+          if (changed) {
+            keepDraft(c.id);
+            if (!((d && d.files) || []).some((f) => f.id === fileId)) ctx.onSaved(c.id);
+            setTimeout(() => ctx.rerender(c.id), 0);
+          }
+        }
+      });
+    }
     pane.appendChild(vbox);
 
     const list = h("div", { class: "gc-cards one" });

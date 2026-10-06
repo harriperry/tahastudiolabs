@@ -36,7 +36,7 @@ function runSuite(name, file, env = {}) {
   const ok = r.status === 0 && failed === 0;
   results.push({ name, passed, failed, ok, secs: Math.round((Date.now() - t0) / 1000) });
   console.log((ok ? "ok   " : "FAIL ") + name + "  " + passed + " passed, " + failed + " failed");
-  if (!ok) console.log(out.split("\n").filter((l) => /^FAIL |Error|error/.test(l)).slice(0, 15).join("\n"));
+  if (!ok) console.log(out.split("\n").filter((l) => /^FAIL |Error|error|    at /.test(l)).slice(0, 15).join("\n"));
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -106,7 +106,7 @@ if (want("e2e") || want("portal")) {
 }
 
 /* Round 2 */
-const round2 = ["panel", "brain", "campaign", "gdpr", "visuals"];
+const round2 = ["panel", "brain", "campaign", "gdpr", "visuals", "photos"];
 if (round2.some(want)) {
   const site = await startSite();
   const w = await startWorker("r2", "http://localhost:8080", "http://127.0.0.1:8080/api/me");
@@ -116,6 +116,7 @@ if (round2.some(want)) {
     runSuite("brain", "brain.test.mjs", env);
     runSuite("campaign", "campaign.test.mjs", env);
     if (fs.existsSync(path.join(DIR, "test", "visuals.test.mjs"))) runSuite("visuals", "visuals.test.mjs", env);
+    if (fs.existsSync(path.join(DIR, "test", "photos.test.mjs"))) runSuite("photos", "photos.test.mjs", env);
     runSuite("gdpr", "gdpr.test.mjs", env);
   } finally {
     stopWorker(w);

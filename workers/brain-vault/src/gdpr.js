@@ -14,6 +14,7 @@
 import { STATUS_LABELS } from "./config.js";
 import { json, normEmail, nowIso, readJson, sha256hex } from "./util.js";
 import { deliveryOut } from "./delivery.js";
+import { requestOut } from "./photos.js";
 
 const M = {
   badRequest: { sv: "Ogiltig förfrågan.", en: "Bad request." },
@@ -33,6 +34,7 @@ const CLIENT_TABLES = [
   ["campaigns", "client_id"],
   ["deliveries", "client_id"],
   ["brand_kits", "client_id"],
+  ["photo_requests", "client_id"],
   ["consents", "client_id"],
   ["status_history", "client_id"],
   ["sessions", "client_id"],
@@ -83,6 +85,7 @@ export async function exportClient(env, cfg, clientId) {
     deliveries: (await all(env, "SELECT * FROM deliveries WHERE client_id = ? ORDER BY added_at ASC", clientId)).map((r) =>
       Object.assign(deliveryOut(r), { url: cfg.siteOrigin + deliveryOut(r).url })
     ),
+    photoRequests: (await all(env, "SELECT * FROM photo_requests WHERE client_id = ? ORDER BY created_at ASC", clientId)).map(requestOut),
     brandKit: (await all(env, "SELECT data, updated_at AS updatedAt FROM brand_kits WHERE client_id = ?", clientId)).map((r) => ({ kit: JSON.parse(r.data), updatedAt: r.updatedAt }))[0] || null
   };
   const slug = String(c.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "client";
