@@ -51,6 +51,9 @@ import {
 import { getPageAdmin, publishPage, putPageAdmin, putPageAsset, serveAsset, servePage, serveTracker, shortLink, unpublishPage } from "./pages.js";
 import { corsPreflight, pubEvent, pubLead } from "./track.js";
 import { adminLeads, deleteLead, g2bSweep, getBaseline, getCosts, getStats, patchLead, portalLeads, portalLeadsCsv, portalPages, portalReport, putBaseline, putCosts } from "./roi.js";
+import { getReviews, portalCampaigns, postReview, sendForReview } from "./review.js";
+import { abortUpload, completeUpload, download, portalCampaign, startUpload, uploadPart } from "./content.js";
+import jszipJs from "./public/jszip.min.js";
 import { SCHEMAS } from "./schemas.js";
 import { json, lang, normEmail, readJson, validEmail, withCookies } from "./util.js";
 
@@ -117,6 +120,7 @@ function servePortal(path) {
   if (path === "/grow/portal.js") return asset(portalJs, "text/javascript; charset=utf-8");
   if (path === "/grow/portal.css") return asset(portalCss, "text/css; charset=utf-8");
   if (path === "/grow/i18n.json") return asset(JSON.stringify(i18n), "application/json; charset=utf-8");
+  if (path === "/grow/jszip.js") return asset(jszipJs, "text/javascript; charset=utf-8");
   return page(portalHtml);
 }
 
@@ -187,7 +191,7 @@ async function handle(request, env, ctx) {
 
   if (method === "GET" && path === "/health") {
     const db = await env.DB.prepare("SELECT 1 AS ok").first();
-    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "g2b" });
+    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "ab" });
   }
 
   if (method === "GET" && path === "/portal/meta") {
@@ -240,13 +244,16 @@ async function handle(request, env, ctx) {
   }
 
   /* ---------- client portal ---------- */
-  const clientPaths = ["/portal/state", "/consent", "/intake", "/uploads", "/intake/submit", "/status", "/me/language", "/portal/photo-requests", "/portal/pages", "/portal/leads", "/portal/leads.csv"];
+  const clientPaths = ["/portal/state", "/consent", "/intake", "/uploads", "/intake/submit", "/status", "/me/language", "/portal/photo-requests", "/portal/pages", "/portal/leads", "/portal/leads.csv", "/portal/campaigns"];
   const fileMatch = path.match(/^\/files\/(f_[a-z0-9]{4,32})$/);
   const leadMatch = path.match(/^\/portal\/leads\/(ld_[a-z0-9]{4,32})$/);
   const reportMatch = path.match(/^\/portal\/report\/(cp_[a-z0-9_]{2,40})$/);
-  if (clientPaths.includes(path) || fileMatch || leadMatch || reportMatch) {
+  const campMatch = path.match(/^\/portal\/(campaign|review)\/(cp_[a-z0-9_]{2,40})$/);
+  const dlMatch = path.match(/^\/dl\/(d_[a-z0-9]{4,32})$/);
+  if (clientPaths.includes(path) || fileMatch || leadMatch || reportMatch || campMatch || dlMatch) {
     if (!auth) return json({ error: "not_signed_in", message: MSG.notSignedIn }, 401);
     if (fileMatch && method === "GET") return respond(await getFile(env, auth, fileMatch[1]));
+    if (dlMatch && method === "GET") return respond(await download(env, auth, dlMatch[1], url));
     if (auth.role !== "client") return json({ error: "forbidden", message: MSG.forbidden }, 403);
     if (fileMatch && method === "DELETE") return deleteFile(env, auth, fileMatch[1]);
     if (path === "/portal/state" && method === "GET") return portalState(env, cfg, auth);
@@ -265,6 +272,10 @@ async function handle(request, env, ctx) {
     if (leadMatch && method === "PATCH") return patchLead(request, env, auth, leadMatch[1]);
     if (leadMatch && method === "DELETE") return deleteLead(env, auth, leadMatch[1]);
     if (reportMatch && method === "GET") return portalReport(env, cfg, auth, reportMatch[1]);
+    /* V2 Parts A and B */
+    if (path === "/portal/campaigns" && method === "GET") return portalCampaigns(env, auth);
+    if (campMatch && campMatch[1] === "campaign" && method === "GET") return portalCampaign(env, cfg, auth, campMatch[2]);
+    if (campMatch && campMatch[1] === "review" && method === "POST") return postReview(request, env, cfg, ctx, auth, campMatch[2]);
   }
 
   /* ---------- admin ---------- */
@@ -292,7 +303,17 @@ async function handle(request, env, ctx) {
     if (cps && method === "POST") return respond(await saveCampaign(request, env, cps[1]));
     const cp = path.match(/^\/admin\/campaign\/(cl_[a-z0-9]{4,32})\/(cp_[a-z0-9_]{2,40})(\/status)?$/);
     if (cp && method === "GET" && !cp[3]) return respond(await getCampaign(env, cp[1], cp[2]));
-    if (cp && method === "PATCH" && cp[3]) return respond(await setCampaignStatus(request, env, cp[1], cp[2]));
+    if (cp && method === "PATCH" && cp[3]) return respond(await setCampaignStatus(request, env, cp[1], cp[2], cfg, ctx));
+    /* V2 Part A */
+    const rvw = path.match(/^\/admin\/campaign\/(cl_[a-z0-9]{4,32})\/(cp_[a-z0-9_]{2,40})\/review$/);
+    if (rvw && method === "POST") return respond(await sendForReview(env, cfg, ctx, rvw[1], rvw[2]));
+    if (rvw && method === "GET") return respond(await getReviews(env, rvw[1], rvw[2]));
+    /* V2 Part B: large files in parts */
+    const up = path.match(/^\/admin\/upload\/(cl_[a-z0-9]{4,32})\/(cp_[a-z0-9_]{2,40})\/(start|d_[a-z0-9]{4,32})(?:\/(part|complete))?$/);
+    if (up && method === "POST" && up[3] === "start" && !up[4]) return respond(await startUpload(request, env, up[1], up[2]));
+    if (up && method === "PUT" && up[4] === "part") return respond(await uploadPart(request, env, up[1], up[2], up[3], url));
+    if (up && method === "POST" && up[4] === "complete") return respond(await completeUpload(request, env, up[1], up[2], up[3]));
+    if (up && method === "DELETE" && up[3] !== "start" && !up[4]) return respond(await abortUpload(env, up[1], up[2], up[3]));
     const ms = path.match(/^\/admin\/status\/(cl_[a-z0-9]{4,32})$/);
     if (ms && method === "PATCH") return respond(await setManualStatus(request, env, ms[1]));
     const ex = path.match(/^\/admin\/export\/(cl_[a-z0-9]{4,32})$/);

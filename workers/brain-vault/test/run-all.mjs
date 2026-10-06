@@ -107,7 +107,7 @@ if (want("e2e") || want("portal")) {
 }
 
 /* Round 2 */
-const round2 = ["panel", "brain", "campaign", "gdpr", "visuals", "photos", "pages"];
+const round2 = ["panel", "brain", "campaign", "gdpr", "visuals", "photos", "pages", "review"];
 if (round2.some(want)) {
   const site = await startSite();
   const w = await startWorker("r2", "http://localhost:8080", "http://127.0.0.1:8080/api/me");
@@ -119,6 +119,7 @@ if (round2.some(want)) {
     if (fs.existsSync(path.join(DIR, "test", "visuals.test.mjs"))) runSuite("visuals", "visuals.test.mjs", env);
     if (fs.existsSync(path.join(DIR, "test", "photos.test.mjs"))) runSuite("photos", "photos.test.mjs", env);
     if (fs.existsSync(path.join(DIR, "test", "pages.test.mjs"))) runSuite("pages", "pages.test.mjs", env);
+    if (fs.existsSync(path.join(DIR, "test", "review.test.mjs"))) runSuite("review", "review.test.mjs", env);
     runSuite("gdpr", "gdpr.test.mjs", env);
   } finally {
     stopWorker(w);

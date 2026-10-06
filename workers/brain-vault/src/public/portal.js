@@ -27,6 +27,8 @@
   var LEADS = [];
   var REPORT = { cp: "", data: null, loading: false, error: false };
   var confirmDel = "";
+  var CAMPS = [];
+  var CV = { cp: "", data: null, loading: false, error: false, answers: {}, busy: false, msg: null };
   var app = document.getElementById("app");
 
   var PIC_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -232,7 +234,7 @@
     app.textContent = "";
     var view = currentView();
     shell(view);
-    var fn = { signin: viewSignin, admin: viewAdmin, consent: viewConsent, profile: viewProfile, uploads: viewUploads, review: viewReview, status: viewStatus, photos: viewPhotos, enquiries: viewEnquiries, report: viewReport }[view];
+    var fn = { signin: viewSignin, admin: viewAdmin, consent: viewConsent, profile: viewProfile, uploads: viewUploads, review: viewReview, status: viewStatus, photos: viewPhotos, enquiries: viewEnquiries, report: viewReport, campaign: viewCampaign, content: viewContent }[view];
     add(app, fn());
     if (active && document.getElementById(active)) document.getElementById(active).focus({ preventScroll: true });
     window.scrollTo(0, y);
@@ -252,6 +254,8 @@
     var hsh = location.hash.replace("#", "");
     if (["profile", "uploads", "review", "status", "photos", "enquiries"].indexOf(hsh) > -1) return hsh;
     if (/^report-cp_[a-z0-9_]{2,40}$/.test(hsh)) return "report";
+    if (/^campaign-cp_[a-z0-9_]{2,40}$/.test(hsh)) return "campaign";
+    if (hsh === "content" || /^content-cp_[a-z0-9_]{2,40}$/.test(hsh)) return "content";
     return S.latestIntakeVersion > 0 ? "status" : "profile";
   }
   window.addEventListener("hashchange", function () {
@@ -786,6 +790,7 @@
         h("h1", { text: submitted ? t("status.titleDone") : t("status.titleOpen") }),
         h("p", { class: "lead", text: t("status.lead") })),
       h("div", { class: "now" }, h("div", { class: "kicker", text: t("status.nowLabel") }), h("h2", { text: now.t }), h("p", { text: now.b })),
+      campCards(),
       photoCard(),
       pageCards(),
       steps,
@@ -1008,6 +1013,220 @@
     ];
   }
 
+  /* ---------- review and Your content (V2 Parts A and B) ---------- */
+  function loadCamps() {
+    return api("/portal/campaigns").then(function (r) {
+      CAMPS = r.ok && r.data && r.data.campaigns ? r.data.campaigns : [];
+    });
+  }
+  function campCards() {
+    if (!CAMPS.length) return null;
+    var cards = CAMPS.slice(0, 3).map(function (c) {
+      var st = c.delivered ? "delivered" : c.reviewState;
+      var btn = null;
+      if (c.delivered) btn = h("button", { type: "button", class: "btn", text: t("camp.contentBtn"), onClick: function () { go("content-" + c.campaignId); } });
+      else if (c.reviewState === "waiting") btn = h("button", { type: "button", class: "btn", text: t("camp.reviewBtn"), onClick: function () { go("campaign-" + c.campaignId); } });
+      else btn = h("button", { type: "button", class: "btn secondary", text: t("camp.viewBtn"), onClick: function () { go("campaign-" + c.campaignId); } });
+      return h("div", { class: "card camp-card" + (c.reviewState === "waiting" && !c.delivered ? " todo" : "") },
+        h("div", { class: "kicker", text: t("camp.kicker") }),
+        h("h2", { text: c.name }),
+        h("span", { class: "pr-badge" + (st === "approved" || st === "delivered" ? " ok" : ""), text: t("camp." + st) }),
+        btn);
+    });
+    return cards;
+  }
+  function loadCampaign(cp) {
+    CV = { cp: cp, data: null, loading: true, error: false, answers: {}, busy: false, msg: null };
+    api("/portal/campaign/" + cp).then(function (r) {
+      CV.loading = false;
+      if (r.ok) {
+        CV.data = r.data;
+        var rv = r.data.review;
+        if (rv) rv.items.forEach(function (i) { CV.answers[i.key] = { verdict: i.verdict, comment: i.comment }; });
+      } else CV.error = true;
+      render();
+    });
+  }
+  function sendReview(approve) {
+    var rv = CV.data.review;
+    var items = rv.view.cards.filter(function (c) { return CV.answers[c.key]; }).map(function (c) {
+      var a = CV.answers[c.key];
+      return { key: c.key, verdict: a.verdict, comment: a.comment || "" };
+    });
+    var missing = items.filter(function (i) { return i.verdict === "change" && !i.comment.trim(); });
+    if (missing.length) {
+      CV.msg = { err: true, text: t("approve.needComment") };
+      render();
+      return;
+    }
+    CV.busy = true;
+    render();
+    api("/portal/review/" + CV.cp, { method: "POST", json: { items: items, approve: !!approve, send: !approve } }).then(function (r) {
+      CV.busy = false;
+      if (r.ok) {
+        rv.state = r.data.state;
+        rv.decidedAt = new Date().toISOString();
+        CV.msg = { err: false, text: r.data.state === "approved" ? t("approve.thanksApproved") : t("approve.thanksChanges") };
+        loadCamps().then(render);
+      } else {
+        CV.msg = { err: true, text: both(r.data && r.data.message) || t("networkError") };
+      }
+      render();
+      window.scrollTo(0, 0);
+    });
+  }
+  function viewCampaign() {
+    var cp = location.hash.replace("#campaign-", "");
+    if (CV.cp !== cp) loadCampaign(cp);
+    var back = h("div", { class: "actions" }, h("button", { type: "button", class: "btn secondary", text: t("approve.back"), onClick: function () { go("status"); } }));
+    if (CV.loading) return [h("p", { class: "muted", text: t("loading") })];
+    if (CV.error || !CV.data || !CV.data.review) return [h("div", { class: "card" }, h("p", { text: t("networkError") })), back];
+    var rv = CV.data.review;
+    var open = rv.state === "waiting";
+    var cards = rv.view.cards;
+    var changes = cards.filter(function (c) { return CV.answers[c.key] && CV.answers[c.key].verdict === "change"; }).length;
+    var answered = cards.filter(function (c) { return CV.answers[c.key]; }).length;
+    var head = h("div", { class: "head" }, h("div", { class: "kicker", text: t("approve.kicker") + " · " + t("camp.round", { n: rv.round }) }), h("h1", { text: CV.data.name }),
+      h("p", { class: "lead", text: open ? t("approve.lead") : rv.state === "approved" ? t("approve.stateApproved", { date: fmtDate(rv.decidedAt) }) : t("approve.stateChanges", { date: fmtDate(rv.decidedAt) }) }));
+    var list = cards.map(function (c) {
+      var a = CV.answers[c.key];
+      var title = (L === "en" ? c.title.en : c.title.sv) || c.title.en;
+      var body = [h("div", { class: "rc-title" }, h("h2", { text: title }), a ? h("span", { class: "pr-badge" + (a.verdict === "ok" ? " ok" : ""), text: a.verdict === "ok" ? t("approve.ok") : t("approve.change") }) : null),
+        h("p", { class: "rc-text", text: c.text })];
+      if (c.link) body.push(h("p", { class: "muted small", text: t("approve.link") + ": " + (c.offerCode ? c.offerCode + " · " : "") + c.link }));
+      if (open) {
+        body.push(h("div", { class: "actions" },
+          h("button", { type: "button", class: "btn small" + (a && a.verdict === "ok" ? "" : " secondary"), "aria-pressed": a && a.verdict === "ok" ? "true" : "false", text: t("approve.ok"), onClick: function () { CV.answers[c.key] = { verdict: "ok", comment: "" }; CV.msg = null; render(); } }),
+          h("button", { type: "button", class: "btn small" + (a && a.verdict === "change" ? "" : " secondary"), "aria-pressed": a && a.verdict === "change" ? "true" : "false", text: t("approve.change"), onClick: function () { CV.answers[c.key] = { verdict: "change", comment: (a && a.comment) || "" }; CV.msg = null; render(); } })));
+        if (a && a.verdict === "change") {
+          var id = "rc_" + c.key.replace(/\W/g, "_");
+          var ta = h("textarea", { id: id, maxlength: "1000", placeholder: t("approve.whatPh") });
+          ta.value = a.comment || "";
+          ta.addEventListener("input", function () { a.comment = ta.value; });
+          body.push(h("label", { for: id, class: "small", text: t("approve.what") }), ta);
+        }
+      } else if (a && a.comment) body.push(h("p", { class: "muted small", text: "“" + a.comment + "”" }));
+      return h("div", { class: "card review-card" }, body);
+    });
+    var foot = [];
+    if (CV.msg) foot.push(h("p", { class: "msg " + (CV.msg.err ? "err" : "ok"), role: "status", text: CV.msg.text }));
+    if (open) {
+      foot.push(h("p", { class: "muted small", text: t("approve.answered", { a: answered, b: cards.length }) }));
+      if (changes) foot.push(h("p", { class: "small", text: t("approve.blocked") }));
+      foot.push(h("div", { class: "actions" },
+        h("button", { type: "button", class: "btn", disabled: CV.busy || changes > 0, text: t("approve.approveAll"), onClick: function () { sendReview(true); } }),
+        changes ? h("button", { type: "button", class: "btn secondary", disabled: CV.busy, text: t("approve.sendChanges", { n: changes }), onClick: function () { sendReview(false); } }) : null));
+    }
+    return [head, CV.msg && !open ? h("p", { class: "msg ok", role: "status", text: CV.msg.text }) : null, list, foot, back];
+  }
+
+  /* Your content */
+  var CT = { cp: "", data: null, loading: false, zipping: false };
+  function loadContent(cp) {
+    CT = { cp: cp, data: null, loading: true, zipping: false };
+    api("/portal/campaign/" + cp).then(function (r) {
+      CT.loading = false;
+      CT.data = r.ok ? r.data : null;
+      render();
+    });
+  }
+  function fmtSize(n) {
+    return n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB";
+  }
+  function loadJsZip() {
+    if (window.JSZip) return Promise.resolve(window.JSZip);
+    return new Promise(function (res, rej) {
+      var sc = document.createElement("script");
+      sc.src = "/grow/jszip.js";
+      sc.onload = function () { res(window.JSZip); };
+      sc.onerror = rej;
+      document.head.appendChild(sc);
+    });
+  }
+  function esc(x) {
+    return String(x == null ? "" : x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function zipAll() {
+    var d = CT.data;
+    CT.zipping = true;
+    render();
+    var big = 50 * 1048576;
+    loadJsZip().then(function (JSZip) {
+      var zip = new JSZip();
+      var html = "<!doctype html><html lang=\"" + d.content.view.language + "\"><head><meta charset=\"utf-8\"><title>" + esc(d.name) + "</title><style>body{font-family:Arial,sans-serif;max-width:760px;margin:0 auto;padding:24px;line-height:1.55;color:#1d1c1a}h2{margin-top:32px;font-size:19px}pre{white-space:pre-wrap;font:inherit;background:#f6f4ef;padding:14px;border-radius:8px}</style></head><body><h1>" + esc(t("content.zipTitle", { name: d.name })) + "</h1>" +
+        d.content.view.cards.map(function (c) { return "<h2>" + esc(L === "en" ? c.title.en : c.title.sv) + "</h2><pre>" + esc(c.copyText) + "</pre>"; }).join("") + "</body></html>";
+      zip.file("texts.html", html);
+      var files = d.content.files.filter(function (f) { return f.size <= big; });
+      return Promise.all(files.map(function (f, i) {
+        return fetch(f.url, { credentials: "same-origin" }).then(function (r) { if (!r.ok) throw new Error("file"); return r.blob(); }).then(function (b) {
+          var ext = (f.name.match(/\.[a-z0-9]{2,5}$/i) || [""])[0] || "." + (f.mime.split("/")[1] || "bin");
+          zip.file((i + 1 < 10 ? "0" : "") + (i + 1) + "-" + (f.title || f.name || "file").replace(/\.[a-z0-9]{2,5}$/i, "").replace(/[^\w\- ]+/g, "_").slice(0, 60) + ext, b);
+        });
+      })).then(function () { return zip.generateAsync({ type: "blob" }); });
+    }).then(function (blob) {
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = (d.name || "campaign").replace(/[^\w\- ]+/g, "_") + ".zip";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+      CT.zipping = false;
+      render();
+    }, function () {
+      CT.zipping = false;
+      toast(t("networkError"), true);
+      render();
+    });
+  }
+  function viewContent() {
+    var hsh = location.hash.replace("#", "");
+    var delivered = CAMPS.filter(function (c) { return c.delivered; });
+    var cp = hsh.indexOf("content-") === 0 ? hsh.slice(8) : (delivered[0] && delivered[0].campaignId) || "";
+    var head = h("div", { class: "head" }, h("div", { class: "kicker", text: t("content.kicker") }), h("h1", { text: t("content.title") }), h("p", { class: "lead", text: t("content.lead") }));
+    var back = h("div", { class: "actions" }, h("button", { type: "button", class: "btn secondary", text: t("approve.back"), onClick: function () { go("status"); } }));
+    if (!cp) return [head, h("div", { class: "card" }, h("p", { text: t("content.none") })), back];
+    if (CT.cp !== cp) loadContent(cp);
+    if (CT.loading) return [head, h("p", { class: "muted", text: t("loading") })];
+    var d = CT.data;
+    if (!d || !d.content) return [head, h("div", { class: "card" }, h("p", { text: t("content.none") })), back];
+    var c = d.content;
+    var out = [head, h("h2", { class: "camp-name", text: d.name })];
+    if (c.pageUrl) {
+      out.push(h("div", { class: "card page-card" }, h("div", { class: "kicker", text: t("content.page") }),
+        c.shortUrl ? h("div", {}, h("span", { class: "muted small", text: t("content.short") + " " }), h("a", { class: "page-url", href: c.shortUrl, target: "_blank", rel: "noopener", text: c.shortUrl.replace(/^https?:\/\//, "") })) : null,
+        h("div", { class: "actions" },
+          c.shortUrl ? h("button", { type: "button", class: "btn secondary", text: t("content.copy"), onClick: function (ev) { var b = ev.target; copyText(c.shortUrl, function () { b.textContent = t("content.copied"); }); } }) : null,
+          h("a", { class: "btn secondary", href: c.pageUrl, target: "_blank", rel: "noopener", text: t("pages.open") }))));
+    }
+    out.push(h("div", { class: "actions" }, h("button", { type: "button", class: "btn", disabled: CT.zipping, text: CT.zipping ? t("content.zipping") : t("content.all"), onClick: zipAll })));
+    if (c.files.some(function (f) { return f.size > 50 * 1048576; })) out.push(h("p", { class: "muted small", text: t("content.bigLeftOut") }));
+    if (c.files.length) {
+      out.push(h("h2", { text: t("content.files") }));
+      out.push(h("div", { class: "files-grid" }, c.files.map(function (f) {
+        return h("div", { class: "card file-card" },
+          f.kind === "image" ? h("img", { src: f.url, alt: f.title || f.name, loading: "lazy" }) : h("div", { class: "file-icon", text: f.kind === "video" ? "VIDEO" : "PDF" }),
+          h("div", { class: "small", text: (f.title || f.name) }),
+          h("div", { class: "muted small", text: fmtSize(f.size) + (f.aiImage ? " · " + t("content.aiImage") : "") }),
+          h("a", { class: "btn small secondary", href: f.url, download: "", text: t("content.download") }));
+      })));
+      out.push(h("p", { class: "muted small", text: t("content.expire", { m: c.linksExpireMinutes }) }));
+    }
+    out.push(h("h2", { text: t("content.texts") }));
+    c.view.cards.forEach(function (card) {
+      out.push(h("div", { class: "card review-card" },
+        h("div", { class: "rc-title" }, h("h2", { text: L === "en" ? card.title.en : card.title.sv }),
+          h("button", { type: "button", class: "btn small", text: t("content.copy"), onClick: function (ev) { var b = ev.target; copyText(card.copyText, function () { b.textContent = t("content.copied"); setTimeout(function () { b.textContent = t("content.copy"); }, 2500); }); } })),
+        h("p", { class: "rc-text", text: card.copyText })));
+    });
+    var others = delivered.filter(function (x) { return x.campaignId !== cp; });
+    if (others.length) {
+      out.push(h("h2", { text: t("content.history") }));
+      out.push(others.map(function (x) { return h("button", { type: "button", class: "btn secondary", text: x.name + " · " + x.month, onClick: function () { go("content-" + x.campaignId); } }); }));
+    }
+    out.push(back);
+    return out;
+  }
+
   /* ---------- boot ---------- */
   function loadState() {
     return api("/portal/state").then(function (r) {
@@ -1053,7 +1272,7 @@
       render();
       return;
     }
-    return loadState().then(loadPhotos).then(loadPages).then(function () {
+    return loadState().then(loadPhotos).then(loadPages).then(loadCamps).then(function () {
       var stored = null;
       try { stored = localStorage.getItem("tv_lang"); } catch (e) {}
       if (S.client.language && !stored) setLang(S.client.language, false);

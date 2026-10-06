@@ -208,6 +208,17 @@ ol li,ul li{margin:4px 0}
 </table></div>
 <p>Tables (migration 6): <code>pages</code>, <code>links</code>, <code>events</code>, <code>daily_stats</code>, <code>leads</code>, <code>baselines</code>, <code>costs</code>, <code>salts</code>. All but <code>salts</code> cascade on erasure and are in the export. New route in <code>wrangler.json</code>: <code>tahastudiolabs.com/go/*</code>. <code>CONSENT_VERSION</code> is now <code>c-3</code>.</p>
 
+<h2>2j. Endpoints added in V2 Parts A and B (review, Your content)</h2>
+<div class="tw"><table>
+<tr><th>Method and path</th><th>Caller</th><th>What it does</th></tr>
+<tr><td><code>POST, GET /admin/campaign/:id/:cp/review</code></td><td>Admin</td><td>Send a review round (frozen client view, email without content); list rounds, answers and the campaign log.</td></tr>
+<tr><td><code>PATCH /admin/campaign/:id/:cp/status</code></td><td>Admin</td><td>Now needs the latest round approved, or <code>override</code> (a reason of 5 characters or more, logged). Delivering emails the client.</td></tr>
+<tr><td><code>POST /admin/upload/:id/:cp/start</code>, <code>PUT .../:uploadId/part?n=</code>, <code>POST .../:uploadId/complete</code>, <code>DELETE .../:uploadId</code></td><td>Admin</td><td>Large delivery files (MP4, MOV, PDF, images, 500 MB) in 8 MB parts to R2 at <code>c/&lt;clientId&gt;/d_...</code>.</td></tr>
+<tr><td><code>GET /portal/campaigns</code>, <code>GET /portal/campaign/:cp</code>, <code>POST /portal/review/:cp</code></td><td>Client (own id)</td><td>Her campaigns, the latest round and (once delivered) her content; her answers.</td></tr>
+<tr><td><code>GET /dl/:deliveryId?e=&amp;s=</code></td><td>Client (own id) or admin</td><td>A delivered file. Signed for 10 minutes and needs the session.</td></tr>
+</table></div>
+<p>Files: <code>src/review.js</code>, <code>src/content.js</code>, <code>src/clientview.js</code>, <code>src/public/jszip.min.js</code> (MIT, served at <code>/grow/jszip.js</code>), <code>../../assets/growth-review.js</code>, <code>test/review.test.mjs</code> (51 checks). Tables (migration 7): <code>reviews</code>, <code>review_items</code>, <code>campaign_log</code>, <code>uploads</code>, <code>secrets</code>.</p>
+
 <h2>3. How login works</h2>
 <ol>
 <li>Someone enters an email. If it belongs to an invited client or is in <code>ADMIN_EMAILS</code>, the Vault creates a random 32-byte token, stores only its SHA-256 hash, and emails the link. Any other email gets the same message and no email. The work happens after the reply is sent, so the reply takes the same time for every email.</li>

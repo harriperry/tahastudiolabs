@@ -312,5 +312,64 @@ export const MIGRATIONS = [
         salt TEXT NOT NULL
       )`
     ]
+  },
+  {
+    id: 7,
+    name: "parts-a-b-review-and-content",
+    statements: [
+      /* Part A: a frozen copy of the campaign as the client sees it, one per review round.
+         state: waiting (sent, no answer), changes (she asked for changes), approved,
+         withdrawn (replaced by a newer round before she answered). */
+      `CREATE TABLE IF NOT EXISTS reviews (
+        id TEXT PRIMARY KEY,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        campaign_id TEXT NOT NULL,
+        round INTEGER NOT NULL,
+        state TEXT NOT NULL DEFAULT 'waiting' CHECK (state IN ('waiting','changes','approved','withdrawn')),
+        data TEXT NOT NULL,
+        sent_at TEXT NOT NULL,
+        decided_at TEXT,
+        UNIQUE (client_id, campaign_id, round)
+      )`,
+      `CREATE TABLE IF NOT EXISTS review_items (
+        review_id TEXT NOT NULL,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        output_key TEXT NOT NULL,
+        verdict TEXT NOT NULL CHECK (verdict IN ('ok','change')),
+        comment TEXT,
+        at TEXT NOT NULL,
+        PRIMARY KEY (review_id, output_key)
+      )`,
+      /* What happened to a campaign that is not in other tables: rounds sent, decisions, and
+         Mark delivered without approval (with Harry's reason). */
+      `CREATE TABLE IF NOT EXISTS campaign_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        campaign_id TEXT NOT NULL,
+        event TEXT NOT NULL,
+        detail TEXT,
+        at TEXT NOT NULL
+      )`,
+      /* Part B: large delivered files (videos, PDFs) go to R2 in parts. */
+      `CREATE TABLE IF NOT EXISTS uploads (
+        id TEXT PRIMARY KEY,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        campaign_id TEXT NOT NULL,
+        r2_key TEXT NOT NULL,
+        upload_id TEXT NOT NULL,
+        name TEXT,
+        title TEXT,
+        mime TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        ai_image INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+      )`,
+      /* Server-side secrets the Worker makes itself (the key that signs download links). */
+      `CREATE TABLE IF NOT EXISTS secrets (
+        name TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )`
+    ]
   }
 ];

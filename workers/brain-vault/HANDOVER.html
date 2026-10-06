@@ -29,7 +29,29 @@ li{margin:0 0 6px}
 <body>
 <main>
 <h1>TAHA Studio Labs Growth Department</h1>
-<p class="sub">V1 handover, 5 October 2026, built in six phases. V2 phases G1, G2a and G2b added 6 October 2026 (below). G2b is on the branch <code>growth-g2b</code>, not live yet.</p>
+<p class="sub">V1 handover, 5 October 2026, built in six phases. V2 phases G1, G2a and G2b added 6 October 2026 (below). G2b is live; Parts A and B are on the branch <code>growth-ab</code>, not live yet.</p>
+
+<h2>V2 Parts A and B: client approval and Your content</h2>
+<div class="card">
+<ul>
+<li><b>Client review</b> box on every saved campaign: <b>Send to client for review</b> freezes the campaign as she sees it (round 1, 2, 3...) and emails her a link with no content. Her verdict and comment come back in the box and on each output card. A round she has not answered is replaced by the next one; earlier rounds stay in History.</li>
+<li>Portal: a campaign card on her status screen (Waiting for your approval, We are working on your changes, Campaign approved, Your content is ready). The review screen shows every output as a card in the campaign language, one per phone width, with <b>Looks good</b> or <b>Change this</b> and a comment, and <b>Approve the whole campaign</b> (blocked while a card asks for a change). No brain, prompts, image briefs or AI wording. You get an email (company and round only) when she approves or asks for changes.</li>
+<li><b>Mark delivered</b> needs her approval of the latest round. Without it the panel asks for a reason, which is logged. Delivering emails her that her content is ready (no content in the email).</li>
+<li><b>Delivery files</b> box: add videos (MP4, MOV), images and PDFs up to 500 MB each, sent in 8 MB parts with a progress bar and retries. Images attached to Visual Pack briefs are listed too.</li>
+<li>Portal <b>Your content</b>: the campaign page's short link, every text with <b>Copy</b> (posts and ads come with their offer code and tracked short link), the files with Download (signed links that work for 10 minutes and only with her session), and <b>Download all (ZIP)</b> with the texts as a formatted page. Videos over 50 MB download one by one. Earlier campaigns stay listed.</li>
+<li>Export and erasure cover review rounds, answers, the campaign log and unfinished uploads.</li>
+</ul>
+</div>
+<div class="tw"><table>
+<tr><th>Done when</th><th>How it was checked</th><th>Status</th></tr>
+<tr><td>A client sees a campaign only after you send it, and never another client's</td><td>review test</td><td class="ok">Done</td></tr>
+<tr><td>Per card Looks good or Change this with a comment; Approve is blocked while a card asks for a change</td><td>review test; browser run on a phone width</td><td class="ok">Done</td></tr>
+<tr><td>You see every verdict and comment per round and get an email (no content) on each decision</td><td>review test; browser run</td><td class="ok">Done</td></tr>
+<tr><td>Mark delivered needs approval, or a logged reason</td><td>review and campaign tests</td><td class="ok">Done</td></tr>
+<tr><td>After delivery she copies every text and downloads every file, one by one and as one ZIP; links expire after 10 minutes</td><td>review test; browser run (ZIP downloaded)</td><td class="you">Harry live</td></tr>
+<tr><td>Every earlier test suite still passes</td><td><code>node test/run-all.mjs</code>: all 17 suites</td><td class="ok">Done</td></tr>
+</table></div>
+<div class="card"><p><b>To go live (needs your approval):</b> merge <code>growth-ab</code> into <code>main</code> and push it to <code>growth-phase-1</code>. No Cloudflare change. The new tables create themselves on the first request. Campaigns already marked delivered show in Your content straight away. This also ships the G2b fix (Landing page box kept visible, short share link).</p></div>
 
 <h2>V2 phase G2b: landing pages, tracking and enquiries</h2>
 <div class="card">

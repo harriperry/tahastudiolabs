@@ -14,9 +14,11 @@ import { SCHEMAS } from "./schemas.js";
 import { validate } from "./validate.js";
 import { json, nowIso, readJson } from "./util.js";
 import { looksLikeKey } from "./brain.js";
+import { composeDeliveredEmail, sendMail } from "./mail.js";
 
 const M = {
   badRequest: { sv: "Ogiltig förfrågan.", en: "Bad request." },
+  notApproved: { sv: "Kunden har inte godkänt kampanjen. Ange ett skäl för att leverera ändå.", en: "The client has not approved the campaign. Give a reason to deliver anyway." },
   notFound: { sv: "Hittades inte.", en: "Not found." },
   invalid: { sv: "Kampanjen följer inte schemat.", en: "The campaign does not match the schema." },
   brain: { sv: "Den hjärnversionen finns inte.", en: "That brain version does not exist." },
@@ -96,19 +98,40 @@ export async function saveCampaign(request, env, clientId) {
 
 /* PATCH /admin/campaign/:clientId/:campaignId/status {status: "delivered" | "in_production"}
    Mark delivered sets the client to Campaign delivered; moving back sets Campaign in production. */
-export async function setCampaignStatus(request, env, clientId, campaignId) {
-  const b = await readJson(request, 1024);
+export async function setCampaignStatus(request, env, clientId, campaignId, cfg, ctx) {
+  const b = await readJson(request, 2048);
   const status = b && (b.status === "delivered" || b.status === "in_production") ? b.status : null;
   if (!status) return json({ error: "bad_request", message: M.badRequest }, 400);
-  const r = await env.DB.prepare("SELECT data FROM campaigns WHERE client_id = ? AND campaign_id = ?").bind(clientId, campaignId).first();
+  const r = await env.DB.prepare("SELECT data, status FROM campaigns WHERE client_id = ? AND campaign_id = ?").bind(clientId, campaignId).first();
   if (!r) return json({ error: "not_found", message: M.notFound }, 404);
+  /* V2 Part A: Mark delivered needs the client's approval of the latest review round, or a
+     reason from Harry, which is logged. */
+  const logs = [];
+  if (status === "delivered" && r.status !== "delivered") {
+    const rv = await env.DB.prepare("SELECT state, round FROM reviews WHERE client_id = ? AND campaign_id = ? AND state != 'withdrawn' ORDER BY round DESC LIMIT 1").bind(clientId, campaignId).first();
+    const reason = typeof b.override === "string" ? b.override.replace(/\u2014/g, ", ").trim().slice(0, 500) : "";
+    if (!rv || rv.state !== "approved") {
+      if (reason.length < 5) return json({ error: "not_approved", message: M.notApproved, reviewState: rv ? rv.state : null }, 409);
+      logs.push(env.DB.prepare("INSERT INTO campaign_log (client_id, campaign_id, event, detail, at) VALUES (?, ?, 'delivered_without_approval', ?, ?)").bind(clientId, campaignId, reason, nowIso()));
+    }
+    logs.push(env.DB.prepare("INSERT INTO campaign_log (client_id, campaign_id, event, detail, at) VALUES (?, ?, 'delivered', NULL, ?)").bind(clientId, campaignId, nowIso()));
+  }
   const doc = Object.assign(JSON.parse(r.data), { status });
   const clientStatus = status === "delivered" ? "campaign_delivered" : "campaign_in_production";
   const t = nowIso();
   await env.DB.batch(
     [env.DB.prepare("UPDATE campaigns SET status = ?, data = ?, updated_at = ? WHERE client_id = ? AND campaign_id = ?").bind(status, JSON.stringify(doc), t, clientId, campaignId)]
       .concat(await setClientStatus(env, clientId, clientStatus, t))
+      .concat(logs)
   );
+  /* V2 Part B: the client hears that her content is in the portal (no content in the email). */
+  if (status === "delivered" && r.status !== "delivered" && cfg && ctx && b.notify !== false) {
+    const c = await env.DB.prepare("SELECT name, email, language, left_at FROM clients WHERE id = ?").bind(clientId).first();
+    if (c && !c.left_at) {
+      const mail = composeDeliveredEmail(cfg, { name: c.name, language: c.language, link: cfg.siteOrigin + cfg.clientHome + "#content-" + campaignId });
+      ctx.waitUntil(sendMail(cfg, env, { to: c.email, ...mail }).catch((e) => console.error("delivered email failed: " + e.message)));
+    }
+  }
   return json({ ok: true, campaign: doc, clientStatus, statusLabel: STATUS_LABELS[clientStatus] });
 }
 

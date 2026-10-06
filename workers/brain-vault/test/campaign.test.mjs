@@ -95,7 +95,9 @@ try {
   ok(r.status === 404, "unknown campaign is 404");
 
   r = await call("/admin/campaign/" + id + "/cp_2026_10_en/status", { method: "PATCH", cookie: ADMIN, body: { status: "delivered" } });
-  ok(r.status === 200 && r.data.clientStatus === "campaign_delivered" && r.data.campaign.status === "delivered", "Mark delivered works");
+  ok(r.status === 409 && r.data.error === "not_approved", "Mark delivered needs the client's approval (Part A)");
+  r = await call("/admin/campaign/" + id + "/cp_2026_10_en/status", { method: "PATCH", cookie: ADMIN, body: { status: "delivered", override: "Approved by phone" } });
+  ok(r.status === 200 && r.data.clientStatus === "campaign_delivered" && r.data.campaign.status === "delivered", "Mark delivered works with a reason when the client approved outside the portal");
   r = await call("/status", { cookie: client });
   ok(r.data.status === "campaign_delivered" && r.data.statusLabel.en === "Campaign delivered", "the portal shows Campaign delivered");
   ok(["submitted", "brain_ready", "campaign_in_production", "campaign_delivered"].every((s) => r.data.history.some((x) => x.status === s)), "status history has every step");

@@ -46,6 +46,10 @@ const CLIENT_TABLES = [
   ["baselines", "client_id"],
   ["costs", "client_id"],
   ["pages", "client_id"],
+  ["review_items", "client_id"],
+  ["reviews", "client_id"],
+  ["campaign_log", "client_id"],
+  ["uploads", "client_id"],
   ["consents", "client_id"],
   ["status_history", "client_id"],
   ["sessions", "client_id"],
@@ -103,6 +107,9 @@ export async function exportClient(env, cfg, clientId) {
     trackedLinks: (await all(env, "SELECT * FROM links WHERE client_id = ? ORDER BY created_at ASC", clientId)).map((l) => linkOut(l, cfg)),
     enquiries: (await all(env, "SELECT * FROM leads WHERE client_id = ? ORDER BY at ASC", clientId)).map(leadOut),
     pageDailyTotals: await all(env, "SELECT page_id AS pageId, day, channel, type, n FROM daily_stats WHERE client_id = ? ORDER BY day ASC", clientId),
+    reviews: (await all(env, "SELECT campaign_id AS campaignId, round, state, sent_at AS sentAt, decided_at AS decidedAt FROM reviews WHERE client_id = ? ORDER BY campaign_id, round", clientId)),
+    reviewAnswers: (await all(env, "SELECT i.output_key AS outputKey, i.verdict, i.comment, i.at, r.campaign_id AS campaignId, r.round FROM review_items i JOIN reviews r ON r.id = i.review_id WHERE i.client_id = ? ORDER BY i.at", clientId)),
+    campaignLog: (await all(env, "SELECT campaign_id AS campaignId, event, detail, at FROM campaign_log WHERE client_id = ? ORDER BY id", clientId)),
     pageEventsKept: ((await all(env, "SELECT COUNT(*) AS n FROM events WHERE client_id = ?", clientId))[0] || { n: 0 }).n,
     results: await Promise.all((await all(env, "SELECT DISTINCT campaign_id FROM campaigns WHERE client_id = ?", clientId)).map(async (r) => ({
       campaignId: r.campaign_id,
@@ -137,6 +144,10 @@ export async function eraseClient(env, clientId, reason) {
   if (!c) return null;
   const email = normEmail(c.email);
 
+  /* 0. Unfinished large uploads (Part B) are abandoned first. */
+  for (const u of await all(env, "SELECT r2_key, upload_id FROM uploads WHERE client_id = ?", clientId)) {
+    try { await env.FILES.resumeMultipartUpload(u.r2_key, u.upload_id).abort(); } catch (e) {}
+  }
   /* 1. Files in R2: everything under the client's folder, listed page by page. */
   let filesDeleted = 0;
   let cursor;

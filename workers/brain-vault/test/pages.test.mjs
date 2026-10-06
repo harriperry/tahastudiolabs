@@ -345,7 +345,7 @@ try {
 
   /* Health */
   r = await call("/health");
-  ok(r.status === 200 && r.data.part === "g2b", "health reports part g2b");
+  ok(r.status === 200 && r.data.part === "ab", "health reports the current part");
 } catch (e) {
   fail++;
   console.log("FAIL crashed: " + e.stack);

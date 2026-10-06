@@ -95,6 +95,32 @@ const COPY = {
       en: "Not signed in? Enter your email address in the portal and you will get a login link."
     }
   },
+  /* V2 Part A. No campaign content: only that a campaign is ready to look at. */
+  review: {
+    subject: { sv: "Din kampanj är klar att granska", en: "Your campaign is ready for you to review" },
+    intro: {
+      sv: "Hej {name}! Din kampanj är klar. Titta igenom den i portalen, säg till om något ska ändras eller godkänn den, så gör vi klart allt.",
+      en: "Hi {name}! Your campaign is ready. Look through it in the portal, tell us what to change or approve it, and we will finish everything."
+    },
+    button: { sv: "Granska kampanjen", en: "Review the campaign" },
+    note: {
+      sv: "Inte inloggad? Ange din e-postadress i portalen så får du en inloggningslänk.",
+      en: "Not signed in? Enter your email address in the portal and you will get a login link."
+    }
+  },
+  /* V2 Part B. The finished campaign is in the portal. */
+  delivered: {
+    subject: { sv: "Ditt kampanjmaterial är klart", en: "Your campaign content is ready" },
+    intro: {
+      sv: "Hej {name}! Allt material till din kampanj finns nu i portalen: texter att kopiera, bilder och filer att ladda ner.",
+      en: "Hi {name}! Everything for your campaign is now in the portal: texts to copy, and images and files to download."
+    },
+    button: { sv: "Öppna ditt material", en: "Open your content" },
+    note: {
+      sv: "Inte inloggad? Ange din e-postadress i portalen så får du en inloggningslänk.",
+      en: "Not signed in? Enter your email address in the portal and you will get a login link."
+    }
+  },
   /* V2 phase G2b. No enquiry content: only that one is waiting, and where to read it. */
   enquiry: {
     subject: { sv: "Ny förfrågan från din kampanjsida", en: "New enquiry from your campaign page" },
@@ -210,6 +236,33 @@ export function composeEnquiryNotice(cfg, { company, link }) {
     '<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#111;max-width:560px;margin:0 auto;padding:24px">' +
     "<p><b>" + escapeHtml(company) + "</b> har fått en förfrågan via kampanjsidan.</p>" +
     "<p><b>" + escapeHtml(company) + "</b> has a new enquiry from the campaign page.</p>" +
+    '<p><a href="' + escapeHtml(link) + '">' + escapeHtml(link) + "</a></p></body></html>";
+  return { subject, text, html };
+}
+
+/* V2 Part A: the client asked for review, and Part B: content delivered. No content. */
+export function composeReviewEmail(cfg, { name, language, link }) {
+  return composeEmail("review", cfg, { link, name, language, signinUrl: link });
+}
+export function composeDeliveredEmail(cfg, { name, language, link }) {
+  return composeEmail("delivered", cfg, { link, name, language, signinUrl: link });
+}
+
+/* V2 Part A: notice to Harry when the client approves or asks for changes. Company name and
+   round only. */
+export function composeDecisionNotice(cfg, { company, round, approved, link }) {
+  const what = approved
+    ? { sv: "har godkänt kampanjen", en: "has approved the campaign" }
+    : { sv: "vill ha ändringar i kampanjen", en: "has asked for changes to the campaign" };
+  const subject = (approved ? "Godkänd / Approved: " : "Ändringar / Changes requested: ") + company + " (" + round + ")";
+  const text =
+    company + " " + what.sv + " (omgång " + round + ").\n" +
+    company + " " + what.en + " (round " + round + ").\n\n" +
+    link + "\n";
+  const html =
+    '<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#111;max-width:560px;margin:0 auto;padding:24px">' +
+    "<p><b>" + escapeHtml(company) + "</b> " + what.sv + " (omgång " + round + ").</p>" +
+    "<p><b>" + escapeHtml(company) + "</b> " + what.en + " (round " + round + ").</p>" +
     '<p><a href="' + escapeHtml(link) + '">' + escapeHtml(link) + "</a></p></body></html>";
   return { subject, text, html };
 }

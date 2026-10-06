@@ -204,7 +204,7 @@ try {
   ok(left[0].d === 0 && left[0].k === 0, "no finished images or brand kit rows remain");
 
   r = await call("/health");
-  ok(r.data.phase === 6 && /^g/.test(r.data.part), "health reports phase 6 and a part G version");
+  ok(r.data.phase === 6 && /^[a-z0-9]+$/.test(r.data.part), "health reports phase 6 and the V2 part");
 } catch (e) {
   fail++;
   console.log("FAIL crashed: " + e.stack);

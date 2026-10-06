@@ -39,7 +39,8 @@ import {
   sizeLabel,
   withVisuals
 } from "./growth-visuals.js?v=g2a";
-import { createLandingUi } from "./growth-landing.js?v=g2b";
+import { createLandingUi } from "./growth-landing.js?v=ab";
+import { createReviewUi } from "./growth-review.js?v=ab";
 
 const VAULT = "/api/vault";
 const PROMPT_URL = "/assets/growth/campaign.prompt.json?v=p5";
@@ -292,6 +293,7 @@ export function createCampaigns(ctx) {
   let platforms = null;
   const vis = createVisualsUi(ctx);
   const lp = createLandingUi(ctx);
+  const rv = createReviewUi(ctx);
 
   function entry(id) {
     if (!cache[id]) {
@@ -703,10 +705,18 @@ export function createCampaigns(ctx) {
     ctx.rerender(id);
   }
 
-  async function setStatus(c, campaignId, status) {
+  async function setStatus(c, campaignId, status, override) {
     const id = c.id;
     const e = entry(id);
-    const r = await api("/admin/campaign/" + encodeURIComponent(id) + "/" + encodeURIComponent(campaignId) + "/status", { method: "PATCH", body: { status } });
+    const r = await api("/admin/campaign/" + encodeURIComponent(id) + "/" + encodeURIComponent(campaignId) + "/status", { method: "PATCH", body: override ? { status, override } : { status } });
+    /* V2 Part A: without the client's approval, Mark delivered asks for a reason first. */
+    if (r.status === 409 && r.d && r.d.error === "not_approved") {
+      e.deliverAsk = campaignId;
+      e.msg = null;
+      ctx.rerender(id);
+      return;
+    }
+    e.deliverAsk = null;
     if (r.ok && r.d) {
       if (e.saved[campaignId]) e.saved[campaignId].status = status;
       if (e.working && e.working.campaignId === campaignId) e.working.status = status;
@@ -988,6 +998,12 @@ export function createCampaigns(ctx) {
       if (editingThis) {
         tools.appendChild(h("button", { type: "button", class: "gc-brain-btn", on: { click: () => save(c) } }, e.isNew ? "Save campaign" : "Save changes"));
         tools.appendChild(h("button", { type: "button", class: "btn-ghost", on: { click: () => discard(c.id) } }, e.isNew ? "Discard" : "Undo changes"));
+      } else if (doc.status !== "delivered" && e.deliverAsk === doc.campaignId) {
+        const rid = "gc-deliver-why-" + c.id;
+        const why = h("input", { type: "text", id: rid, placeholder: "For example: approved by phone on 7 October" });
+        tools.appendChild(h("div", { class: "gc-ed" }, h("label", { for: rid, text: "She has not approved this round. Reason to deliver anyway (logged):" }), why));
+        tools.appendChild(h("button", { type: "button", class: "gc-brain-btn", on: { click: () => { if (why.value.trim().length >= 5) setStatus(c, doc.campaignId, "delivered", why.value.trim()); else why.focus(); } } }, "Deliver anyway"));
+        tools.appendChild(h("button", { type: "button", class: "gc-link", on: { click: () => { e.deliverAsk = null; ctx.rerender(c.id); } } }, "Cancel"));
       } else if (doc.status !== "delivered") {
         tools.appendChild(h("button", { type: "button", class: "gc-brain-btn", on: { click: () => setStatus(c, doc.campaignId, "delivered") } }, "Mark delivered"));
       } else {
@@ -1088,6 +1104,15 @@ export function createCampaigns(ctx) {
       if (e.dirty && doc === e.working) pane.appendChild(h("div", { class: "gc-msg info", text: "You have unsaved changes to this campaign. The landing page below uses the saved version; save your changes to use them on the page." }));
       lp.renderBox(pane, info);
       lp.renderPerformance(pane, info);
+      /* V2 Parts A and B: client review, and the files she gets in Your content. */
+      rv.renderBox(pane, { client: c, campaignId: savedCampaignId, doc: savedDoc, dirty: e.dirty && doc === e.working });
+      rv.renderFiles(pane, {
+        client: c,
+        campaignId: savedCampaignId,
+        delivered: savedDoc.status === "delivered",
+        deliveries: vis.loadDeliveries(c.id, savedCampaignId).list,
+        reloadDeliveries: () => vis.loadDeliveries(c.id, savedCampaignId, true)
+      });
     }
 
     const list = h("div", { class: "gc-cards one" });
@@ -1152,6 +1177,10 @@ export function createCampaigns(ctx) {
         });
       }
       if (hits[card.key]) body.appendChild(h("div", { class: "gc-msg err", text: "Avoid: " + hits[card.key].join(", ") }));
+      /* V2 Part A: what the client said about this card in the latest round. */
+      if (savedCampaignId) rv.notesFor(c.id, savedCampaignId, card.key).forEach((n) => {
+        body.appendChild(h("div", { class: "gc-msg " + (n.verdict === "ok" ? "ok" : "err"), text: "Client, round " + n.round + ", " + n.label + ": " + (n.verdict === "ok" ? "Looks good" : "Change this: “" + n.comment + "”") }));
+      });
       if (e.cardMsg[card.key]) body.appendChild(h("div", { class: "gc-msg " + e.cardMsg[card.key].cls, text: e.cardMsg[card.key].text }));
       body.appendChild(msgEl);
       list.appendChild(h("section", { class: "gc-card wide" + (hits[card.key] ? " flagged" : "") }, head, body));
