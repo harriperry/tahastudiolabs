@@ -14,10 +14,11 @@ import {
   overlayText,
   packSummary,
   photoList,
+  splitProblems,
   textInPrompt,
   withVisuals
 } from "../../../assets/growth-visuals.js";
-import { campaignModelSchema, normalizeCampaign } from "../../../assets/growth-campaign.js";
+import { campaignModelSchema, findAvoidWords, normalizeCampaign } from "../../../assets/growth-campaign.js";
 
 let pass = 0, fail = 0;
 const ok = (c, n) => { if (c) { pass++; console.log("PASS " + n); } else { fail++; console.log("FAIL " + n); } };
@@ -136,6 +137,16 @@ try {
   ok(textInPrompt("A neon sign that says OPEN", {}, "").length > 0, "a sign that says something is caught");
   ok(textInPrompt("A table, headline A little extra in gold", { headline: "A little extra" }, "").some((r) => /overlay headline/.test(r)), "the overlay headline inside the prompt is caught");
   ok(textInPrompt("A woman reading on a bench, warm textured wall", {}, "").length === 0, "ordinary words like reading and textured are not flagged");
+
+  ok(textInPrompt("Warm table scene, leave room for the logo in the bottom right corner. The logo is placed later on the overlay layer.", {}, "").length === 0, "room for the logo and a logo placed later are not flagged");
+  const sp = splitProblems(["$.visuals[0].prompt: shorter than 1", "v_ad_2: the prompt asks for text, a sign or a logo inside the image; put all words in overlay", "v_gbp: missing (one item per brief, with this id)", "v_lp_hero: people appear, so write who in cast"]);
+  ok(sp.hard.length === 2 && sp.soft.v_ad_2 && sp.soft.v_lp_hero && !sp.soft.v_gbp, "schema errors and missing briefs stop the run; rule warnings become card notes");
+
+  const avoidDoc = withVisuals(doc, out.visuals.map((v) => Object.assign({}, v, { avoid: "text, logos, cheap-looking food" })));
+  ok(!findAvoidWords(avoidDoc, ["cheap"]).visuals, "a word to avoid inside a brief's own avoid list is not flagged");
+  const overlayDoc = JSON.parse(JSON.stringify(avoidDoc));
+  overlayDoc.visuals[0].overlay.sub = "Cheap eats this week";
+  ok(findAvoidWords(overlayDoc, ["cheap"]).visuals, "a word to avoid in an overlay is still flagged");
 
   /* cards and copy */
   const v0 = c2.visuals[0];

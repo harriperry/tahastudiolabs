@@ -20,7 +20,7 @@ import { validate } from "./growth-validate.js?v=p5";
 import { stripDashes } from "./growth-brain.js?v=p5";
 
 export const PLATFORMS_URL = "/assets/growth/platforms.json?v=g1";
-export const VISUALS_PROMPT_URL = "/assets/growth/visuals.prompt.json?v=g1b";
+export const VISUALS_PROMPT_URL = "/assets/growth/visuals.prompt.json?v=g1c";
 
 /* Fields ScriptForge sets from platforms.json; the model never writes them. */
 const SET_BY_SCRIPTFORGE = ["output_key", "platform", "placement", "ratio", "width", "height", "clear_zone"];
@@ -103,7 +103,9 @@ export function textInPrompt(prompt, overlay, noTextSentence) {
   const cleaned = p
     .replace(/\b(no|without|free of|never|avoid|keep (it|the [a-z ]+) (free of|clear of))\b[^.;]*/gi, " ")
     .replace(/\b(empty|clear|calm) (space|area|zone|background)[^.;]*/gi, " ")
-    .replace(/\b(overlay|clear zone|space for (the )?(text|headline|copy))\b[^.;]*/gi, " ");
+    .replace(/\b(overlay|clear zone|space for (the )?(text|headline|copy))\b[^.;]*/gi, " ")
+    .replace(/\b(room|space|area|zone|corner) (left )?(for|reserved for) (the )?(logo|text|headline|copy|offer text|cta|button)\b[^.;]*/gi, " ")
+    .replace(/\b(the )?logo (is|will be|goes|sits) [^.;]*/gi, " ");
   if (/["\u201c\u201d][^"\u201c\u201d]{2,}["\u201c\u201d]/.test(cleaned)) reasons.push("quotes words that would be written in the image");
   if (TEXT_ASKS.test(cleaned)) reasons.push("asks for text, a sign or a logo inside the image");
   const o = overlay || {};
@@ -163,6 +165,20 @@ export function normalizeVisuals(raw, slots, ctx) {
     visuals.push(ordered);
   }
   return { visuals, problems, fixes };
+}
+
+/* After the retry, only hard faults stop the run: unreadable JSON, a schema error or a missing
+   brief. Rule warnings (text-like words in a prompt, no cast) keep the brief and are shown on
+   its card, keyed by brief id, so one cautious word cannot throw away a whole pack. */
+export function splitProblems(errs) {
+  const hard = [];
+  const soft = {};
+  for (const e of errs || []) {
+    const m = /^(v_[a-z0-9_]+): (.*)$/.exec(e);
+    if (!m || /: missing|subject is missing/.test(e)) hard.push(e);
+    else (soft[m[1]] = soft[m[1]] || []).push(m[2]);
+  }
+  return { hard, soft };
 }
 
 /* Schema errors for a whole Visual Pack, using the campaign-2 item schema. */
@@ -411,6 +427,8 @@ export function createVisualsUi(ctx) {
         h("button", { type: "button", class: "gc-link", on: { click: () => opts.copy(overlayText(v), () => { msg.textContent = "Overlay copied."; }) } }, "Copy overlay"),
         h("button", { type: "button", class: "gc-link", on: { click: () => opts.toggleEdit(v.id) } }, opts.editing[v.id] ? "Done" : "Edit"));
       card.appendChild(tools);
+      const warn = opts.warnings && opts.warnings[v.id];
+      if (warn && warn.length) card.appendChild(h("div", { class: "gc-msg info", text: "Check before you use it: " + warn.join("; ") + "." }));
       if (opts.editing[v.id]) {
         const field = (label, get, set, rows) => {
           const id = "gv-" + v.id + "-" + label.replace(/\W+/g, "").toLowerCase();

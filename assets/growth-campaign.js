@@ -31,13 +31,14 @@ import {
   buildSlots,
   checkVisuals,
   createVisualsUi,
+  splitProblems,
   kitPromptText,
   normalizeVisuals,
   overlayText,
   photoList,
   sizeLabel,
   withVisuals
-} from "./growth-visuals.js?v=g1";
+} from "./growth-visuals.js?v=g1c";
 
 const VAULT = "/api/vault";
 const PROMPT_URL = "/assets/growth/campaign.prompt.json?v=p5";
@@ -150,7 +151,10 @@ export function findAvoidWords(doc, avoid) {
   if (!words.length || !doc) return hits;
   const keys = ["concept", "hook", "offer", "shortVideo", "socialCopy", "adVariations", "cta", "landingPage", "email", "googleBusinessPost", "visuals"];
   for (const k of keys) {
-    const text = JSON.stringify(doc[k] || "").toLowerCase();
+    /* G1: a brief's avoid list names what the picture must NOT show, often the brain's own
+       words to avoid, so it is left out of this check. */
+    const val = k === "visuals" && Array.isArray(doc[k]) ? doc[k].map((v) => Object.assign({}, v, { avoid: "" })) : doc[k];
+    const text = JSON.stringify(val || "").toLowerCase();
     const found = words.filter((w) => {
       const lw = w.toLowerCase();
       if (/\s/.test(lw)) return text.includes(lw);
@@ -600,6 +604,7 @@ export function createCampaigns(ctx) {
           return await callModel(p, system, msgs, batchTokens);
         }
       };
+      const warnings = {};
       const batches = [];
       for (let i = 0; i < slots.length; i += size) batches.push(slots.slice(i, i + size));
       const all = [];
@@ -630,14 +635,20 @@ export function createCampaigns(ctx) {
 
         }
         if (res.errs) {
-          e.verrors = res.errs;
-          throw new Error("Briefs " + from + " to " + (from + part.length - 1) + " still did not pass the checks after one retry. Nothing was changed; try Make visuals again.");
+          const { hard, soft } = splitProblems(res.errs);
+          if (hard.length || !res.visuals) {
+            e.verrors = res.errs;
+            throw new Error("Briefs " + from + " to " + (from + part.length - 1) + " still did not pass the checks after one retry. Nothing was changed; try Make visuals again.");
+          }
+          Object.assign(warnings, soft);
         }
         all.push(...res.visuals);
       }
       const res = { visuals: all };
       const need = res.visuals.filter((v) => v.source === "client_photo" && !v.photo_ref).length;
-      vstep(e, id, slots.length + " briefs ready" + (need ? ", " + need + " need a photo from the client" : "") + ". Save to keep them.", "done");
+      const nWarn = Object.keys(warnings).length;
+      vstep(e, id, slots.length + " briefs ready" + (need ? ", " + need + " need a photo from the client" : "") + (nWarn ? ", " + nWarn + (nWarn === 1 ? " has a note" : " have a note") + " to check" : "") + ". Save to keep them.", "done");
+      e.vwarn = warnings;
       const next = withVisuals(doc, res.visuals);
       Object.keys(doc).forEach((k) => delete doc[k]);
       Object.assign(doc, next);
@@ -1072,6 +1083,7 @@ export function createCampaigns(ctx) {
           savedVisualIds,
           files: (d && d.files) || [],
           editing: e.vedit,
+          warnings: e.vwarn || {},
           copy,
           toggleEdit: (vid) => {
             const w = editable(e);
