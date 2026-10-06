@@ -230,6 +230,15 @@ ol li,ul li{margin:4px 0}
 </table></div>
 <p>The gate: <code>POST .../review</code>, <code>POST /admin/page/.../publish</code> and Mark delivered answer 409 <code>lang_pending</code> while required Swedish texts are not approved, unless the body has <code>langOverride</code> (a reason, logged). Files: <code>src/team.js</code>, <code>src/lang.js</code>, <code>src/public/reviewer.html</code>, <code>src/public/reviewer.js</code>, <code>../../assets/growth-langfields.js</code> (shared by the Worker and ScriptForge), <code>../../assets/growth-lang.js</code>, <code>test/lang.test.mjs</code> (68 checks). Tables (migration 8): <code>team_members</code>, <code>team_access</code>, <code>member_tokens</code>, <code>member_sessions</code>, <code>lang_items</code>, <code>lang_versions</code>, <code>lang_notes</code>, <code>lang_log</code>, and <code>clients.lang_review</code>. <code>CONSENT_VERSION</code> is now <code>c-4</code>.</p>
 
+<h2>2m. Endpoints added in V2 Part C (monthly rhythm, admin only)</h2>
+<div class="tw"><table>
+<tr><th>Endpoint</th><th>Who</th><th>What it does</th></tr>
+<tr><td><code>GET /admin/rhythm</code></td><td>Admin</td><td>Every client with plan, skip reason (left, no_brain, paused) and next due campaign; <code>due</code> lists those due within 7 days or late.</td></tr>
+<tr><td><code>GET, PUT /admin/plan/:clientId</code></td><td>Admin</td><td>The monthly plan: perMonth 1 to 4, readyDay 1 to 28, channels, goal, active, startMonth. Defaults until saved.</td></tr>
+<tr><td><code>GET /admin/plan/:clientId/last-results?before=YYYY-MM</code></td><td>Admin</td><td>The last three campaigns before that month: tracked page numbers, best channel, before and after, as data and as text for <code>{{LAST_RESULTS}}</code>.</td></tr>
+</table></div>
+<p>The due rule: a campaign for month M is due on readyDay of the month before. The next due one is the first month from this month (or the start month, if later) to next month with fewer campaigns than perMonth. Daily job: from the 20th (Stockholm), once a month, one reminder email to <code>TAHA_EMAIL</code> if anyone is due. Files: <code>src/rhythm.js</code>, <code>src/rhythm-core.js</code> (pure rules, also used by the tests), <code>test/rhythm.test.mjs</code> (41 checks). Tables (migration 9): <code>plans</code>, <code>job_runs</code>. In development only, the tests set the date with <code>?today=</code> and a <code>dev-clock</code> row in <code>job_runs</code>; production ignores both.</p>
+
 <h2>2l. ScriptForge reskin (style only, no endpoints)</h2>
 <div class="tw"><table>
 <tr><th>File</th><th>What it does</th></tr>

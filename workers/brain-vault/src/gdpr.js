@@ -36,6 +36,7 @@ const CLIENT_TABLES = [
   ["intake_drafts", "client_id"],
   ["brains", "client_id"],
   ["campaigns", "client_id"],
+  ["plans", "client_id"],
   ["deliveries", "client_id"],
   ["brand_kits", "client_id"],
   ["photo_requests", "client_id"],
@@ -121,6 +122,8 @@ export async function exportClient(env, cfg, clientId) {
       notes: await all(env, "SELECT preferred, reason, at FROM lang_notes WHERE client_id = ? ORDER BY id", clientId),
       log: await all(env, "SELECT member_id AS memberId, item_id AS itemId, action, detail, at FROM lang_log WHERE client_id = ? ORDER BY id", clientId)
     },
+    /* V2 Part C */
+    monthlyPlan: (await all(env, "SELECT per_month AS perMonth, ready_day AS readyDay, channels, goal, active, start_month AS startMonth, updated_at AS updatedAt FROM plans WHERE client_id = ?", clientId)).map((r) => Object.assign(r, { channels: JSON.parse(r.channels), active: !!r.active }))[0] || null,
     pageEventsKept: ((await all(env, "SELECT COUNT(*) AS n FROM events WHERE client_id = ?", clientId))[0] || { n: 0 }).n,
     results: await Promise.all((await all(env, "SELECT DISTINCT campaign_id FROM campaigns WHERE client_id = ?", clientId)).map(async (r) => ({
       campaignId: r.campaign_id,

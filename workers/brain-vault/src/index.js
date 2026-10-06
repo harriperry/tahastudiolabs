@@ -58,6 +58,7 @@ import { consumeMemberToken, createMemberSession, destroyMemberSession, inviteMe
 import { acceptAll, decideItem, getLang, getNotes, postNote, putSetting, reviewDone, reviewFlag, reviewItem, reviewQueue, sendLang } from "./lang.js";
 import reviewerHtml from "./public/reviewer.html";
 import reviewerJs from "./public/reviewer.js";
+import { getPlan, getRhythm, lastResults, putPlan, rhythmReminder } from "./rhythm.js";
 import { SCHEMAS } from "./schemas.js";
 import { json, lang, normEmail, readJson, validEmail, withCookies } from "./util.js";
 
@@ -198,7 +199,7 @@ async function handle(request, env, ctx) {
 
   if (method === "GET" && path === "/health") {
     const db = await env.DB.prepare("SELECT 1 AS ok").first();
-    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "h" });
+    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "c" });
   }
 
   if (method === "GET" && path === "/portal/meta") {
@@ -334,6 +335,12 @@ async function handle(request, env, ctx) {
     const cp = path.match(/^\/admin\/campaign\/(cl_[a-z0-9]{4,32})\/(cp_[a-z0-9_]{2,40})(\/status)?$/);
     if (cp && method === "GET" && !cp[3]) return respond(await getCampaign(env, cp[1], cp[2]));
     if (cp && method === "PATCH" && cp[3]) return respond(await setCampaignStatus(request, env, cp[1], cp[2], cfg, ctx));
+    /* V2 Part C: the monthly rhythm */
+    if (path === "/admin/rhythm" && method === "GET") return respond(await getRhythm(env, cfg, url));
+    const pl = path.match(/^\/admin\/plan\/(cl_[a-z0-9]{4,32})(\/last-results)?$/);
+    if (pl && method === "GET" && !pl[2]) return respond(await getPlan(env, cfg, pl[1], url));
+    if (pl && method === "PUT" && !pl[2]) return respond(await putPlan(request, env, cfg, pl[1]));
+    if (pl && method === "GET" && pl[2]) return respond(await lastResults(env, cfg, pl[1], url));
     /* V2 Part H */
     if (path === "/admin/team" && method === "GET") return respond(await listTeam(env));
     if (path === "/admin/team/invite" && method === "POST") return respond(await inviteMember(request, env, cfg, ctx));
@@ -420,5 +427,7 @@ export default {
     ctx.waitUntil(retentionSweep(env, getConfig(env)).catch(() => console.error("retention sweep failed")));
     /* V2 phase G2b: raw events after 90 days, old salts, old enquiries, ended pages. */
     ctx.waitUntil(g2bSweep(env).catch(() => console.error("g2b sweep failed")));
+    /* V2 Part C: from the 20th, once a month, tell Harry who is due. */
+    ctx.waitUntil(rhythmReminder(env, getConfig(env), event.scheduledTime || Date.now()).catch((e) => console.error("rhythm reminder failed: " + e.message)));
   }
 };

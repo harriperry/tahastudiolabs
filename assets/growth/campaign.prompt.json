@@ -1,7 +1,7 @@
 {
   "name": "TAHA Growth Department: Campaign Generator prompt",
   "version": "campaign-prompt-1",
-  "notes": "Used by assets/growth-campaign.js. The system lines are joined with line breaks. Placeholders: {{SCHEMA}} the model-written part of campaign.schema.json, {{LANGUAGE_RULE}} one of languageRules, {{CHANNELS}} the selected channels, {{LANGUAGE_NOTES}} the client's language notes from Part H (or None yet). Edit wording freely; keep the placeholders. No em-dashes anywhere.",
+  "notes": "Used by assets/growth-campaign.js. The system lines are joined with line breaks. Placeholders: {{SCHEMA}} the model-written part of campaign.schema.json, {{LANGUAGE_RULE}} one of languageRules, {{CHANNELS}} the selected channels, {{LANGUAGE_NOTES}} the client's language notes from Part H (or None yet). {{LAST_RESULTS}} what the last three campaigns brought in (Part C, from the Vault's last-results; Part D adds the client's own numbers). Edit wording freely; keep the placeholders. No em-dashes anywhere.",
   "maxTokens": {
     "anthropic": 16000,
     "gemini": 16000,
@@ -56,6 +56,9 @@
     "",
     "Language notes from the client's Swedish language reviewer (keep to these in Swedish text):",
     "{{LANGUAGE_NOTES}}",
+    "",
+    "Results of this client's last campaigns (newest first). Keep what worked, change what did not, and do not repeat an offer or hook that brought little:",
+    "{{LAST_RESULTS}}",
     "",
     "Write the full campaign now. Reply with the JSON object only."
   ],

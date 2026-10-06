@@ -226,3 +226,25 @@
 .lg-diff ins{margin-right:1px}
 .lg-ticks{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px}
 .gc-card-head h4 .gc-badge{margin-left:8px;vertical-align:middle;font-size:.68rem}
+/* V2 Part C: the Due list and the monthly plan */
+.gc-due{display:flex;flex-direction:column;gap:8px;padding:12px 18px;border-bottom:1px solid var(--border);background:var(--tint-info,rgba(227,162,26,.08))}
+.gc-due[hidden]{display:none}
+.gc-due-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.gc-due-head b{font-size:.9rem}
+.gc-due-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.85rem;background:var(--panel);border:1px solid var(--border);border-left:3px solid #E3A21A;border-radius:8px;padding:8px 12px}
+.gc-due-row.late{border-left-color:var(--err)}
+.gc-due-row.late .gc-due-when{color:var(--clay-text,#E0806A);font-weight:600}
+.gc-due-name{font-weight:600;min-width:140px}
+.gc-due-when{flex:1;color:var(--muted);min-width:200px}
+.gc-plan summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.gc-plan summary::-webkit-details-marker{display:none}
+.gc-plan summary::before{content:"+";font-weight:700;color:var(--gold-text,#F0B94A);margin-right:6px}
+.gc-plan[open] summary::before{content:"-"}
+.gc-plan .gc-plan-next{font-weight:400;font-size:.8rem;color:var(--muted)}
+.gc-plan.late .gc-plan-next{color:var(--clay-text,#E0806A);font-weight:600}
+/* Tick boxes in the editor grids keep their own size (the grid rule above made them full width). */
+.gc-cgrid .gc-ed input[type=checkbox],.lp-grid .gc-ed input[type=checkbox],.lp-box .gc-ed input[type=checkbox]{width:auto;min-height:0;flex:0 0 auto}
+.gc-cgrid .gc-check{align-items:flex-start;line-height:1.4}
+.gc-cgrid .gc-check input{margin-top:2px}
+.gc-plan summary{justify-content:flex-start;align-items:baseline}
+.gc-plan .gc-plan-next{margin-left:auto}

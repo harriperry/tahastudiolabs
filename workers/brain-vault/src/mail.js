@@ -314,3 +314,23 @@ export function composeLangNotice(cfg, { company, done, total, flagged, link }) 
     '<p><a href="' + escapeHtml(link) + '">' + escapeHtml(link) + "</a></p></body></html>";
   return { subject, text, html };
 }
+
+/* V2 Part C: the reminder on the 20th. Company names and dates only, no client content. */
+export function composeRhythmReminder(cfg, { items, link }) {
+  const fmt = (iso, loc) => new Date(iso + "T12:00:00Z").toLocaleDateString(loc, { day: "numeric", month: "long", timeZone: "UTC" });
+  const mon = (m, loc) => new Date(m + "-15T12:00:00Z").toLocaleDateString(loc, { month: "long", year: "numeric", timeZone: "UTC" });
+  const when = (n, sv) => (n < 0 ? (sv ? Math.abs(n) + " dagar sen" : Math.abs(n) + " days late") : n === 0 ? (sv ? "i dag" : "today") : sv ? "om " + n + " dagar" : "in " + n + " days");
+  const lineSv = (i) => i.name + ": kampanj för " + mon(i.next.month, "sv-SE") + ", klar senast " + fmt(i.next.dueDate, "sv-SE") + " (" + when(i.next.daysLeft, true) + ")";
+  const lineEn = (i) => i.name + ": " + mon(i.next.month, "en-GB") + " campaign, ready by " + fmt(i.next.dueDate, "en-GB") + " (" + when(i.next.daysLeft, false) + ")";
+  const subject = "Kampanjer att göra / Campaigns due: " + items.length;
+  const text =
+    "Dessa kunder behöver nästa månads kampanj:\n" + items.map((i) => "- " + lineSv(i)).join("\n") + "\n\n" +
+    "These clients need next month's campaign:\n" + items.map((i) => "- " + lineEn(i)).join("\n") + "\n\n" + link + "\n";
+  const li = (arr, f) => "<ul>" + arr.map((i) => "<li" + (i.next.overdue ? ' style="color:#B8452A"' : "") + ">" + escapeHtml(f(i)) + "</li>").join("") + "</ul>";
+  const html =
+    '<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#111;max-width:560px;margin:0 auto;padding:24px">' +
+    "<p>Dessa kunder behöver nästa månads kampanj:</p>" + li(items, lineSv) +
+    "<p>These clients need next month's campaign:</p>" + li(items, lineEn) +
+    '<p><a href="' + escapeHtml(link) + '">' + escapeHtml(link) + "</a></p></body></html>";
+  return { subject, text, html };
+}

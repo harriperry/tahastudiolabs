@@ -29,7 +29,21 @@ li{margin:0 0 6px}
 <body>
 <main>
 <h1>TAHA Studio Labs Growth Department</h1>
-<p class="sub">V1 handover, 5 October 2026, built in six phases. V2 phases G1, G2a and G2b added 6 October 2026 (below). G2b, Parts A and B and Part H are live. The ScriptForge reskin went live the same evening.</p>
+<p class="sub">V1 handover, 5 October 2026, built in six phases. V2 phases G1, G2a and G2b added 6 October 2026 (below). G2b, Parts A and B and Part H are live. The ScriptForge reskin went live the same evening. Part C (monthly rhythm) is on the branch <code>growth-c</code>, not live yet.</p>
+
+<h2>V2 Part C: the monthly rhythm</h2>
+<div class="card">
+<ul>
+<li><b>Monthly plan</b> per client, at the top of the Campaigns tab: campaigns per month (default 1), the day of the month before when it should be ready (default the 25th), default goal and channels, the first month in the rhythm, and a switch to pause the client. No saved plan means the defaults.</li>
+<li><b>Due list</b> at the top of the Growth Clients panel: every client whose next campaign is due within 7 days, late ones in red, most urgent first. A client leaves the list as soon as the campaign for that month is saved.</li>
+<li><b>Start next month's campaign</b> (Due list or plan box): opens the client's Campaign Generator with next month, the plan's goal and channels and the brain's first offer already filled in.</li>
+<li><b>Last results</b>: the form shows what the last three campaigns brought in (landing page views, clicks, QR scans, enquiries, best channel, the before and after numbers you entered). You can edit or add to it; it goes into the prompt as <code>{{LAST_RESULTS}}</code> with the rule to keep what worked and change what did not. Part D will add the client's own reported numbers to the same place.</li>
+<li><b>Reminder email</b> from the 20th of each month (Stockholm time), once a month, listing who is due with dates. Company names and dates only, no client content. Nothing is sent when nobody is due.</li>
+<li>Skipped: clients who have left, clients without a Business Brain, and paused plans.</li>
+<li>GDPR: the plan is in the client's export and is erased with the client. No consent change is needed: the plan is Harry's own scheduling.</li>
+</ul>
+</div>
+<div class="card"><p><b>To go live (needs your approval):</b> merge <code>growth-c</code> into <code>main</code> and push it to <code>growth-phase-1</code>. No Cloudflare change. The new tables (migration 9) create themselves on the first request.</p></div>
 
 <h2>ScriptForge interface redesign: the safe reskin</h2>
 <div class="card">

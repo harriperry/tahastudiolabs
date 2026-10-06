@@ -467,5 +467,30 @@ export const MIGRATIONS = [
       /* Always review Swedish (on by default). */
       `ALTER TABLE clients ADD COLUMN lang_review INTEGER NOT NULL DEFAULT 1`
     ]
+  },
+  {
+    id: 9,
+    name: "part-c-monthly-rhythm",
+    statements: [
+      /* Part C: each client's monthly plan. No row means the defaults (1 a month, ready on the
+         25th for the next month, Instagram, Facebook and Google Business, goal sales). */
+      `CREATE TABLE IF NOT EXISTS plans (
+        client_id TEXT PRIMARY KEY REFERENCES clients(id) ON DELETE CASCADE,
+        per_month INTEGER NOT NULL DEFAULT 1 CHECK (per_month BETWEEN 1 AND 4),
+        ready_day INTEGER NOT NULL DEFAULT 25 CHECK (ready_day BETWEEN 1 AND 28),
+        channels TEXT NOT NULL,
+        goal TEXT NOT NULL,
+        active INTEGER NOT NULL DEFAULT 1,
+        start_month TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      /* When a once-a-month job last ran (the reminder on the 20th). No client data. */
+      `CREATE TABLE IF NOT EXISTS job_runs (
+        name TEXT PRIMARY KEY,
+        period TEXT NOT NULL,
+        at TEXT NOT NULL
+      )`
+    ]
   }
 ];

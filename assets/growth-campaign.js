@@ -44,7 +44,7 @@ import { createReviewUi } from "./growth-review.js?v=h";
 import { createLangUi } from "./growth-lang.js?v=h";
 
 const VAULT = "/api/vault";
-const PROMPT_URL = "/assets/growth/campaign.prompt.json?v=h";
+const PROMPT_URL = "/assets/growth/campaign.prompt.json?v=c";
 const DRAFT_PREFIX = "taha-growth-campaign-draft:";
 const SET_BY_SCRIPTFORGE = ["schemaVersion", "clientId", "campaignId", "brainVersion", "name", "month", "goal", "language", "channels", "status"];
 
@@ -301,7 +301,8 @@ export function createCampaigns(ctx) {
     if (!cache[id]) {
       cache[id] = { loaded: false, loading: false, list: [], saved: {}, view: null, working: null, dirty: false, isNew: false, showForm: false, form: null,
         building: false, steps: [], error: null, errors: null, msg: null, editing: {}, regen: {}, cardMsg: {},
-        vbuilding: false, vsteps: [], verror: null, verrors: null, vedit: {}, vconfirm: false, opening: {} };
+        vbuilding: false, vsteps: [], verror: null, verrors: null, vedit: {}, vconfirm: false, opening: {},
+        plan: null, planLoading: false, planMsg: null, planOpen: false };
       try {
         const raw = localStorage.getItem(DRAFT_PREFIX + id);
         const d = raw && JSON.parse(raw);
@@ -431,7 +432,9 @@ export function createCampaigns(ctx) {
       BRAIN_VERSION: String(brain.brainVersion),
       BRAIN_JSON: JSON.stringify(brain, null, 1),
       /* V2 Part H: what the language reviewer taught us about this client's Swedish. */
-      LANGUAGE_NOTES: lg.notesText(c.id)
+      LANGUAGE_NOTES: lg.notesText(c.id),
+      /* V2 Part C: what the last campaigns brought in (Part D adds the client's own numbers). */
+      LAST_RESULTS: (f.lastResults && String(f.lastResults).trim()) || "No results given for this campaign."
     };
   }
 
@@ -843,29 +846,54 @@ export function createCampaigns(ctx) {
     return box;
   }
 
+  /* The generator form's starting values. preset (V2 Part C, Start next month's campaign):
+     { month, goal, channels } from the client's monthly plan. */
+  function newForm(c, d, brain, preset) {
+    const profile = (d && d.intake && d.intake.profile) || {};
+    const company = profile.companyName || c.name;
+    const now = new Date();
+    const month = (preset && preset.month) || now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+    const offers = brain.offers || [];
+    const lang0 = languageFromBrain(brain);
+    return {
+      month,
+      name: defaultName(month, company, lang0),
+      nameTouched: false,
+      goal: (preset && preset.goal) || "sales",
+      offerPick: offers.length ? "0" : "custom",
+      offer: offers.length ? [offers[0].name, offers[0].terms, offers[0].validUntil ? "valid until " + offers[0].validUntil : ""].filter(Boolean).join(". ") : "",
+      language: lang0,
+      channels: (preset && preset.channels && preset.channels.length ? preset.channels : ["instagram", "facebook", "google_business"]).slice(),
+      visuals: true,
+      fromPlan: !!preset,
+      lastResults: null,
+      resultsTouched: false,
+      resultsLoading: false
+    };
+  }
+
+  /* V2 Part C: the last three campaigns' results before the form's month, for {{LAST_RESULTS}}. */
+  function fetchResults(id, f) {
+    if (f.resultsTouched) return;
+    f.resultsLoading = true;
+    const month = f.month;
+    api("/admin/plan/" + encodeURIComponent(id) + "/last-results?before=" + encodeURIComponent(month)).then((r) => {
+      f.resultsLoading = false;
+      if (f.resultsTouched || f.month !== month) return;
+      f.lastResults = r.ok && r.d ? r.d.text : "";
+      const ta = document.getElementById("gccResults");
+      if (ta && document.activeElement !== ta) ta.value = f.lastResults;
+    });
+  }
+
   function formBlock(c, d, brain, e) {
     const profile = (d && d.intake && d.intake.profile) || {};
     const company = profile.companyName || c.name;
-    if (!e.form) {
-      const now = new Date();
-      const month = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
-      const offers = brain.offers || [];
-      const lang0 = languageFromBrain(brain);
-      e.form = {
-        month,
-        name: defaultName(month, company, lang0),
-        nameTouched: false,
-        goal: "sales",
-        offerPick: offers.length ? "0" : "custom",
-        offer: offers.length ? [offers[0].name, offers[0].terms, offers[0].validUntil ? "valid until " + offers[0].validUntil : ""].filter(Boolean).join(". ") : "",
-        language: lang0,
-        channels: ["instagram", "facebook", "google_business"],
-        visuals: true
-      };
-    }
+    if (!e.form) e.form = newForm(c, d, brain, null);
     const f = e.form;
+    if (f.lastResults == null && !f.resultsLoading) fetchResults(c.id, f);
     const box = h("form", { class: "gc-box gc-cform", novalidate: true });
-    box.appendChild(h("div", { class: "gc-bh" }, "New campaign", h("span", { text: "From brain v" + brain.brainVersion })));
+    box.appendChild(h("div", { class: "gc-bh" }, f.fromPlan ? "Next month's campaign" : "New campaign", h("span", { text: (f.fromPlan ? "From the monthly plan · " : "") + "From brain v" + brain.brainVersion })));
     const grid = h("div", { class: "gc-cgrid" });
 
     const nameIn = h("input", { type: "text", id: "gccName", maxlength: "200" });
@@ -877,6 +905,7 @@ export function createCampaigns(ctx) {
       if (/^\d{4}-\d{2}$/.test(monthIn.value)) {
         f.month = monthIn.value;
         if (!f.nameTouched) { f.name = defaultName(f.month, company, f.language); nameIn.value = f.name; }
+        fetchResults(c.id, f);
       }
     });
     const goalIn = h("select", { id: "gccGoal" }, GOALS.map((g) => h("option", { value: g[0], selected: f.goal === g[0] }, g[1])));
@@ -924,6 +953,11 @@ export function createCampaigns(ctx) {
     const visCb = h("input", { type: "checkbox", id: "gccVisuals", checked: f.visuals !== false });
     visCb.addEventListener("change", () => { f.visuals = visCb.checked; });
     grid.appendChild(h("div", { class: "gc-ed wide" }, h("label", { for: "gccVisuals", class: "gc-check" }, visCb, "Then make visuals: an image brief for every output at its platform size (step 2)")));
+    /* V2 Part C: last results, editable, go into the prompt as {{LAST_RESULTS}}. */
+    const resIn = h("textarea", { id: "gccResults", class: "gc-ta", rows: "4", placeholder: f.resultsLoading || f.lastResults == null ? "Loading the last results..." : "" });
+    resIn.value = f.lastResults || "";
+    resIn.addEventListener("input", () => { f.lastResults = resIn.value; f.resultsTouched = true; });
+    grid.appendChild(h("div", { class: "gc-ed wide" }, lab("gccResults", "Last results (from the tracked landing pages; edit or add what you know, it goes into the prompt)"), resIn));
     box.appendChild(grid);
 
     const p = ctx.providerInfo();
@@ -947,6 +981,88 @@ export function createCampaigns(ctx) {
     return box;
   }
 
+  /* ---------- V2 Part C: the monthly plan ---------- */
+
+  function loadPlan(id) {
+    const e = entry(id);
+    if (e.plan || e.planLoading) return;
+    e.planLoading = true;
+    api("/admin/plan/" + encodeURIComponent(id)).then((r) => {
+      e.planLoading = false;
+      if (r.ok && r.d) { e.plan = r.d.plan; ctx.rerender(id); }
+    });
+  }
+
+  function planBox(c, d, brain, e) {
+    const item = ctx.rhythmFor ? ctx.rhythmFor(c.id) : null;
+    const p = e.plan;
+    let summary;
+    if (!p) summary = "Loading the plan...";
+    else if (item && item.skip === "left") summary = "Not in the rhythm: the client has left";
+    else if (!p.active) summary = "Paused: no reminders for this client";
+    else if (item && item.next) summary = "Next: " + ctx.dueText(item.next);
+    else summary = "On track: next month's campaign is made";
+    const box = h("details", { class: "gc-box gc-plan" + (item && item.next && item.next.overdue && p && p.active ? " late" : ""), id: "gcPlan" });
+    if (e.planOpen) box.open = true;
+    box.addEventListener("toggle", () => { e.planOpen = box.open; });
+    box.appendChild(h("summary", { class: "gc-bh" }, "Monthly plan", h("span", { class: "gc-plan-next", text: summary })));
+    if (!p) return box;
+
+    const f = { perMonth: p.perMonth, readyDay: p.readyDay, channels: p.channels.slice(), goal: p.goal, active: p.active, startMonth: p.startMonth };
+    const grid = h("div", { class: "gc-cgrid" });
+    const num = (id, from, to, val) => {
+      const sel = h("select", { id }, Array.from({ length: to - from + 1 }, (_, i) => from + i).map((n) => h("option", { value: String(n), selected: n === val }, String(n))));
+      return sel;
+    };
+    const per = num("gcpPer", 1, 4, f.perMonth);
+    per.addEventListener("change", () => { f.perMonth = +per.value; });
+    const day = num("gcpDay", 1, 28, f.readyDay);
+    day.addEventListener("change", () => { f.readyDay = +day.value; });
+    const goal = h("select", { id: "gcpGoal" }, GOALS.map((g) => h("option", { value: g[0], selected: f.goal === g[0] }, g[1])));
+    goal.addEventListener("change", () => { f.goal = goal.value; });
+    const start = h("input", { type: "month", id: "gcpStart" });
+    start.value = f.startMonth;
+    start.addEventListener("change", () => { if (/^\d{4}-\d{2}$/.test(start.value)) f.startMonth = start.value; });
+    const act = h("input", { type: "checkbox", id: "gcpActive", checked: f.active });
+    act.addEventListener("change", () => { f.active = act.checked; });
+    const lab = (forId, t) => h("label", { for: forId, text: t });
+    grid.appendChild(h("div", { class: "gc-ed" }, lab("gcpPer", "Campaigns per month"), per));
+    grid.appendChild(h("div", { class: "gc-ed" }, lab("gcpDay", "Ready by this day of the month before"), day));
+    grid.appendChild(h("div", { class: "gc-ed" }, lab("gcpGoal", "Default goal"), goal));
+    grid.appendChild(h("div", { class: "gc-ed" }, lab("gcpStart", "First month in the rhythm"), start));
+    const chBox = h("fieldset", { class: "gc-ed wide gc-channels" }, h("legend", { text: "Default channels" }));
+    CHANNELS.forEach((ch) => {
+      const cb = h("input", { type: "checkbox", id: "gcpCh-" + ch[0], checked: f.channels.includes(ch[0]) });
+      cb.addEventListener("change", () => {
+        const set = new Set(f.channels);
+        if (cb.checked) set.add(ch[0]); else set.delete(ch[0]);
+        f.channels = CHANNELS.map((x) => x[0]).filter((x) => set.has(x));
+      });
+      chBox.appendChild(h("label", { for: "gcpCh-" + ch[0], class: "gc-check" }, cb, ch[1]));
+    });
+    grid.appendChild(chBox);
+    grid.appendChild(h("div", { class: "gc-ed wide" }, h("label", { for: "gcpActive", class: "gc-check" }, act, "In the monthly rhythm (untick to pause the Due list and the reminder for this client)")));
+    box.appendChild(grid);
+
+    const msg = e.planMsg ? h("div", { class: "gc-msg " + e.planMsg.cls, role: "status", text: e.planMsg.text }) : null;
+    const save = h("button", { type: "button", class: "btn-copy", on: { click: () => {
+      if (!f.channels.length) { e.planMsg = { cls: "err", text: "Pick at least one channel." }; ctx.rerender(c.id); return; }
+      save.disabled = true;
+      api("/admin/plan/" + encodeURIComponent(c.id), { method: "PUT", body: { plan: f } }).then((r) => {
+        save.disabled = false;
+        if (r.ok && r.d) { e.plan = r.d.plan; e.planMsg = { cls: "ok", text: "Plan saved." }; ctx.refreshRhythm().then(() => ctx.rerender(c.id)); }
+        else { e.planMsg = { cls: "err", text: (r.d && r.d.errors && r.d.errors.join("; ")) || "Could not save the plan." }; ctx.rerender(c.id); }
+      });
+    } } }, "Save plan");
+    const tools = h("div", { class: "gc-brain-tools" }, save);
+    if (item && item.next && p.active) {
+      tools.appendChild(h("button", { type: "button", class: "btn-copy", on: { click: () => ctx.startNext(c.id, item.next.month) } }, "Start next month's campaign"));
+    }
+    box.appendChild(tools);
+    if (msg) box.appendChild(msg);
+    return box;
+  }
+
   function renderTab(pane, c, d, brain) {
     const e = entry(c.id);
     load(c.id);
@@ -955,6 +1071,18 @@ export function createCampaigns(ctx) {
       pane.appendChild(h("div", { class: "gc-soon" }, h("b", { text: "Build and save a Business Brain first. " }), "Every campaign is written from the latest saved brain."));
       return;
     }
+
+    /* V2 Part C: Start next month's campaign from the Due list lands here. */
+    loadPlan(c.id);
+    const st = ctx.takeStart && ctx.takeStart(c.id);
+    if (st && !e.building) {
+      const pl = e.plan || {};
+      e.form = newForm(c, d, brain, { month: st.month, goal: st.goal || pl.goal, channels: st.channels || pl.channels });
+      e.showForm = true;
+      e.msg = null;
+      fetchResults(c.id, e.form);
+    }
+    if (!e.building) pane.appendChild(planBox(c, d, brain, e));
 
     if (e.building || e.steps.length) {
       const box = h("div", { class: "gc-box" }, h("div", { class: "gc-bh" }, e.building ? "Writing the campaign" : e.error ? "Generation stopped" : "Generation finished"));

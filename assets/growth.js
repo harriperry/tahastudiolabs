@@ -48,7 +48,11 @@
     timer: null,
     lastCheck: null,
     online: null,
-    checking: false
+    checking: false,
+    /* V2 Part C: the monthly rhythm (GET /admin/rhythm) and a pending "Start next month's
+       campaign" for the Campaigns tab to pick up. */
+    rhythm: null,
+    start: null
   };
 
   var ui = null;
@@ -275,7 +279,68 @@
       renderLive();
       updateButton();
       if (S.again) { S.again = false; refresh(); }
+      loadRhythm();
     });
+  }
+
+  /* ---------- V2 Part C: the Due list ---------- */
+
+  function loadRhythm() {
+    if (!S.admin) return Promise.resolve();
+    return api("/admin/rhythm").then(function (r) {
+      if (!ui || !r.ok || !r.d) return;
+      S.rhythm = r.d;
+      renderDue();
+    });
+  }
+
+  function rhythmFor(id) {
+    if (!S.rhythm) return null;
+    return S.rhythm.items.filter(function (i) { return i.clientId === id; })[0] || null;
+  }
+
+  function monthName(m) {
+    var p = String(m).split("-");
+    return new Date(Date.UTC(+p[0], +p[1] - 1, 15)).toLocaleString("en-GB", { month: "long", timeZone: "UTC" });
+  }
+  function dueText(n) {
+    var when2 = n.daysLeft < 0 ? Math.abs(n.daysLeft) + (n.daysLeft === -1 ? " day late" : " days late") : n.daysLeft === 0 ? "today" : "in " + n.daysLeft + (n.daysLeft === 1 ? " day" : " days");
+    return monthName(n.month) + " campaign" + (n.need > 1 ? " (" + n.have + " of " + n.need + " made)" : "") + " · ready by " + whenDate(n.dueDate) + " · " + when2;
+  }
+
+  function renderDue() {
+    if (!ui || !ui.due) return;
+    clear(ui.due);
+    var due = S.rhythm ? S.rhythm.due : [];
+    ui.due.hidden = !due.length;
+    if (!due.length) return;
+    ui.due.appendChild(h("div", { class: "gc-due-head" }, h("b", { text: "Due" }), h("span", { class: "gc-meta", text: "Campaigns due within " + S.rhythm.windowDays + " days, late ones in red" })));
+    due.forEach(function (i) {
+      ui.due.appendChild(h("div", { class: "gc-due-row" + (i.next.overdue ? " late" : "") },
+        h("span", { class: "gc-due-name", text: i.name }),
+        h("span", { class: "gc-due-when", text: dueText(i.next) }),
+        h("button", { type: "button", class: "btn-copy", on: { click: function () { startNext(i.clientId, i.next.month); } } }, "Start next month's campaign")
+      ));
+    });
+  }
+
+  /* Opens the client's Campaigns tab with the generator prefilled for that month. */
+  function startNext(id, month) {
+    S.view = "";
+    var tb = document.getElementById("gcTeamBtn");
+    if (tb) tb.setAttribute("aria-pressed", "false");
+    var it = rhythmFor(id);
+    S.start = { clientId: id, month: month, goal: it && it.plan ? it.plan.goal : null, channels: it && it.plan ? it.plan.channels : null };
+    S.tab = "campaigns";
+    if (S.selectedId !== id) {
+      S.selectedId = id;
+      S.detail = null;
+      S.notice = null;
+      renderList();
+      loadDetail(id);
+    } else renderDetail();
+    loadBrain();
+    if (ui && ui.main) ui.main.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   /* ---------- section 2 strip ---------- */
@@ -351,6 +416,17 @@
       rerenderTeam: function () {
         if (ui && S.view === "team") renderDetail();
       },
+      /* V2 Part C */
+      rhythmFor: rhythmFor,
+      dueText: dueText,
+      refreshRhythm: loadRhythm,
+      startNext: startNext,
+      takeStart: function (id) {
+        if (!S.start || S.start.clientId !== id) return null;
+        var s0 = S.start;
+        S.start = null;
+        return s0;
+      },
       onSaved: function (id) {
         /* Reload this client's details directly: the list refresh may be skipped if the
            60 second check is already running at this moment. */
@@ -358,7 +434,7 @@
         refresh();
       }
     };
-    brainLoading = Promise.all([import("/assets/growth-brain.js?v=p5"), import("/assets/growth-campaign.js?v=h")]).then(function (mods) {
+    brainLoading = Promise.all([import("/assets/growth-brain.js?v=p5"), import("/assets/growth-campaign.js?v=c")]).then(function (mods) {
       brain = mods[0].createBrain(ctx);
       camps = mods[1].createCampaigns(ctx);
       if (ui) renderDetail();
@@ -414,6 +490,7 @@
     ui.list = h("div", { class: "gc-side", id: "gcList" });
     ui.main = h("section", { class: "gc-main", "aria-live": "polite" });
     ui.form = buildInviteForm();
+    ui.due = h("div", { class: "gc-due", id: "gcDue", hidden: true, role: "region", "aria-label": "Campaigns due" });
 
     var inviteBtn = h("button", { type: "button", class: "btn-copy", "aria-controls": "gcInvite", on: { click: function () {
       ui.form.hidden = !ui.form.hidden;
@@ -440,6 +517,7 @@
             h("button", { type: "button", class: "btn-copy", on: { click: closePanel } }, "Close"))
         ),
         h("div", { class: "gc-strip" }, ui.provider, ui.live),
+        ui.due,
         h("div", { class: "gc-body" }, side, ui.main)
       )
     );
