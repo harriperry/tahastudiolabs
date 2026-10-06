@@ -91,6 +91,7 @@ runSuite("campaign-helpers", "campaign-helpers.test.mjs");
 runSuite("format-gemini", "format-gemini.test.mjs");
 if (fs.existsSync(path.join(DIR, "test", "visuals-helpers.test.mjs"))) runSuite("visuals-helpers", "visuals-helpers.test.mjs");
 if (fs.existsSync(path.join(DIR, "test", "grok-removed.test.mjs"))) runSuite("grok-removed", "grok-removed.test.mjs");
+if (fs.existsSync(path.join(DIR, "test", "reskin.test.mjs"))) runSuite("reskin", "reskin.test.mjs");
 if (fs.existsSync(path.join(DIR, "test", "landing-helpers.test.mjs"))) runSuite("landing-helpers", "landing-helpers.test.mjs");
 
 /* Round 1 */

@@ -230,6 +230,16 @@ ol li,ul li{margin:4px 0}
 </table></div>
 <p>The gate: <code>POST .../review</code>, <code>POST /admin/page/.../publish</code> and Mark delivered answer 409 <code>lang_pending</code> while required Swedish texts are not approved, unless the body has <code>langOverride</code> (a reason, logged). Files: <code>src/team.js</code>, <code>src/lang.js</code>, <code>src/public/reviewer.html</code>, <code>src/public/reviewer.js</code>, <code>../../assets/growth-langfields.js</code> (shared by the Worker and ScriptForge), <code>../../assets/growth-lang.js</code>, <code>test/lang.test.mjs</code> (68 checks). Tables (migration 8): <code>team_members</code>, <code>team_access</code>, <code>member_tokens</code>, <code>member_sessions</code>, <code>lang_items</code>, <code>lang_versions</code>, <code>lang_notes</code>, <code>lang_log</code>, and <code>clients.lang_review</code>. <code>CONSENT_VERSION</code> is now <code>c-4</code>.</p>
 
+<h2>2l. ScriptForge reskin (style only, no endpoints)</h2>
+<div class="tw"><table>
+<tr><th>File</th><th>What it does</th></tr>
+<tr><td><code>../../assets/scriptforge-theme.css</code></td><td>The TAHA Studio Labs theme for <code>/scriptforge/</code> only, loaded after <code>app.css</code> and <code>growth.css</code>. Maps the variables both files already use onto the brand tokens, light (paper) and dark (studio ink) by device setting. Changes how things look, never what is on the page. Remove its <code>&lt;link&gt;</code> line to switch it off.</td></tr>
+<tr><td><code>../../assets/fonts/</code></td><td>Inter, Space Grotesk and JetBrains Mono as woff2 (Latin and Latin Extended), with their licences. Self-hosted so no visitor data goes to Google.</td></tr>
+<tr><td><code>../../assets/growth.css</code></td><td>Gold, clay and green text colours now read <code>--gold-text</code>, <code>--clay-text</code> and <code>--green-text</code>, falling back to the old colours, so the panel is readable on paper.</td></tr>
+<tr><td><code>../../scriptforge/index.html</code>, <code>../../assets/app.js</code>, <code>../../assets/longform.js</code></td><td>Label text only: emoji removed from buttons and notes, the first word counter text matches 30 seconds. No id, value, field order or saved-setting name changed.</td></tr>
+<tr><td><code>test/reskin.test.mjs</code></td><td>Plain node. Every one of the page's element ids from before the reskin is still there, the fields Send to ScriptForge fills keep their values, saved-setting names are unchanged, the theme loads on ScriptForge only, fonts are local, no em-dash and no emoji in the UI.</td></tr>
+</table></div>
+
 <h2>3. How login works</h2>
 <ol>
 <li>Someone enters an email. If it belongs to an invited client or is in <code>ADMIN_EMAILS</code>, the Vault creates a random 32-byte token, stores only its SHA-256 hash, and emails the link. Any other email gets the same message and no email. The work happens after the reply is sent, so the reply takes the same time for every email.</li>

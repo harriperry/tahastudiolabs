@@ -1,0 +1,181 @@
+/* ScriptForge brand theme (TAHA Studio Labs design system), the safe reskin.
+   Loaded on /scriptforge/ only, after app.css and growth.css. It changes how the page looks and
+   nothing else: no element, id, field order, saved setting or script is touched, so the Business
+   Brain, the Growth Clients panel and Send to ScriptForge keep working exactly as before.
+   Follows the device: paper in light mode, studio ink in dark mode.
+   To switch the whole reskin off, remove its <link> line from scriptforge/index.html.
+   Fonts are self-hosted from /assets/fonts (SIL Open Font License), so no visitor data goes to
+   Google. House rule: no em-dashes. */
+
+@font-face{font-family:"Inter";font-style:normal;font-display:swap;font-weight:100 900;src:url(/assets/fonts/inter-latin-wght-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Inter";font-style:normal;font-display:swap;font-weight:100 900;src:url(/assets/fonts/inter-latin-ext-wght-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Space Grotesk";font-style:normal;font-display:swap;font-weight:600;src:url(/assets/fonts/space-grotesk-latin-600-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Space Grotesk";font-style:normal;font-display:swap;font-weight:600;src:url(/assets/fonts/space-grotesk-latin-ext-600-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Space Grotesk";font-style:normal;font-display:swap;font-weight:700;src:url(/assets/fonts/space-grotesk-latin-700-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Space Grotesk";font-style:normal;font-display:swap;font-weight:700;src:url(/assets/fonts/space-grotesk-latin-ext-700-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-display:swap;font-weight:400;src:url(/assets/fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-display:swap;font-weight:400;src:url(/assets/fonts/jetbrains-mono-latin-ext-400-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-display:swap;font-weight:500;src:url(/assets/fonts/jetbrains-mono-latin-500-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-display:swap;font-weight:500;src:url(/assets/fonts/jetbrains-mono-latin-ext-500-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+
+/* ---------- tokens ----------
+   app.css and growth.css read --bg, --panel, --panel2, --border, --accent, --accent2, --ok,
+   --warn, --err, --text, --muted and --mono. They are mapped onto the brand tokens here. */
+:root{
+  color-scheme:light;
+  --ink:#14161C; --gold:#E3A21A; --on-dark:#F6F1E7;
+  --font-display:"Space Grotesk","Inter",system-ui,sans-serif;
+  --font-sans:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+
+  --bg:#F6F1E7;            /* paper */
+  --panel:#FFFFFF;         /* surface-raised */
+  --panel2:#FBF8F2;        /* fields and insets on a card */
+  --border:#DDD5C6;        /* hairline */
+  --accent:#E3A21A;        /* reel gold: primary button, active borders, focus */
+  --accent2:#8A5D08;       /* reel gold deep: gold text and links on light grounds */
+  --ok:#1F6B4E;            /* canopy green */
+  --warn:#8A5D08;
+  --err:#B8452A;           /* clay red */
+  --text:#14161C;          /* ink text */
+  --muted:#5E6470;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+
+  --gold-text:#8A5D08; --clay-text:#B8452A; --green-text:#1F6B4E;
+  --tint-info:rgba(227,162,26,.12); --tint-ok:rgba(31,107,78,.09); --tint-err:rgba(184,69,42,.08); --tint-warn:rgba(227,162,26,.12);
+  --shadow:0 1px 2px rgba(20,22,28,.05),0 4px 14px rgba(20,22,28,.04);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    color-scheme:dark;
+    --bg:#14161C;
+    --panel:#1E2129;
+    --panel2:#181B22;
+    --border:#2E323C;
+    --accent:#E3A21A;
+    --accent2:#F0B94A;
+    --ok:#3FA37A;
+    --warn:#F0B94A;
+    --err:#E06A48;
+    --text:#F3EEE4;
+    --muted:#A2A8B3;
+    --gold-text:#F0B94A; --clay-text:#E06A48; --green-text:#3FA37A;
+    --tint-info:rgba(227,162,26,.10); --tint-ok:rgba(63,163,122,.12); --tint-err:rgba(224,106,72,.12); --tint-warn:rgba(240,185,74,.10);
+    --shadow:none;
+  }
+}
+
+/* ---------- base ---------- */
+body{background:var(--bg);color:var(--text);font-family:var(--font-sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--accent2)}
+::selection{background:rgba(227,162,26,.35)}
+
+/* ---------- site bar and header: studio ink in both themes ---------- */
+.sitenav{background:var(--ink);border-bottom:1px solid #2E323C;flex-wrap:wrap;gap:8px 16px;padding:12px 24px}
+.sitenav .brand{color:var(--on-dark);font-family:var(--font-display);font-weight:700;letter-spacing:0}
+.sitenav .brand b{color:var(--gold)}
+.sitenav .navlinks{display:flex;flex-wrap:wrap;gap:6px 20px}
+.sitenav .navlinks a{margin-left:0;color:#C9CDD4;font-size:.88rem}
+.sitenav .navlinks a:hover,.sitenav .navlinks a.active{color:#F0B94A}
+
+header{background:var(--ink);border-bottom:3px solid var(--gold);padding:26px 28px;color:var(--on-dark)}
+header h1{font-family:var(--font-display);font-weight:700;font-size:1.6rem;line-height:1.2;letter-spacing:-.2px;color:var(--on-dark)}
+header h1 span{color:var(--gold)}
+header p{color:#A2A8B3;font-size:.92rem;margin-top:6px}
+header #btnAccount,header .gc-head-actions .btn-copy{background:transparent;color:var(--on-dark);border:1px solid #4A4F5C}
+header #btnAccount:hover{border-color:var(--gold);color:#F0B94A}
+
+/* ---------- cards and section titles ---------- */
+main{gap:24px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.card h2{font-family:var(--font-display);font-size:1.02rem;font-weight:600;text-transform:none;letter-spacing:0;color:var(--text);margin-bottom:12px}
+label{font-size:.8rem;color:var(--muted);margin:12px 0 6px}
+#aboutSection h2,#faqSection h2{font-size:1.35rem}
+#aboutSection h3,#faqSection h3{font-family:var(--font-display);font-weight:600}
+
+/* ---------- fields ---------- */
+input,select,textarea{background:var(--panel2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px;font-size:.92rem;min-height:44px}
+input[type=checkbox],input[type=radio]{min-height:0;accent-color:var(--gold)}
+input[type=file]{min-height:0;padding:8px;font-size:.8rem}
+textarea{font-family:var(--mono);font-size:.86rem;line-height:1.6}
+#techSpecs{min-height:0}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:.8}
+
+/* ---------- buttons: one gold button per screen ---------- */
+button{border-radius:10px;font-family:var(--font-sans);min-height:40px}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn-primary{background:var(--gold);color:var(--ink);font-weight:600}
+.btn-primary:hover{filter:brightness(1.06)}
+.btn-ghost{background:var(--panel);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--accent);filter:none}
+.btn-copy{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:7px 12px;font-size:.78rem;font-weight:500;min-height:34px}
+.btn-copy:hover{border-color:var(--accent);color:var(--accent2);filter:none}
+#btnFormat{min-height:48px;font-size:.95rem}
+#btnMock{min-height:44px;background:var(--tint-ok)}
+#btnLongform{border-color:var(--border)!important;color:var(--text)!important}
+#recommendCard .btn-primary{background:var(--panel);color:var(--text);border:1px solid var(--accent)}
+
+/* ---------- status, notes, badges ---------- */
+.status{border-radius:10px}
+.status.info{background:var(--tint-info);border:1px solid var(--accent);color:var(--text)}
+.status.ok{background:var(--tint-ok);border:1px solid var(--ok);color:var(--ok)}
+.status.err{background:var(--tint-err);border:1px solid var(--err);color:var(--err)}
+.lib-note,.millan-warn{background:var(--tint-warn);border:1px solid var(--accent);color:var(--text);border-radius:10px}
+.badge{font-family:var(--mono);font-size:.74rem;background:var(--panel);border:1px solid var(--border);color:var(--muted)}
+.wordmeter{font-family:var(--mono);font-size:.76rem;margin-top:8px}
+.spin{border-color:var(--accent);border-top-color:transparent}
+.empty{border-radius:10px;background:var(--panel);color:var(--muted)}
+
+/* ---------- formatted output ---------- */
+.seg-card{border-left:4px solid var(--accent);box-shadow:var(--shadow)}
+.seg-head{background:var(--panel2)}
+.seg-head .t{font-family:var(--font-display);font-weight:600}
+.seg-head .t small{font-family:var(--mono)}
+.field .fl{font-family:var(--font-sans);font-weight:600;color:var(--accent2)}
+.field .fv{background:var(--panel2)}
+.specs-block{border-color:var(--accent);background:var(--panel)}
+.specs-block .fl{font-family:var(--font-sans)!important;color:var(--accent2)}
+
+/* ---------- overlays: Library, Characters, Long-Form, Account ---------- */
+.lib-overlay{background:rgba(20,22,28,.6)}
+.lib-panel{border-radius:12px;box-shadow:0 12px 40px rgba(20,22,28,.25)}
+.lib-panel h2{font-family:var(--font-display);font-size:1.05rem;font-weight:600;text-transform:none;letter-spacing:0;color:var(--text);gap:10px;flex-wrap:wrap}
+.lib-item{border-radius:10px}
+
+footer{color:var(--muted)}
+.gc-shell{box-shadow:var(--shadow)}
+.gc-top h2,.gc-card-head h4{font-family:var(--font-display);text-transform:none;letter-spacing:0;font-size:.95rem}
+
+/* ---------- small screens ---------- */
+@media (max-width:900px){
+  header{display:flex;flex-direction:column;align-items:flex-start;padding:20px 16px 18px}
+  header .header-logo{order:-1;position:static!important;transform:none!important;width:48px!important;height:48px!important;margin-bottom:10px}
+  header #btnAccount{top:20px!important;right:16px!important}
+  header h1{font-size:1.35rem;padding-right:84px}
+  main{padding:16px;gap:16px}
+  .card{padding:16px}
+  #aboutSection,#faqSection{padding:0 16px!important}
+  #aboutSection .card,#faqSection .card{padding:22px 18px!important}
+  .out-toolbar{gap:8px}
+  .sitenav{padding:10px 16px}
+}
+@media (max-width:420px){
+  .sitenav .navlinks{gap:4px 14px}
+  .sitenav .navlinks a{font-size:.82rem}
+}
+
+/* the B-Roll tick box reads as one line, with its note under it */
+label:has(> #allowBRoll){display:block!important;line-height:1.5;color:var(--text)}
+label:has(> #allowBRoll) > input{margin-right:8px;vertical-align:-2px}
+label:has(> #allowBRoll) > span{display:block;margin:2px 0 0 24px;font-size:.76rem}
+
+/* the clip length box on each segment fits two digits */
+.seg-card input[type=number]{width:64px!important;padding:8px 6px;text-align:center}
+
+/* Growth Clients panel on a phone: more room for the content, tabs scroll sideways */
+@media (max-width:700px){
+  .gc-panel{padding:16px 12px 0}
+  .gc-body{padding:12px}
+  .gc-tabs{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin}
+  .gc-tab{white-space:nowrap;flex:0 0 auto}
+}

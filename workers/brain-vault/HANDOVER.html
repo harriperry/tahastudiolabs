@@ -29,7 +29,21 @@ li{margin:0 0 6px}
 <body>
 <main>
 <h1>TAHA Studio Labs Growth Department</h1>
-<p class="sub">V1 handover, 5 October 2026, built in six phases. V2 phases G1, G2a and G2b added 6 October 2026 (below). G2b, Parts A and B are live; Part H is on the branch <code>growth-h</code>, not live yet.</p>
+<p class="sub">V1 handover, 5 October 2026, built in six phases. V2 phases G1, G2a and G2b added 6 October 2026 (below). G2b, Parts A and B and Part H are live. The ScriptForge reskin is on the branch <code>redesign</code>, not live yet.</p>
+
+<h2>ScriptForge interface redesign: the safe reskin</h2>
+<div class="card">
+<ul>
+<li>A <b>style-only</b> change, as agreed on 6 October 2026: ScriptForge gets the TAHA Studio Labs look (reel gold for the one main button, studio ink header, Space Grotesk headings, Inter for text, JetBrains Mono for timecodes and script boxes). Every section, field, id, saved setting and script stays where it was, so the Business Brain, the Growth Clients panel and Send to ScriptForge are untouched.</li>
+<li><b>Follows the device</b>: warm paper when the phone or computer is in light mode, studio ink in dark mode. The Growth Clients panel follows too.</li>
+<li><b>Fixed on phones</b>: the logo no longer sits on top of the title, the menu wraps instead of running off the screen, and the Growth panel has more room with tabs that scroll sideways.</li>
+<li><b>Small fixes</b>: no emoji in buttons and labels (brand book rule), the word counter starts with the right target for 30 seconds, the Mock Test button says it is free and needs no key, the clip length box fits its number, the B-Roll tick box reads as one line.</li>
+<li><b>Fonts are self-hosted</b> in <code>assets/fonts</code> (SIL Open Font License), so no visitor IP address goes to Google.</li>
+<li><b>Restore point</b>: the tag <code>pre-redesign-stable</code> on GitHub is the live code from before the reskin. To switch the reskin off without a rollback, remove the <code>scriptforge-theme.css</code> line from <code>scriptforge/index.html</code>.</li>
+<li>Only <code>/scriptforge/</code> loads the theme. The home page, Products, ScriptEngine, the client portal and the reviewer page look exactly as before.</li>
+</ul>
+</div>
+<div class="card"><p><b>To go live (needs your approval):</b> merge <code>redesign</code> into <code>main</code> and push it to <code>growth-phase-1</code>. No Cloudflare change, no Vault change.</p></div>
 
 <h2>V2 Part H: Swedish language review by a human</h2>
 <div class="card">
@@ -43,7 +57,7 @@ li{margin:0 0 6px}
 <li>GDPR: consent moves to <b>c-4</b> (one new point about the language reviewer) and privacy.html section 12 has a new paragraph in both languages. Every reviewer view and edit is logged. Export and erasure cover language items, versions, notes, the log and the reviewer's client access. Add a line to the client PUB-avtal that a named reviewer bound by confidentiality may read campaign texts.</li>
 </ul>
 </div>
-<div class="card"><p><b>To go live (needs your approval):</b> merge <code>growth-h</code> into <code>main</code> and push it to <code>growth-phase-1</code>. No Cloudflare change. Note: once live, any Swedish campaign of a client with Always review Swedish on is gated until its texts are approved (or you give a reason). Turn the setting off per client if you do not want that yet.</p></div>
+<div class="card"><p><b>Live since 6 October 2026.</b> Note: once live, any Swedish campaign of a client with Always review Swedish on is gated until its texts are approved (or you give a reason). Turn the setting off per client if you do not want that yet.</p></div>
 
 <h2>V2 Parts A and B: client approval and Your content</h2>
 <div class="card">

@@ -688,7 +688,7 @@ ${JSON.stringify(priorState)}`;
   let currentProject = null;
 
   function statusBadge(status) {
-    const map = { ready: "○ READY", generating: "… GENERATING", generated: "○ GENERATED", locked: "✓ LOCKED", stale: "⚠ STALE" };
+    const map = { ready: "○ READY", generating: "… GENERATING", generated: "○ GENERATED", locked: "✓ LOCKED", stale: "! STALE" };
     const color = { ready: "var(--muted)", generating: "var(--accent2)", generated: "var(--warn)", locked: "var(--ok)", stale: "var(--err)" };
     return `<span style="color:${color[status] || "var(--muted)"};font-weight:600">${map[status] || status}</span>`;
   }
@@ -715,7 +715,7 @@ ${JSON.stringify(priorState)}`;
     const b = project.masterBible;
     const lockRow = project.bibleLocked
       ? `<div class="status ok" style="display:block">✓ Master Bible is LOCKED - units must stay consistent with it. <button class="btn-copy" data-lf-action="unlock-bible" style="margin-left:8px">Unlock</button></div>`
-      : `<div class="status info" style="display:block">Review the bible below, then lock it before generating units so later units can't silently drift from it. <button class="btn-primary" data-lf-action="lock-bible" style="width:auto;padding:6px 16px;margin-top:8px">🔒 Lock Master Bible</button> <button class="btn-ghost" data-lf-action="gen-bible" style="width:auto;padding:6px 16px;margin-top:8px">Regenerate</button></div>`;
+      : `<div class="status info" style="display:block">Review the bible below, then lock it before generating units so later units can't silently drift from it. <button class="btn-primary" data-lf-action="lock-bible" style="width:auto;padding:6px 16px;margin-top:8px">Lock Master Bible</button> <button class="btn-ghost" data-lf-action="gen-bible" style="width:auto;padding:6px 16px;margin-top:8px">Regenerate</button></div>`;
     return `
       <div class="specs-block">
         <div class="fl">${esc(b.title || "")}</div>
@@ -733,7 +733,7 @@ ${JSON.stringify(priorState)}`;
   function renderUnitCard(project, unit) {
     const canGenerate = unit.status === "ready" || unit.status === "stale";
     const canLock = unit.raw && unit.status !== "locked";
-    const warnings = (unit.warnings || []).map(w => `<div class="status err" style="display:block">⚠️ ${esc(w)}</div>`).join("");
+    const warnings = (unit.warnings || []).map(w => `<div class="status err" style="display:block">${esc(w)}</div>`).join("");
     return `
       <div class="seg-card">
         <div class="seg-head">
@@ -744,7 +744,7 @@ ${JSON.stringify(priorState)}`;
           ${warnings}
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:${unit.raw ? "10px" : "0"}">
             ${canGenerate ? `<button class="btn-primary" style="width:auto;padding:8px 14px" data-lf-action="gen-unit" data-lf-unit="${unit.index}" ${project.bibleLocked ? "" : "disabled title=\"Lock the Master Bible first\""}>${unit.status === "stale" ? "Regenerate (stale)" : "Generate"}</button>` : ""}
-            ${unit.raw ? `<button class="btn-ghost" style="width:auto;padding:8px 14px" data-lf-action="regen-unit" data-lf-unit="${unit.index}">🔄 Regenerate</button>` : ""}
+            ${unit.raw ? `<button class="btn-ghost" style="width:auto;padding:8px 14px" data-lf-action="regen-unit" data-lf-unit="${unit.index}">Regenerate</button>` : ""}
             ${unit.raw ? `<button class="btn-ghost" style="width:auto;padding:8px 14px" data-lf-action="regen-from-here" data-lf-unit="${unit.index}">Regenerate from here</button>` : ""}
             ${canLock ? `<button class="btn-ghost" style="width:auto;padding:8px 14px;color:var(--ok);border-color:var(--ok)" data-lf-action="lock-unit" data-lf-unit="${unit.index}">Approve &amp; Lock</button>` : ""}
             ${unit.raw ? `<button class="btn-ghost" style="width:auto;padding:8px 14px" data-lf-action="edit-unit" data-lf-unit="${unit.index}">Edit</button>` : ""}
@@ -769,7 +769,7 @@ ${JSON.stringify(priorState)}`;
       <h2 style="margin:18px 0 8px">Generation Units</h2>
       <div id="longformUnits">${plan.units.map(u => renderUnitCard(project, u)).join("")}</div>
       <div style="margin-top:16px">
-        <button class="btn-primary" data-lf-action="assemble" ${allLocked ? "" : "disabled"} style="width:auto;padding:10px 20px">📽 Assemble Master Script</button>
+        <button class="btn-primary" data-lf-action="assemble" ${allLocked ? "" : "disabled"} style="width:auto;padding:10px 20px">Assemble Master Script</button>
         ${!allLocked ? `<span style="color:var(--muted);font-size:.75rem;margin-left:10px">Lock or generate every unit first.</span>` : ""}
       </div>`;
   }

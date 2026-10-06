@@ -908,13 +908,13 @@ function updateWordMeter(){
   const n = +els.segCount.value, total = segEndTime(n);
   const lo = Math.round(total*2.5*0.88), hi = Math.round(total*2.5*1.12);
   const w = els.script.value.trim().split(/\s+/).filter(Boolean).length;
-  els.wordMeter.textContent = `${w} words · target ≈ ${lo}–${hi} words for ${tstamp(total)}` + (w > Math.round(hi*1.2) ? " · ⚠ likely over target, formatter will condense" : "");
+  els.wordMeter.textContent = `${w} words · target ≈ ${lo}–${hi} words for ${tstamp(total)}` + (w > Math.round(hi*1.2) ? " · likely over target, the formatter will condense it" : "");
 }
 function updateLengthUI(){
   const n = +els.segCount.value, total = segEndTime(n);
   const durNote = n <= 3 ? "10s each" : "10s ×3, then 15s each";
   els.lenBadge.textContent = `00:00 – ${tstamp(total)} · ${n} segments · ${durNote}`;
-  els.btnFormat.textContent = `⚡ Format into ${n} Segment${n>1?'s':''} (${tstamp(total)})`;
+  els.btnFormat.textContent = `Format into ${n} Segment${n>1?'s':''} (${tstamp(total)})`;
   updateWordMeter();
 }
 
@@ -1059,7 +1059,7 @@ els.btnFormat.addEventListener("click", async () => {
     lastMeta = { n, ratio, type: stype, date: new Date().toISOString() };
     renderOutput(lastRaw);
     els.btnSaveLib.style.display = "inline-block"; els.btnPdf.style.display = "inline-block";
-    els.btnSaveLib.textContent = "💾 Save to Library";
+    els.btnSaveLib.textContent = "Save to Library";
     setStatus("ok", `✓ Done - ${n} segments generated. Copy blocks are ready below.`);
   } catch (err) {
     setStatus("err", "API error: " + err.message + `<br>Check that your key is valid at ${pmeta.keyUrl}, or try again in a moment.`);
@@ -1139,8 +1139,8 @@ function renderOutput(raw){
          <div class="seg-head">
            <div class="t">SEGMENT ${num}<small>${esc(time)}</small></div>
            <div style="display:flex;gap:8px">
-             <button class="btn-copy" data-action="regenerate-segment" data-num="${num}" title="Regenerate this segment, keeping the flow to and from its neighbors">🔄 Regenerate</button>
-             <button class="btn-copy" data-action="copy-block" data-num="${num}">📋 Copy block</button>
+             <button class="btn-copy" data-action="regenerate-segment" data-num="${num}" title="Regenerate this segment, keeping the flow to and from its neighbors">Regenerate</button>
+             <button class="btn-copy" data-action="copy-block" data-num="${num}">Copy block</button>
            </div>
          </div>
          <div class="seg-body">${inner}</div>
@@ -1152,11 +1152,11 @@ function renderOutput(raw){
                <option value="heygen"${window.__sfVideoTarget === "heygen" ? " selected" : ""}>HeyGen Video Agent</option>
              </select>
              <input type="number" id="vidDur${num}" min="1" max="15" step="1" value="15" style="width:52px" title="Clip length in seconds. Veo 3.1 makes 4, 6 or 8 second clips (always 8 at 1080p or with a reference image), so the nearest is used. HeyGen treats it as a hint.">
-             <button class="btn-copy" data-action="gen-clip" data-num="${num}">🎬 Generate clip</button>
+             <button class="btn-copy" data-action="gen-clip" data-num="${num}">Generate clip</button>
            </div>
            <div class="status" id="vidStatus${num}"></div>
 <div id="charPickWrap${num}"></div>
-<label id="chainWrap${num}" style="display:none;align-items:center;gap:6px;font-size:.72rem;margin-top:6px;cursor:pointer"><input type="checkbox" id="chainUse${num}" checked style="width:auto"> 🔗 Use Segment ${Number(num)-1}'s final frame as this segment's character reference (Veo)</label>
+<label id="chainWrap${num}" style="display:none;align-items:center;gap:6px;font-size:.72rem;margin-top:6px;cursor:pointer"><input type="checkbox" id="chainUse${num}" checked style="width:auto"> Use Segment ${Number(num)-1}'s final frame as this segment's character reference (Veo)</label>
 <div id="chainThumb${num}"></div>
            <div id="vidResult${num}" style="margin-top:8px"></div>
          </div>` : ""}
@@ -1385,7 +1385,7 @@ els.btnLibClose.addEventListener("click", () => els.libOverlay.classList.remove(
 els.libOverlay.addEventListener("click", e => { if (e.target === els.libOverlay) els.libOverlay.classList.remove("open"); });
 function renderLib(){
   const lib = getLib();
-  if (!lib.length) { els.libList.innerHTML = '<div class="lib-empty">No saved scripts yet.<br>Format a script, then hit 💾 Save to Library.</div>'; return; }
+  if (!lib.length) { els.libList.innerHTML = '<div class="lib-empty">No saved scripts yet.<br>Format a script, then press Save to Library.</div>'; return; }
   els.libList.innerHTML = lib.map(item => `
     <div class="lib-item">
       <div class="meta">
@@ -1393,7 +1393,7 @@ function renderLib(){
         <div class="d">${new Date((item.meta && item.meta.date) || item.id).toLocaleString()}${item.meta && item.meta.n ? " · " + item.meta.n + " segments · " + tstamp(segEndTime(item.meta.n)) : ""}${item.meta && (item.meta.ratio || item.meta.avatar) ? " · " + esc(item.meta.ratio || item.meta.avatar) : ""}</div>
       </div>
       <button class="btn-copy" data-action="lib-open" data-id="${item.id}">Open</button>
-      <button class="btn-copy" data-action="lib-pdf" data-id="${item.id}">⬇ PDF</button>
+      <button class="btn-copy" data-action="lib-pdf" data-id="${item.id}">PDF</button>
       <button class="btn-copy" style="color:var(--err)" data-action="lib-del" data-id="${item.id}">Delete</button>
     </div>`).join("");
 }
@@ -1410,7 +1410,7 @@ window.libLoad = function(id){
   lastRaw = item.raw; lastMeta = item.meta;
   renderOutput(lastRaw);
   els.btnSaveLib.style.display = "inline-block"; els.btnPdf.style.display = "inline-block";
-  els.btnSaveLib.textContent = "💾 Save to Library";
+  els.btnSaveLib.textContent = "Save to Library";
   els.libOverlay.classList.remove("open");
   setStatus("ok", "✓ Loaded from Library: " + esc(item.title));
 };
@@ -1427,7 +1427,7 @@ async function renderCharList() {
   }
   els.charList.innerHTML = chars.map(c => `
     <div class="lib-item">
-      ${c.referenceImages && c.referenceImages.front ? `<img src="${c.referenceImages.front}" style="width:44px;height:44px;object-fit:cover;border-radius:6px">` : `<div style="width:44px;height:44px;border-radius:6px;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:1.2rem">🎭</div>`}
+      ${c.referenceImages && c.referenceImages.front ? `<img src="${c.referenceImages.front}" style="width:44px;height:44px;object-fit:cover;border-radius:6px">` : `<div style="width:44px;height:44px;border-radius:6px;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:.8rem;color:var(--muted)">No image</div>`}
       <div class="meta">
         <div class="t">${esc(c.displayName || "Untitled")}</div>
         <div class="d">${esc(c.characterType || "unspecified")}${c.productionTypes && c.productionTypes.length ? " · " + esc(c.productionTypes.join(", ")) : ""}</div>
@@ -1662,7 +1662,7 @@ async function populateSegmentCharPickers() {
     const haystack = [seg.segType, seg.ttsScript, seg.t2iPrompt, seg.i2vPrompt].filter(Boolean).join(" ").toLowerCase();
     const preselected = seg.libraryCharacterIds || chars.filter(c => c.displayName && haystack.includes(c.displayName.toLowerCase())).map(c => c.id).slice(0, 3);
     seg.libraryCharacterIds = preselected;
-    wrap.innerHTML = `<div style="font-size:.72rem;color:var(--muted);margin-top:6px">🎭 Characters in this segment (up to 3, each keeps its own locked reference image + identity):</div>
+    wrap.innerHTML = `<div style="font-size:.72rem;color:var(--muted);margin-top:6px">Characters in this segment (up to 3, each keeps its own locked reference image + identity):</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
         ${chars.map(c => `<label style="display:flex;align-items:center;gap:4px;font-size:.72rem;cursor:pointer;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:3px 8px">
           <input type="checkbox" class="char-pick" data-num="${num}" data-id="${c.id}" ${preselected.includes(c.id) ? "checked" : ""} style="width:auto"> ${esc(c.displayName)}
@@ -1808,7 +1808,7 @@ els.btnMock.addEventListener("click", () => {
     lastMeta = { n: 3, ratio: "16:9", type: "Short Advert", date: new Date().toISOString(), mock: true };
     renderOutput(lastRaw);
     els.btnSaveLib.style.display = "inline-block"; els.btnPdf.style.display = "inline-block";
-    els.btnSaveLib.textContent = "💾 Save to Library";
+    els.btnSaveLib.textContent = "Save to Library";
     setStatus("ok", "✓ Mock test complete - simulated output, no API used. Every button works: copy blocks, save to Library, download the PDF. Enter your API key to format your own scripts.");
     els.btnMock.disabled = false; els.btnFormat.disabled = false;
   }, 1400);
@@ -1851,7 +1851,7 @@ function setAuthStatus(el, cls, msg){ el.className = "status " + cls; el.innerHT
 function applyTier(){
   [...els.segCount.options].forEach(o => {
     const locked = +o.value > FREE_MAX_SEGS && tier !== "pro";
-    o.textContent = o.textContent.replace(/ 🔒 (Pro|Sign in)$/, "") + (locked ? " 🔒 Sign in" : "");
+    o.textContent = o.textContent.replace(/ (🔒|\| sign in to use) ?(Pro|Sign in)?$/, "") + (locked ? " | sign in to use" : "");
     o.disabled = locked;
   });
   // Signed-in accounts already have full access, so the mock demo is only shown
@@ -1860,7 +1860,7 @@ function applyTier(){
   if (els.segCount.selectedOptions[0] && els.segCount.selectedOptions[0].disabled) {
     els.segCount.value = String(FREE_MAX_SEGS); updateLengthUI();
   }
-  els2.btnAccount.textContent = user ? "👤 Account · Pro (FREE)" : "Sign in";
+  els2.btnAccount.textContent = user ? "Account · Pro (FREE)" : "Sign in";
   // Signed-in accounts (all Pro) no longer need the marketing/about blurb.
   const aboutSection = document.getElementById("aboutSection");
   if (aboutSection) aboutSection.style.display = tier === "pro" ? "none" : "";
@@ -1882,7 +1882,7 @@ async function refreshMe(){
 }
 
 function showUpgrade(msg){
-  els2.upsell.textContent = "🔒 " + msg + " Sign in or create a FREE account to unlock it.";
+  els2.upsell.textContent = msg + " Sign in or create a FREE account to unlock it.";
   els2.upsell.style.display = "block";
   els2.authOverlay.classList.add("open");
 }
@@ -2332,11 +2332,11 @@ const startRes = await videoApi("video-start", { provider, apiKey, prompt, param
     let narrationHtml = "";
 if (elevenAudioBlob && provider === "veo") {
 const narrationUrl = URL.createObjectURL(elevenAudioBlob);
-narrationHtml = `<div style="margin-top:6px"><a href="${narrationUrl}" download="segment-${num}-narration.mp3" style="color:var(--accent2)">🔊 Download narration audio (ElevenLabs) - mux onto the clip above in your editor</a></div>`;
+narrationHtml = `<div style="margin-top:6px"><a href="${narrationUrl}" download="segment-${num}-narration.mp3" style="color:var(--accent2)">Download narration audio (ElevenLabs) - mux onto the clip above in your editor</a></div>`;
 }
 $("vidResult" + num).innerHTML = `
 <video controls src="${blobUrl}" style="max-width:100%;border-radius:8px"></video>
-<div style="margin-top:6px"><a href="${blobUrl}" download="segment-${num}-clip.mp4" style="color:var(--accent2)">⬇ Download this clip</a></div>
+<div style="margin-top:6px"><a href="${blobUrl}" download="segment-${num}-clip.mp4" style="color:var(--accent2)">Download this clip</a></div>
 ${narrationHtml}`;
 if (provider === "veo") {
 try {
