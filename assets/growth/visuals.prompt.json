@@ -1,8 +1,10 @@
 {
   "name": "TAHA Growth Department: Visual Pack prompt",
   "version": "visuals-prompt-1",
-  "notes": "Used by assets/growth-visuals.js (V2 phase G1). ScriptForge decides which briefs a campaign needs and their sizes (from platforms.json); the model fills in each brief. The system lines are joined with line breaks. Placeholders: {{LANGUAGE_RULE}} one of languageRules, {{SCHEMA}} the model-written part of a brief. Edit wording freely; keep the placeholders. No em-dashes anywhere.",
+  "notes": "Used by assets/growth-visuals.js (V2 phase G1). The briefs are asked for in batches of batchSize (one call each, so every call stays under Cloudflare's 100 second limit), each with batchMaxTokens. ScriptForge decides which briefs a campaign needs and their sizes (from platforms.json); the model fills in each brief. The system lines are joined with line breaks. Placeholders: {{LANGUAGE_RULE}} one of languageRules, {{SCHEMA}} the model-written part of a brief. Edit wording freely; keep the placeholders. No em-dashes anywhere.",
   "maxTokens": { "anthropic": 16000, "gemini": 16000, "groq": 8000, "deepseek": 8000 },
+  "batchSize": 4,
+  "batchMaxTokens": { "anthropic": 6000, "gemini": 6000, "groq": 6000, "deepseek": 6000 },
   "languageRules": {
     "en": "Overlay language: English. Write overlay.headline, overlay.sub and overlay.cta in English. Leave overlay_alt out.",
     "sv": "Overlay language: Swedish. Write overlay.headline, overlay.sub and overlay.cta in natural, idiomatic Swedish. Leave overlay_alt out.",

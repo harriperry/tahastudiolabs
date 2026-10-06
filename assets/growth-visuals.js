@@ -20,7 +20,7 @@ import { validate } from "./growth-validate.js?v=p5";
 import { stripDashes } from "./growth-brain.js?v=p5";
 
 export const PLATFORMS_URL = "/assets/growth/platforms.json?v=g1";
-export const VISUALS_PROMPT_URL = "/assets/growth/visuals.prompt.json?v=g1";
+export const VISUALS_PROMPT_URL = "/assets/growth/visuals.prompt.json?v=g1b";
 
 /* Fields ScriptForge sets from platforms.json; the model never writes them. */
 const SET_BY_SCRIPTFORGE = ["output_key", "platform", "placement", "ratio", "width", "height", "clear_zone"];

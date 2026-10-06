@@ -565,12 +565,12 @@ export function createCampaigns(ctx) {
       const files = (d && d.files) || [];
       const photos = photoList(files, brain);
       const profile = (d && d.intake && d.intake.profile) || {};
-      const briefs = slots.map((s) => ({ id: s.id, output: s.output_key, placement: s.placement, size: s.width + " x " + s.height + " (" + s.ratio + ")", clear_zone: s.clear_zone, focus: s.focus, angle: s.angle, copy: s.copy }));
+      const brief = (s) => ({ id: s.id, output: s.output_key, placement: s.placement, size: s.width + " x " + s.height + " (" + s.ratio + ")", clear_zone: s.clear_zone, focus: s.focus, angle: s.angle, copy: s.copy });
       const system = fillTemplate(prompt.system.join("\n"), {
         LANGUAGE_RULE: prompt.languageRules[doc.language] || prompt.languageRules.en,
         SCHEMA: JSON.stringify(briefModelSchema(sch))
       });
-      const userText = fillTemplate(prompt.user.join("\n"), {
+      const userFor = (part) => fillTemplate(prompt.user.join("\n"), {
         COMPANY: profile.companyName || c.name,
         LOCATION: profile.location || "",
         NAME: doc.name,
@@ -582,35 +582,60 @@ export function createCampaigns(ctx) {
         PHOTOS: photos.length ? photos.map((x) => "- " + x.fileId + ": " + (x.caption || x.name || "no caption") + (x.bestUse ? " (best use: " + x.bestUse + ")" : "")).join("\n") : prompt.noPhotos,
         BRAIN_VERSION: String(brain.brainVersion),
         BRAIN_JSON: JSON.stringify(brainForVisuals(brain), null, 1),
-        BRIEFS_JSON: JSON.stringify(briefs, null, 1)
+        BRIEFS_JSON: JSON.stringify(part.map(brief), null, 1)
       });
-      const messages = [{ role: "user", content: userText }];
-      const maxTokens = (prompt.maxTokens && prompt.maxTokens[p.provider]) || 8000;
+      /* G1 fix (live, 6 Oct 2026): one call for all 16 briefs ran past Cloudflare's 100 second
+         limit on the relay (HTTP 524). The briefs are now asked for in small batches, each well
+         under the limit, each with its own check and one retry. */
+      const size = Math.max(1, prompt.batchSize || 4);
+      const batchTokens = (prompt.batchMaxTokens && prompt.batchMaxTokens[p.provider]) || 6000;
       const nctx = { photoIds: photos.map((x) => x.fileId), language: doc.language, noTextSentence: prompt.noTextSentence, avoidDefault: prompt.avoidDefault };
-      const check = (text) => {
+      const transient = (err) => /HTTP (408|429|5\d\d)\b|Failed to fetch|NetworkError|network/i.test(String(err && err.message));
+      const ask = async (msgs) => {
         try {
-          const out = normalizeVisuals(extractJson(text), slots, nctx);
-          const errs = checkVisuals(sch, out.visuals).concat(out.problems);
-          return { visuals: out.visuals, fixes: out.fixes, errs: errs.length ? errs : null };
+          return await callModel(p, system, msgs, batchTokens);
         } catch (err) {
-          return { visuals: null, errs: [err.message] };
+          if (!transient(err)) throw err;
+          await new Promise((r) => setTimeout(r, 3000));
+          return await callModel(p, system, msgs, batchTokens);
         }
       };
-      vstep(e, id, "Asking " + p.label + " for " + slots.length + " visual briefs (this can take a minute or two)");
-      let reply = await callModel(p, system, messages, maxTokens);
-      let res = check(reply);
-      if (res.errs) {
-        vstep(e, id, "The first answer had " + res.errs.length + (res.errs.length === 1 ? " problem" : " problems") + ". Asking once more with the list");
-        reply = await callModel(p, system, messages.concat([
-          { role: "assistant", content: reply.slice(0, 60000) },
-          { role: "user", content: fillTemplate(prompt.retry, { ERRORS: res.errs.slice(0, 30).map((x) => "- " + x).join("\n") }) }
-        ]), maxTokens);
-        res = check(reply);
+      const batches = [];
+      for (let i = 0; i < slots.length; i += size) batches.push(slots.slice(i, i + size));
+      const all = [];
+
+      for (let bi = 0; bi < batches.length; bi++) {
+        const part = batches[bi];
+        const from = bi * size + 1;
+        const check = (text) => {
+          try {
+            const out = normalizeVisuals(extractJson(text), part, nctx);
+            const errs = checkVisuals(sch, out.visuals).concat(out.problems);
+            return { visuals: out.visuals, errs: errs.length ? errs : null };
+          } catch (err) {
+            return { visuals: null, errs: [err.message] };
+          }
+        };
+        vstep(e, id, "Asking " + p.label + " for briefs " + from + " to " + (from + part.length - 1) + " of " + slots.length + (bi === 0 ? " (about half a minute per batch)" : ""));
+        const messages = [{ role: "user", content: userFor(part) }];
+        let reply = await ask(messages);
+        let res = check(reply);
+        if (res.errs) {
+          vstep(e, id, "Briefs " + from + " to " + (from + part.length - 1) + ": the first answer had " + res.errs.length + (res.errs.length === 1 ? " problem" : " problems") + ". Asking once more with the list");
+          reply = await ask(messages.concat([
+            { role: "assistant", content: reply.slice(0, 60000) },
+            { role: "user", content: fillTemplate(prompt.retry, { ERRORS: res.errs.slice(0, 30).map((x) => "- " + x).join("\n") }) }
+          ]));
+          res = check(reply);
+
+        }
+        if (res.errs) {
+          e.verrors = res.errs;
+          throw new Error("Briefs " + from + " to " + (from + part.length - 1) + " still did not pass the checks after one retry. Nothing was changed; try Make visuals again.");
+        }
+        all.push(...res.visuals);
       }
-      if (res.errs) {
-        e.verrors = res.errs;
-        throw new Error("The Visual Pack still did not pass the checks after one retry.");
-      }
+      const res = { visuals: all };
       const need = res.visuals.filter((v) => v.source === "client_photo" && !v.photo_ref).length;
       vstep(e, id, slots.length + " briefs ready" + (need ? ", " + need + " need a photo from the client" : "") + ". Save to keep them.", "done");
       const next = withVisuals(doc, res.visuals);
