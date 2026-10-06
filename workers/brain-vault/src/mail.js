@@ -95,6 +95,31 @@ const COPY = {
       en: "Not signed in? Enter your email address in the portal and you will get a login link."
     }
   },
+  /* V2 Part H: a language reviewer is invited, and later told that texts are waiting. */
+  reviewer: {
+    subject: { sv: "Inbjudan: språkgranskning för TAHA Studio Labs", en: "Invitation: language review for TAHA Studio Labs" },
+    intro: {
+      sv: "Hej {name}! Du är inbjuden att granska svenska texter för TAHA Studio Labs. Klicka på knappen för att logga in. Länken gäller i {min} minuter.",
+      en: "Hi {name}! You are invited to review Swedish texts for TAHA Studio Labs. Click the button to sign in. The link is valid for {min} minutes."
+    },
+    button: { sv: "Logga in", en: "Sign in" },
+    note: {
+      sv: "Nästa gång loggar du in på {signin} med din e-postadress.",
+      en: "Next time, sign in at {signin} with your email address."
+    }
+  },
+  langQueue: {
+    subject: { sv: "Texter väntar på din granskning", en: "Texts are waiting for your review" },
+    intro: {
+      sv: "Hej {name}! {count} svenska texter väntar på din granskning.",
+      en: "Hi {name}! {count} Swedish texts are waiting for your review."
+    },
+    button: { sv: "Öppna granskningen", en: "Open the review" },
+    note: {
+      sv: "Av sekretesskäl står texterna aldrig i e-posten.",
+      en: "For confidentiality, the texts are never in the email."
+    }
+  },
   /* V2 Part A. No campaign content: only that a campaign is ready to look at. */
   review: {
     subject: { sv: "Din kampanj är klar att granska", en: "Your campaign is ready for you to review" },
@@ -263,6 +288,29 @@ export function composeDecisionNotice(cfg, { company, round, approved, link }) {
     '<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#111;max-width:560px;margin:0 auto;padding:24px">' +
     "<p><b>" + escapeHtml(company) + "</b> " + what.sv + " (omgång " + round + ").</p>" +
     "<p><b>" + escapeHtml(company) + "</b> " + what.en + " (round " + round + ").</p>" +
+    '<p><a href="' + escapeHtml(link) + '">' + escapeHtml(link) + "</a></p></body></html>";
+  return { subject, text, html };
+}
+
+/* V2 Part H: reviewer invite and queue notices (no content), and Harry's notice. */
+export function composeReviewerInvite(cfg, { link, name }) {
+  return composeEmail("reviewer", cfg, { link, name, language: "sv", signinUrl: cfg.siteOrigin + "/grow/review/" });
+}
+export function composeReviewerLogin(cfg, { link, name }) {
+  return composeEmail("login", cfg, { link, name, language: "sv", signinUrl: cfg.siteOrigin + "/grow/review/" });
+}
+export function composeLangQueue(cfg, { name, count, link }) {
+  return composeEmail("langQueue", cfg, { link, name, language: "sv", signinUrl: link, extra: { count } });
+}
+export function composeLangNotice(cfg, { company, done, total, flagged, link }) {
+  const subject = "Språkgranskning / Language review: " + company + " (" + done + " av/of " + total + ")";
+  const text =
+    "Språkgranskningen för " + company + ": " + done + " av " + total + " klara" + (flagged ? ", " + flagged + " flaggade" : "") + ".\n" +
+    "Language review for " + company + ": " + done + " of " + total + " done" + (flagged ? ", " + flagged + " flagged" : "") + ".\n\n" + link + "\n";
+  const html =
+    '<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#111;max-width:560px;margin:0 auto;padding:24px">' +
+    "<p>Språkgranskningen för <b>" + escapeHtml(company) + "</b>: " + done + " av " + total + " klara" + (flagged ? ", " + flagged + " flaggade" : "") + ".</p>" +
+    "<p>Language review for <b>" + escapeHtml(company) + "</b>: " + done + " of " + total + " done" + (flagged ? ", " + flagged + " flagged" : "") + ".</p>" +
     '<p><a href="' + escapeHtml(link) + '">' + escapeHtml(link) + "</a></p></body></html>";
   return { subject, text, html };
 }

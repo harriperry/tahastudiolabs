@@ -18,6 +18,7 @@ import { deliveryOut } from "./delivery.js";
 import { extOf } from "./files.js";
 import { latestRound, linksFor } from "./review.js";
 import { json, newId, nowIso, randomToken, readJson } from "./util.js";
+import { productionDoc } from "./lang.js";
 
 const MB = 1024 * 1024;
 export const BIG = { maxBytes: 500 * MB, partBytes: 8 * MB, maxParts: 70 };
@@ -76,7 +77,7 @@ export async function portalCampaign(env, cfg, auth, campaignId) {
   }
   let content = null;
   if (delivered) {
-    const doc = JSON.parse(row.data);
+    const doc = await productionDoc(env, auth.clientId, campaignId, JSON.parse(row.data));
     const lk = await linksFor(env, auth.clientId, campaignId);
     const view = clientView(doc, { links: lk.links, origin: cfg.siteOrigin, pageUrl: lk.pageUrl ? cfg.siteOrigin + lk.pageUrl : "" });
     const share = lk.links.find((l) => l.output_key === "share.main");

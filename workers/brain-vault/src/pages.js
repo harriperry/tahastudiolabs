@@ -25,6 +25,7 @@ import { looksLikeKey } from "./brain.js";
 import { magicOk } from "./files.js";
 import { escapeHtml, json, newId, nowIso, randomToken, readJson } from "./util.js";
 import { recordEvent } from "./track.js";
+import { checkLangGate } from "./lang.js";
 
 const MB = 1024 * 1024;
 export const SLUG = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
@@ -304,6 +305,9 @@ export async function publishPage(request, env, cfg, clientId, campaignId) {
   if (p.form_on && !p.notice_version) return json({ error: "notice", message: M.notice }, 400);
   const b = await readJson(request, 2 * MAX_HTML + 4096);
   if (!b) return json({ error: "bad_request", message: M.badRequest }, 400);
+  /* V2 Part H: a Swedish page waits for approved text (or Harry gives a reason). */
+  const lg = await checkLangGate(env, clientId, campaignId, JSON.parse(row.data), b.langOverride);
+  if (lg) return lg;
   for (const k of ["html", "endedHtml"]) {
     const bad = checkHtml(b[k]);
     if (bad) return json({ error: bad, message: M[bad], part: k }, 400);

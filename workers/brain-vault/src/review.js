@@ -15,6 +15,7 @@
 import { clientView } from "./clientview.js";
 import { composeDecisionNotice, composeReviewEmail, sendMail } from "./mail.js";
 import { json, newId, nowIso, readJson } from "./util.js";
+import { checkLangGate, productionDoc } from "./lang.js";
 
 const M = {
   badRequest: { sv: "Ogiltig förfrågan.", en: "Bad request." },
@@ -50,13 +51,18 @@ function roundOut(r, items) {
   };
 }
 
-export async function sendForReview(env, cfg, ctx, clientId, campaignId) {
+export async function sendForReview(env, cfg, ctx, clientId, campaignId, request) {
   const c = await env.DB.prepare("SELECT id, name, email, language, left_at FROM clients WHERE id = ?").bind(clientId).first();
   if (!c) return json({ error: "not_found", message: M.notFound }, 404);
   if (c.left_at) return json({ error: "left", message: M.left }, 409);
   const row = await env.DB.prepare("SELECT data FROM campaigns WHERE client_id = ? AND campaign_id = ?").bind(clientId, campaignId).first();
   if (!row) return json({ error: "not_found", message: M.notFound }, 404);
-  const doc = JSON.parse(row.data);
+  const machineDoc = JSON.parse(row.data);
+  /* V2 Part H: the client only sees approved Swedish text. */
+  const b = request ? (await readJson(request, 2048)) || {} : {};
+  const lg = await checkLangGate(env, clientId, campaignId, machineDoc, b.langOverride);
+  if (lg) return lg;
+  const doc = await productionDoc(env, clientId, campaignId, machineDoc);
   const lk = await linksFor(env, clientId, campaignId);
   const view = clientView(doc, { links: lk.links, origin: cfg.siteOrigin, pageUrl: lk.pageUrl ? cfg.siteOrigin + lk.pageUrl : "" });
   const last = await env.DB.prepare("SELECT MAX(round) AS n FROM reviews WHERE client_id = ? AND campaign_id = ?").bind(clientId, campaignId).first();

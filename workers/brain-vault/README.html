@@ -219,6 +219,17 @@ ol li,ul li{margin:4px 0}
 </table></div>
 <p>Files: <code>src/review.js</code>, <code>src/content.js</code>, <code>src/clientview.js</code>, <code>src/public/jszip.min.js</code> (MIT, served at <code>/grow/jszip.js</code>), <code>../../assets/growth-review.js</code>, <code>test/review.test.mjs</code> (51 checks). Tables (migration 7): <code>reviews</code>, <code>review_items</code>, <code>campaign_log</code>, <code>uploads</code>, <code>secrets</code>.</p>
 
+<h2>2k. Endpoints added in V2 Part H (language review)</h2>
+<div class="tw"><table>
+<tr><th>Method and path</th><th>Caller</th><th>What it does</th></tr>
+<tr><td><code>GET /admin/team</code>, <code>POST /admin/team/invite</code>, <code>PATCH /admin/team/:memberId</code></td><td>Admin</td><td>Team members, client access, agreement date, active, resend invite.</td></tr>
+<tr><td><code>POST /admin/lang/:id/:cp/send</code>, <code>GET /admin/lang/:id/:cp</code>, <code>POST /admin/lang/:id/:cp/accept-all</code></td><td>Admin</td><td>Queue Swedish fields; items with every version, the approved map and the gate; accept every Done text.</td></tr>
+<tr><td><code>POST /admin/lang/item/:itemId</code></td><td>Admin</td><td><code>accept</code>, <code>approve</code> (text), <code>send_back</code> (comment), <code>keep</code> (reason).</td></tr>
+<tr><td><code>GET, POST /admin/lang/notes/:id</code>, <code>PUT /admin/lang/setting/:id</code></td><td>Admin</td><td>Language notes; Always review Swedish.</td></tr>
+<tr><td><code>GET /review/queue</code>, <code>GET, PUT /review/item/:itemId</code>, <code>POST /review/item/:itemId/done</code>, <code>/flag</code></td><td>Reviewer (assigned clients only)</td><td>The queue, an item (view logged), the draft, Done with the checks, Flag.</td></tr>
+</table></div>
+<p>The gate: <code>POST .../review</code>, <code>POST /admin/page/.../publish</code> and Mark delivered answer 409 <code>lang_pending</code> while required Swedish texts are not approved, unless the body has <code>langOverride</code> (a reason, logged). Files: <code>src/team.js</code>, <code>src/lang.js</code>, <code>src/public/reviewer.html</code>, <code>src/public/reviewer.js</code>, <code>../../assets/growth-langfields.js</code> (shared by the Worker and ScriptForge), <code>../../assets/growth-lang.js</code>, <code>test/lang.test.mjs</code> (68 checks). Tables (migration 8): <code>team_members</code>, <code>team_access</code>, <code>member_tokens</code>, <code>member_sessions</code>, <code>lang_items</code>, <code>lang_versions</code>, <code>lang_notes</code>, <code>lang_log</code>, and <code>clients.lang_review</code>. <code>CONSENT_VERSION</code> is now <code>c-4</code>.</p>
+
 <h2>3. How login works</h2>
 <ol>
 <li>Someone enters an email. If it belongs to an invited client or is in <code>ADMIN_EMAILS</code>, the Vault creates a random 32-byte token, stores only its SHA-256 hash, and emails the link. Any other email gets the same message and no email. The work happens after the reply is sent, so the reply takes the same time for every email.</li>

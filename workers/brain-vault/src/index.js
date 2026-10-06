@@ -54,6 +54,10 @@ import { adminLeads, deleteLead, g2bSweep, getBaseline, getCosts, getStats, patc
 import { getReviews, portalCampaigns, postReview, sendForReview } from "./review.js";
 import { abortUpload, completeUpload, download, portalCampaign, startUpload, uploadPart } from "./content.js";
 import jszipJs from "./public/jszip.min.js";
+import { consumeMemberToken, createMemberSession, destroyMemberSession, inviteMember, listTeam, patchMember, teamCleanup } from "./team.js";
+import { acceptAll, decideItem, getLang, getNotes, postNote, putSetting, reviewDone, reviewFlag, reviewItem, reviewQueue, sendLang } from "./lang.js";
+import reviewerHtml from "./public/reviewer.html";
+import reviewerJs from "./public/reviewer.js";
 import { SCHEMAS } from "./schemas.js";
 import { json, lang, normEmail, readJson, validEmail, withCookies } from "./util.js";
 
@@ -121,6 +125,9 @@ function servePortal(path) {
   if (path === "/grow/portal.css") return asset(portalCss, "text/css; charset=utf-8");
   if (path === "/grow/i18n.json") return asset(JSON.stringify(i18n), "application/json; charset=utf-8");
   if (path === "/grow/jszip.js") return asset(jszipJs, "text/javascript; charset=utf-8");
+  /* V2 Part H: the language reviewer's workspace. */
+  if (path === "/grow/review/reviewer.js") return asset(reviewerJs, "text/javascript; charset=utf-8");
+  if (path === "/grow/review" || path === "/grow/review/") return page(reviewerHtml);
   return page(portalHtml);
 }
 
@@ -191,7 +198,7 @@ async function handle(request, env, ctx) {
 
   if (method === "GET" && path === "/health") {
     const db = await env.DB.prepare("SELECT 1 AS ok").first();
-    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "ab" });
+    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "h" });
   }
 
   if (method === "GET" && path === "/portal/meta") {
@@ -212,8 +219,17 @@ async function handle(request, env, ctx) {
 
   if (method === "POST" && path === "/auth/verify") {
     const b = await readJson(request, 1024);
-    const row = await consumeToken(env, b && typeof b.t === "string" ? b.t : "");
-    if (!row) return json({ error: "bad_link", message: MSG.badLink }, 400);
+    const tok = b && typeof b.t === "string" ? b.t : "";
+    const row = await consumeToken(env, tok);
+    if (!row) {
+      /* V2 Part H: a team member's link. */
+      const member = await consumeMemberToken(env, tok);
+      if (!member) return json({ error: "bad_link", message: MSG.badLink }, 400);
+      await destroySession(env, request);
+      await destroyMemberSession(env, request);
+      const ms = await createMemberSession(env, cfg, member);
+      return json({ ok: true, role: "reviewer", redirect: ms.redirect }, 200, { "Set-Cookie": sessionCookie(cfg, ms.token) });
+    }
     if (row.role === "client") {
       const c = await env.DB.prepare("SELECT id FROM clients WHERE id = ? AND email = ? AND left_at IS NULL").bind(row.client_id, row.email).first();
       if (!c) return json({ error: "bad_link", message: MSG.badLink }, 400);
@@ -226,6 +242,7 @@ async function handle(request, env, ctx) {
 
   if (method === "POST" && path === "/auth/logout") {
     await destroySession(env, request);
+    await destroyMemberSession(env, request);
     return json({ ok: true }, 200, { "Set-Cookie": clearSessionCookie() });
   }
 
@@ -235,6 +252,7 @@ async function handle(request, env, ctx) {
   if (method === "GET" && path === "/auth/me") {
     if (!auth) return json({ role: null, message: MSG.notSignedIn }, 401);
     const out = { role: auth.role, email: auth.email, via: auth.via };
+    if (auth.role === "reviewer") out.name = auth.name;
     if (auth.role === "client") {
       const c = await env.DB.prepare("SELECT id, name, status, language FROM clients WHERE id = ?").bind(auth.clientId).first();
       if (!c) return json({ role: null, message: MSG.notSignedIn }, 401, { "Set-Cookie": clearSessionCookie() });
@@ -278,6 +296,18 @@ async function handle(request, env, ctx) {
     if (campMatch && campMatch[1] === "review" && method === "POST") return postReview(request, env, cfg, ctx, auth, campMatch[2]);
   }
 
+  /* ---------- language reviewer (V2 Part H) ---------- */
+  if (path === "/review/queue" || path.startsWith("/review/item/")) {
+    if (!auth) return json({ error: "not_signed_in", message: MSG.notSignedIn }, 401);
+    if (auth.role !== "reviewer") return json({ error: "forbidden", message: MSG.forbidden }, 403);
+    if (path === "/review/queue" && method === "GET") return respond(await reviewQueue(env, auth));
+    const ri = path.match(/^\/review\/item\/(li_[a-z0-9]{4,32})(?:\/(done|flag))?$/);
+    if (ri && !ri[2] && (method === "GET" || method === "PUT")) return respond(await reviewItem(request, env, auth, ri[1], method));
+    if (ri && ri[2] === "done" && method === "POST") return respond(await reviewDone(request, env, cfg, ctx, auth, ri[1]));
+    if (ri && ri[2] === "flag" && method === "POST") return respond(await reviewFlag(request, env, cfg, ctx, auth, ri[1]));
+    return json({ error: "not_found", message: MSG.notFound }, 404);
+  }
+
   /* ---------- admin ---------- */
   /* ScriptForge asks this on page load to decide whether to show the Growth Clients button.
      Always 200 so public visitors get a quiet {admin:false} and nothing else. */
@@ -300,13 +330,29 @@ async function handle(request, env, ctx) {
     const cpl = path.match(/^\/admin\/campaigns\/(cl_[a-z0-9]{4,32})$/);
     if (cpl && method === "GET") return respond(await listCampaigns(env, cpl[1]));
     const cps = path.match(/^\/admin\/campaign\/(cl_[a-z0-9]{4,32})$/);
-    if (cps && method === "POST") return respond(await saveCampaign(request, env, cps[1]));
+    if (cps && method === "POST") return respond(await saveCampaign(request, env, cps[1], cfg, ctx));
     const cp = path.match(/^\/admin\/campaign\/(cl_[a-z0-9]{4,32})\/(cp_[a-z0-9_]{2,40})(\/status)?$/);
     if (cp && method === "GET" && !cp[3]) return respond(await getCampaign(env, cp[1], cp[2]));
     if (cp && method === "PATCH" && cp[3]) return respond(await setCampaignStatus(request, env, cp[1], cp[2], cfg, ctx));
+    /* V2 Part H */
+    if (path === "/admin/team" && method === "GET") return respond(await listTeam(env));
+    if (path === "/admin/team/invite" && method === "POST") return respond(await inviteMember(request, env, cfg, ctx));
+    const tm = path.match(/^\/admin\/team\/(tm_[a-z0-9]{4,32})$/);
+    if (tm && method === "PATCH") return respond(await patchMember(request, env, cfg, ctx, tm[1]));
+    const lg = path.match(/^\/admin\/lang\/(cl_[a-z0-9]{4,32})\/(cp_[a-z0-9_]{2,40})(?:\/(send|accept-all))?$/);
+    if (lg && method === "GET" && !lg[3]) return respond(await getLang(env, lg[1], lg[2]));
+    if (lg && method === "POST" && lg[3] === "send") return respond(await sendLang(request, env, cfg, ctx, lg[1], lg[2]));
+    if (lg && method === "POST" && lg[3] === "accept-all") return respond(await acceptAll(env, lg[1], lg[2]));
+    const li = path.match(/^\/admin\/lang\/item\/(li_[a-z0-9]{4,32})$/);
+    if (li && method === "POST") return respond(await decideItem(request, env, li[1]));
+    const ln = path.match(/^\/admin\/lang\/notes\/(cl_[a-z0-9]{4,32})$/);
+    if (ln && method === "GET") return respond(await getNotes(env, ln[1]));
+    if (ln && method === "POST") return respond(await postNote(request, env, ln[1]));
+    const ls = path.match(/^\/admin\/lang\/setting\/(cl_[a-z0-9]{4,32})$/);
+    if (ls && method === "PUT") return respond(await putSetting(request, env, ls[1]));
     /* V2 Part A */
     const rvw = path.match(/^\/admin\/campaign\/(cl_[a-z0-9]{4,32})\/(cp_[a-z0-9_]{2,40})\/review$/);
-    if (rvw && method === "POST") return respond(await sendForReview(env, cfg, ctx, rvw[1], rvw[2]));
+    if (rvw && method === "POST") return respond(await sendForReview(env, cfg, ctx, rvw[1], rvw[2], request));
     if (rvw && method === "GET") return respond(await getReviews(env, rvw[1], rvw[2]));
     /* V2 Part B: large files in parts */
     const up = path.match(/^\/admin\/upload\/(cl_[a-z0-9]{4,32})\/(cp_[a-z0-9_]{2,40})\/(start|d_[a-z0-9]{4,32})(?:\/(part|complete))?$/);
@@ -369,6 +415,7 @@ export default {
   async scheduled(event, env, ctx) {
     await ensureSchema(env);
     ctx.waitUntil(cleanup(env));
+    ctx.waitUntil(teamCleanup(env).catch(() => console.error("team cleanup failed")));
     /* Phase 6: erase clients who left more than RETENTION_MONTHS ago. */
     ctx.waitUntil(retentionSweep(env, getConfig(env)).catch(() => console.error("retention sweep failed")));
     /* V2 phase G2b: raw events after 90 days, old salts, old enquiries, ended pages. */

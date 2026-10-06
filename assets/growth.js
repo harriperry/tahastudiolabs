@@ -345,7 +345,11 @@
       pointToSection2: pointToSection2,
       sendToScriptForge: sendToScriptForge,
       rerender: function (id) {
-        if (ui && S.selectedId === id) renderDetail();
+        if (ui && S.selectedId === id && S.view !== "team") renderDetail();
+      },
+      /* V2 Part H: the Team view. */
+      rerenderTeam: function () {
+        if (ui && S.view === "team") renderDetail();
       },
       onSaved: function (id) {
         /* Reload this client's details directly: the list refresh may be skipped if the
@@ -354,7 +358,7 @@
         refresh();
       }
     };
-    brainLoading = Promise.all([import("/assets/growth-brain.js?v=p5"), import("/assets/growth-campaign.js?v=ab")]).then(function (mods) {
+    brainLoading = Promise.all([import("/assets/growth-brain.js?v=p5"), import("/assets/growth-campaign.js?v=h")]).then(function (mods) {
       brain = mods[0].createBrain(ctx);
       camps = mods[1].createCampaigns(ctx);
       if (ui) renderDetail();
@@ -426,7 +430,14 @@
       h("div", { class: "gc-shell" },
         h("div", { class: "gc-top" },
           h("div", null, h("h2", { style: "display:inline" }, "Growth Clients"), h("span", { class: "gc-admin", text: "Admin only" })),
-          h("button", { type: "button", class: "btn-copy", on: { click: closePanel } }, "Close")
+          h("div", { class: "gc-top-tools" },
+            h("button", { type: "button", class: "btn-copy", "aria-pressed": "false", id: "gcTeamBtn", on: { click: function () {
+              S.view = S.view === "team" ? "" : "team";
+              document.getElementById("gcTeamBtn").setAttribute("aria-pressed", S.view === "team" ? "true" : "false");
+              if (S.view === "team") loadBrain();
+              renderDetail();
+            } } }, "Team"),
+            h("button", { type: "button", class: "btn-copy", on: { click: closePanel } }, "Close"))
         ),
         h("div", { class: "gc-strip" }, ui.provider, ui.live),
         h("div", { class: "gc-body" }, side, ui.main)
@@ -505,7 +516,10 @@
     S.clients.forEach(function (c) {
       var meta = "Intake v" + c.latestIntakeVersion + " · Brain v" + c.latestBrainVersion;
       var b = h("button", { type: "button", class: "gc-client", "aria-current": c.id === S.selectedId ? "true" : "false", on: { click: function () {
-        if (S.selectedId === c.id && S.detail) return;
+        S.view = "";
+        var tb = document.getElementById("gcTeamBtn");
+        if (tb) tb.setAttribute("aria-pressed", "false");
+        if (S.selectedId === c.id && S.detail) { renderDetail(); return; }
         S.selectedId = c.id;
         S.detail = null;
         S.notice = null;
@@ -556,6 +570,16 @@
     if (!ui) return;
     clear(ui.main);
     if (S.notice) ui.main.appendChild(h("div", { class: "gc-msg " + S.notice.cls, role: "status", text: S.notice.text }));
+    /* V2 Part H: the Team view (language reviewers). */
+    if (S.view === "team") {
+      if (!camps) {
+        ui.main.appendChild(h("div", { class: "gc-msg info" }, h("span", { class: "spin" }), "Loading..."));
+        loadBrain();
+        return;
+      }
+      camps.renderTeam(ui.main, S.clients);
+      return;
+    }
     var c = selected();
     if (!c) {
       ui.main.appendChild(h("div", { class: "gc-soon" }, "Select a client on the left, or invite one."));

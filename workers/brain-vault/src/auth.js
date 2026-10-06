@@ -16,6 +16,7 @@
    If that email is in ADMIN_EMAILS the request is treated as admin. Client role is never
    granted through the bridge. */
 import { SESSION_COOKIE } from "./config.js";
+import { getMemberAuth, memberLoginLink } from "./team.js";
 import { getCookie, normEmail, nowIso, nowMs, randomToken, sha256hex } from "./util.js";
 import { composeEmail, sendMail } from "./mail.js";
 
@@ -89,7 +90,11 @@ export async function issueLoginLink(env, cfg, email, preferredLang) {
     /* A client who has left gets no login link (the reply stays the same neutral message). */
     if (client && !client.left_at) role = "client";
   }
-  if (!role) return;
+  if (!role) {
+    /* V2 Part H: a team member (language reviewer) gets their own kind of link. */
+    try { await memberLoginLink(env, cfg, email); } catch (e) { console.error("member link failed: " + e.message); }
+    return;
+  }
   const token = await createLoginToken(env, cfg, { email, role, clientId: client && client.id, purpose: "login" });
   const language = client ? client.language : preferredLang === "en" ? "en" : "sv";
   const mail = composeEmail("login", cfg, {
@@ -163,6 +168,9 @@ export async function getAuth(request, env, cfg) {
       }
     }
   }
+  /* V2 Part H: a team member's session (language reviewer). */
+  const member = await getMemberAuth(request, env);
+  if (member) return member;
   if (cfg.bridgeOn && getCookie(request, "sf_sid")) {
     return scriptforgeAdmin(request, cfg);
   }

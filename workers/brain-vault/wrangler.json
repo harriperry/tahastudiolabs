@@ -53,7 +53,7 @@
     "GROWTH_PANEL_PATH": "/scriptforge/#growth",
     "SCRIPTFORGE_ADMIN_BRIDGE": "on",
     "SCRIPTFORGE_ME_URL": "",
-    "CONSENT_VERSION": "c-3",
+    "CONSENT_VERSION": "c-4",
     "RETENTION_MONTHS": "6",
     "PRIVACY_URL": "https://tahastudiolabs.com/privacy.html#growth"
   },

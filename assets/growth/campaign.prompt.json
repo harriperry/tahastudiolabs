@@ -1,7 +1,7 @@
 {
   "name": "TAHA Growth Department: Campaign Generator prompt",
   "version": "campaign-prompt-1",
-  "notes": "Used by assets/growth-campaign.js. The system lines are joined with line breaks. Placeholders: {{SCHEMA}} the model-written part of campaign.schema.json, {{LANGUAGE_RULE}} one of languageRules, {{CHANNELS}} the selected channels. Edit wording freely; keep the placeholders. No em-dashes anywhere.",
+  "notes": "Used by assets/growth-campaign.js. The system lines are joined with line breaks. Placeholders: {{SCHEMA}} the model-written part of campaign.schema.json, {{LANGUAGE_RULE}} one of languageRules, {{CHANNELS}} the selected channels, {{LANGUAGE_NOTES}} the client's language notes from Part H (or None yet). Edit wording freely; keep the placeholders. No em-dashes anywhere.",
   "maxTokens": {
     "anthropic": 16000,
     "gemini": 16000,
@@ -53,6 +53,9 @@
     "",
     "The client's Business Brain (version {{BRAIN_VERSION}}):",
     "{{BRAIN_JSON}}",
+    "",
+    "Language notes from the client's Swedish language reviewer (keep to these in Swedish text):",
+    "{{LANGUAGE_NOTES}}",
     "",
     "Write the full campaign now. Reply with the JSON object only."
   ],

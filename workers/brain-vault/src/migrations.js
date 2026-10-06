@@ -371,5 +371,101 @@ export const MIGRATIONS = [
         value TEXT NOT NULL
       )`
     ]
+  },
+  {
+    id: 8,
+    name: "part-h-language-review",
+    statements: [
+      /* Part H: the TAHA team (Swedish language reviewers). Not clients: a member signs in
+         with a magic link of their own and sees only the language items of clients Harry
+         assigned. agreement_at must be set before the invite works. */
+      `CREATE TABLE IF NOT EXISTS team_members (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        role TEXT NOT NULL DEFAULT 'reviewer' CHECK (role IN ('reviewer')),
+        languages TEXT NOT NULL DEFAULT 'sv',
+        agreement_at TEXT,
+        active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0,1)),
+        created_at TEXT NOT NULL,
+        last_login_at TEXT
+      )`,
+      `CREATE TABLE IF NOT EXISTS team_access (
+        member_id TEXT NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        PRIMARY KEY (member_id, client_id)
+      )`,
+      /* Login links and sessions for team members, kept apart from client and admin ones. */
+      `CREATE TABLE IF NOT EXISTS member_tokens (
+        token_hash TEXT PRIMARY KEY,
+        member_id TEXT NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        used_at INTEGER
+      )`,
+      `CREATE TABLE IF NOT EXISTS member_sessions (
+        session_hash TEXT PRIMARY KEY,
+        member_id TEXT NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        last_seen INTEGER NOT NULL
+      )`,
+      /* One Swedish text field of one campaign output. */
+      `CREATE TABLE IF NOT EXISTS lang_items (
+        id TEXT PRIMARY KEY,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        campaign_id TEXT NOT NULL,
+        field_path TEXT NOT NULL,
+        output_key TEXT NOT NULL,
+        label TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        max_len INTEGER,
+        language TEXT NOT NULL DEFAULT 'sv',
+        state TEXT NOT NULL DEFAULT 'waiting' CHECK (state IN ('waiting','done','flagged','sent_back','approved','kept','outdated')),
+        round INTEGER NOT NULL DEFAULT 1,
+        member_id TEXT,
+        due TEXT,
+        note TEXT,
+        flag_comment TEXT,
+        reviewer_note TEXT,
+        draft TEXT,
+        sent_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE (client_id, campaign_id, field_path)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_lang_items_member ON lang_items (member_id, state)`,
+      /* Every version of every item, never overwritten. kind: machine, reviewed, approved. */
+      `CREATE TABLE IF NOT EXISTS lang_versions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id TEXT NOT NULL,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        kind TEXT NOT NULL CHECK (kind IN ('machine','reviewed','approved')),
+        text TEXT NOT NULL,
+        author TEXT NOT NULL,
+        round INTEGER NOT NULL,
+        base_hash TEXT NOT NULL,
+        at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_lang_versions_item ON lang_versions (item_id, id)`,
+      `CREATE TABLE IF NOT EXISTS lang_notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        preferred TEXT NOT NULL,
+        reason TEXT,
+        from_item TEXT,
+        at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS lang_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        member_id TEXT,
+        item_id TEXT,
+        action TEXT NOT NULL,
+        detail TEXT,
+        at TEXT NOT NULL
+      )`,
+      /* Always review Swedish (on by default). */
+      `ALTER TABLE clients ADD COLUMN lang_review INTEGER NOT NULL DEFAULT 1`
+    ]
   }
 ];

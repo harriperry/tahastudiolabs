@@ -29,7 +29,21 @@ li{margin:0 0 6px}
 <body>
 <main>
 <h1>TAHA Studio Labs Growth Department</h1>
-<p class="sub">V1 handover, 5 October 2026, built in six phases. V2 phases G1, G2a and G2b added 6 October 2026 (below). G2b is live; Parts A and B are on the branch <code>growth-ab</code>, not live yet.</p>
+<p class="sub">V1 handover, 5 October 2026, built in six phases. V2 phases G1, G2a and G2b added 6 October 2026 (below). G2b, Parts A and B are live; Part H is on the branch <code>growth-h</code>, not live yet.</p>
+
+<h2>V2 Part H: Swedish language review by a human</h2>
+<div class="card">
+<ul>
+<li><b>Team</b> (button at the top of the Growth Clients panel): invite a Swedish language reviewer with name and email, tick the clients they work on, and enter the date their confidentiality and data processing agreement was signed. The invite email only goes out once that date is set. Resend invite, Deactivate (ends their sessions at once; their past edits stay credited to them).</li>
+<li>The reviewer signs in at <b>tahastudiolabs.com/grow/review/</b> (magic link, Swedish first, English on request). They see only the texts you sent, for their clients: the machine text on the left, their version on the right with a character counter, the parts that must stay as they are (links, offer codes), the brand voice and words to use and avoid, and your note and due date. Drafts save themselves; you see nothing until Done. Done is refused over the limit, with an em-dash, with a word to avoid, or with a changed link or code. Flag sends you a question instead.</li>
+<li><b>Language review</b> box on every Swedish campaign: Send to language review (with a note and due date), Always review Swedish for the client (on by default: Swedish campaigns with a Visual Pack go automatically when saved), every text with machine and reviewed side by side and the changes highlighted word by word, and <b>Accept</b>, <b>Edit and approve</b>, <b>Send back</b> (with a comment, round 2) or <b>Keep machine text</b> (with a reason, logged). <b>Accept all</b> once everything is Done. Each output card shows a Swedish badge.</li>
+<li>Three versions per text are stored apart and never overwritten: machine (frozen when sent), reviewed, approved. If you edit or regenerate a sent text, it becomes <b>Outdated</b> and its old approval is no longer used until it is reviewed again.</li>
+<li><b>Production uses approved text only</b>: client review, Your content, the landing page and Send to ScriptForge. While Swedish texts wait, those steps show "Waiting for language review" and ask for a reason to go ahead anyway (logged).</li>
+<li><b>Language notes</b>: from any reviewed text, save a preferred wording and reason. The next Campaign Generator prompt for that client includes them ({{LANGUAGE_NOTES}}).</li>
+<li>GDPR: consent moves to <b>c-4</b> (one new point about the language reviewer) and privacy.html section 12 has a new paragraph in both languages. Every reviewer view and edit is logged. Export and erasure cover language items, versions, notes, the log and the reviewer's client access. Add a line to the client PUB-avtal that a named reviewer bound by confidentiality may read campaign texts.</li>
+</ul>
+</div>
+<div class="card"><p><b>To go live (needs your approval):</b> merge <code>growth-h</code> into <code>main</code> and push it to <code>growth-phase-1</code>. No Cloudflare change. Note: once live, any Swedish campaign of a client with Always review Swedish on is gated until its texts are approved (or you give a reason). Turn the setting off per client if you do not want that yet.</p></div>
 
 <h2>V2 Parts A and B: client approval and Your content</h2>
 <div class="card">

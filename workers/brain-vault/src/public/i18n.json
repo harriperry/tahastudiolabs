@@ -55,6 +55,10 @@
           "b": "Materialet skickas till externa AI-leverantörer, till exempel Anthropic och Google, för att skapa innehåll. De kan behandla det utanför EU, till exempel i USA, enligt sina egna dataskyddsvillkor."
         },
         {
+          "h": "Språkgranskning",
+          "b": "Svenska kampanjtexter kan granskas av en namngiven svensk språkspecialist som arbetar för TAHA Studio Labs. Hen ser bara texterna som ska granskas och dina varumärkesord, har tystnadsplikt, och varje visning och ändring loggas."
+        },
+        {
           "h": "Lagring",
           "b": "Din profil och dina filer lagras inom EU hos Cloudflare. Inloggnings- och aviseringsmejl skickas via Google Gmail och innehåller bara ditt namn och en länk."
         },
@@ -442,6 +446,45 @@
       "back": "Tillbaka",
       "history": "Tidigare kampanjer",
       "zipTitle": "Texter till {name}"
+    },
+    "rev": {
+      "title": "Språkgranskning",
+      "lead": "Svenska texter som väntar på dig. Maskinens text till vänster, din version till höger.",
+      "signin": "Logga in med din e-postadress så skickar vi en inloggningslänk.",
+      "notMember": "Den här sidan är för TAHA:s språkgranskare.",
+      "queue": "Att granska",
+      "filterWaiting": "Väntar",
+      "filterDone": "Klara",
+      "filterBack": "Tillbaka till dig",
+      "empty": "Inget att granska just nu.",
+      "machine": "Maskinens text",
+      "yours": "Din version",
+      "limit": "{n} av {max} tecken",
+      "done": "Klar",
+      "flag": "Flagga",
+      "flagWhat": "Vad är oklart? (till exempel: erbjudandet är otydligt, fråga kunden)",
+      "sendFlag": "Skicka flaggan",
+      "noteHarry": "Anteckning till Harry (frivilligt)",
+      "saved": "Utkast sparat",
+      "saving": "Sparar...",
+      "locked": "Får inte ändras:",
+      "voice": "Varumärkesröst",
+      "use": "Ord att använda",
+      "avoid": "Ord att undvika",
+      "noteFrom": "Från Harry",
+      "backComment": "Harry skickade tillbaka: {c}",
+      "flagged": "Flaggad: {c}",
+      "stDone": "Klar",
+      "stWaiting": "Väntar",
+      "stBack": "Tillbaka",
+      "stFlagged": "Flaggad",
+      "due": "Senast {d}",
+      "round": "Omgång {n}",
+      "next": "Nästa",
+      "prev": "Föregående",
+      "signout": "Logga ut",
+      "fixFirst": "Rätta det här först:",
+      "doneOk": "Markerad som klar."
     }
   },
   "en": {
@@ -497,6 +540,10 @@
         {
           "h": "AI services",
           "b": "Your material is sent to third-party AI providers, for example Anthropic and Google, to create content. They may process it outside the EU, for example in the USA, under their own data protection terms."
+        },
+        {
+          "h": "Language review",
+          "b": "Swedish campaign texts may be checked by a named Swedish language specialist working for TAHA Studio Labs. They see only the texts to check and your brand words, are bound by confidentiality, and every view and edit is logged."
         },
         {
           "h": "Storage",
@@ -886,6 +933,45 @@
       "back": "Back",
       "history": "Earlier campaigns",
       "zipTitle": "Texts for {name}"
+    },
+    "rev": {
+      "title": "Language review",
+      "lead": "Swedish texts waiting for you. The machine text on the left, your version on the right.",
+      "signin": "Sign in with your email address and we will send you a login link.",
+      "notMember": "This page is for TAHA's language reviewers.",
+      "queue": "To review",
+      "filterWaiting": "Waiting",
+      "filterDone": "Done",
+      "filterBack": "Sent back",
+      "empty": "Nothing to review right now.",
+      "machine": "Machine text",
+      "yours": "Your version",
+      "limit": "{n} of {max} characters",
+      "done": "Done",
+      "flag": "Flag",
+      "flagWhat": "What is unclear? (for example: the offer itself is unclear, please ask the client)",
+      "sendFlag": "Send the flag",
+      "noteHarry": "Note to Harry (optional)",
+      "saved": "Draft saved",
+      "saving": "Saving...",
+      "locked": "Must stay as it is:",
+      "voice": "Brand voice",
+      "use": "Words to use",
+      "avoid": "Words to avoid",
+      "noteFrom": "From Harry",
+      "backComment": "Harry sent it back: {c}",
+      "flagged": "Flagged: {c}",
+      "stDone": "Done",
+      "stWaiting": "Waiting",
+      "stBack": "Sent back",
+      "stFlagged": "Flagged",
+      "due": "Due {d}",
+      "round": "Round {n}",
+      "next": "Next",
+      "prev": "Previous",
+      "signout": "Sign out",
+      "fixFirst": "Fix this first:",
+      "doneOk": "Marked as done."
     }
   }
 }

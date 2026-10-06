@@ -50,6 +50,11 @@ const CLIENT_TABLES = [
   ["reviews", "client_id"],
   ["campaign_log", "client_id"],
   ["uploads", "client_id"],
+  ["lang_versions", "client_id"],
+  ["lang_items", "client_id"],
+  ["lang_notes", "client_id"],
+  ["lang_log", "client_id"],
+  ["team_access", "client_id"],
   ["consents", "client_id"],
   ["status_history", "client_id"],
   ["sessions", "client_id"],
@@ -110,6 +115,12 @@ export async function exportClient(env, cfg, clientId) {
     reviews: (await all(env, "SELECT campaign_id AS campaignId, round, state, sent_at AS sentAt, decided_at AS decidedAt FROM reviews WHERE client_id = ? ORDER BY campaign_id, round", clientId)),
     reviewAnswers: (await all(env, "SELECT i.output_key AS outputKey, i.verdict, i.comment, i.at, r.campaign_id AS campaignId, r.round FROM review_items i JOIN reviews r ON r.id = i.review_id WHERE i.client_id = ? ORDER BY i.at", clientId)),
     campaignLog: (await all(env, "SELECT campaign_id AS campaignId, event, detail, at FROM campaign_log WHERE client_id = ? ORDER BY id", clientId)),
+    languageReview: {
+      items: await all(env, "SELECT id, campaign_id AS campaignId, field_path AS path, label, state, round, sent_at AS sentAt, updated_at AS updatedAt FROM lang_items WHERE client_id = ? ORDER BY sent_at", clientId),
+      versions: await all(env, "SELECT item_id AS itemId, kind, text, author, round, at FROM lang_versions WHERE client_id = ? ORDER BY id", clientId),
+      notes: await all(env, "SELECT preferred, reason, at FROM lang_notes WHERE client_id = ? ORDER BY id", clientId),
+      log: await all(env, "SELECT member_id AS memberId, item_id AS itemId, action, detail, at FROM lang_log WHERE client_id = ? ORDER BY id", clientId)
+    },
     pageEventsKept: ((await all(env, "SELECT COUNT(*) AS n FROM events WHERE client_id = ?", clientId))[0] || { n: 0 }).n,
     results: await Promise.all((await all(env, "SELECT DISTINCT campaign_id FROM campaigns WHERE client_id = ?", clientId)).map(async (r) => ({
       campaignId: r.campaign_id,

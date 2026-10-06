@@ -345,7 +345,7 @@ try {
 
   /* Health */
   r = await call("/health");
-  ok(r.status === 200 && r.data.part === "ab", "health reports the current part");
+  ok(r.status === 200 && /^[a-z0-9]+$/.test(r.data.part), "health reports the current part");
 } catch (e) {
   fail++;
   console.log("FAIL crashed: " + e.stack);

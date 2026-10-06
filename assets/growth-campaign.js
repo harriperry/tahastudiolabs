@@ -39,11 +39,12 @@ import {
   sizeLabel,
   withVisuals
 } from "./growth-visuals.js?v=g2a";
-import { createLandingUi } from "./growth-landing.js?v=ab";
-import { createReviewUi } from "./growth-review.js?v=ab";
+import { createLandingUi } from "./growth-landing.js?v=h";
+import { createReviewUi } from "./growth-review.js?v=h";
+import { createLangUi } from "./growth-lang.js?v=h";
 
 const VAULT = "/api/vault";
-const PROMPT_URL = "/assets/growth/campaign.prompt.json?v=p5";
+const PROMPT_URL = "/assets/growth/campaign.prompt.json?v=h";
 const DRAFT_PREFIX = "taha-growth-campaign-draft:";
 const SET_BY_SCRIPTFORGE = ["schemaVersion", "clientId", "campaignId", "brainVersion", "name", "month", "goal", "language", "channels", "status"];
 
@@ -294,6 +295,7 @@ export function createCampaigns(ctx) {
   const vis = createVisualsUi(ctx);
   const lp = createLandingUi(ctx);
   const rv = createReviewUi(ctx);
+  const lg = createLangUi(ctx);
 
   function entry(id) {
     if (!cache[id]) {
@@ -427,7 +429,9 @@ export function createCampaigns(ctx) {
       OFFER: f.offer || "No specific offer this month: lead with the product itself.",
       CHANNELS: f.channels.join(", "),
       BRAIN_VERSION: String(brain.brainVersion),
-      BRAIN_JSON: JSON.stringify(brain, null, 1)
+      BRAIN_JSON: JSON.stringify(brain, null, 1),
+      /* V2 Part H: what the language reviewer taught us about this client's Swedish. */
+      LANGUAGE_NOTES: lg.notesText(c.id)
     };
   }
 
@@ -705,10 +709,21 @@ export function createCampaigns(ctx) {
     ctx.rerender(id);
   }
 
-  async function setStatus(c, campaignId, status, override) {
+  async function setStatus(c, campaignId, status, override, langOverride) {
     const id = c.id;
     const e = entry(id);
-    const r = await api("/admin/campaign/" + encodeURIComponent(id) + "/" + encodeURIComponent(campaignId) + "/status", { method: "PATCH", body: override ? { status, override } : { status } });
+    const body = { status };
+    if (override) body.override = override;
+    if (langOverride) body.langOverride = langOverride;
+    const r = await api("/admin/campaign/" + encodeURIComponent(id) + "/" + encodeURIComponent(campaignId) + "/status", { method: "PATCH", body });
+    /* V2 Part H: Swedish texts not approved yet. */
+    if (r.status === 409 && r.d && r.d.error === "lang_pending") {
+      e.langAsk = { campaignId, override };
+      e.msg = { cls: "err", text: r.d.message.en + " Approve them in the Language review box, or give a reason to deliver anyway." };
+      ctx.rerender(id);
+      return;
+    }
+    e.langAsk = null;
     /* V2 Part A: without the client's approval, Mark delivered asks for a reason first. */
     if (r.status === 409 && r.d && r.d.error === "not_approved") {
       e.deliverAsk = campaignId;
@@ -998,6 +1013,12 @@ export function createCampaigns(ctx) {
       if (editingThis) {
         tools.appendChild(h("button", { type: "button", class: "gc-brain-btn", on: { click: () => save(c) } }, e.isNew ? "Save campaign" : "Save changes"));
         tools.appendChild(h("button", { type: "button", class: "btn-ghost", on: { click: () => discard(c.id) } }, e.isNew ? "Discard" : "Undo changes"));
+      } else if (doc.status !== "delivered" && e.langAsk && e.langAsk.campaignId === doc.campaignId) {
+        const lid = "gc-lang-why-" + c.id;
+        const lwhy = h("input", { type: "text", id: lid, placeholder: "For example: client approved the Swedish herself" });
+        tools.appendChild(h("div", { class: "gc-ed" }, h("label", { for: lid, text: "Reason to deliver before language review (logged):" }), lwhy));
+        tools.appendChild(h("button", { type: "button", class: "gc-brain-btn", on: { click: () => { if (lwhy.value.trim().length >= 5) setStatus(c, doc.campaignId, "delivered", e.langAsk.override, lwhy.value.trim()); else lwhy.focus(); } } }, "Deliver anyway"));
+        tools.appendChild(h("button", { type: "button", class: "gc-link", on: { click: () => { e.langAsk = null; ctx.rerender(c.id); } } }, "Cancel"));
       } else if (doc.status !== "delivered" && e.deliverAsk === doc.campaignId) {
         const rid = "gc-deliver-why-" + c.id;
         const why = h("input", { type: "text", id: rid, placeholder: "For example: approved by phone on 7 October" });
@@ -1092,10 +1113,12 @@ export function createCampaigns(ctx) {
 
     /* V2 phase G2b: the hosted landing page and its numbers, built from the saved campaign. */
     if (savedCampaignId && savedDoc) {
+      /* V2 Part H: everything that leaves TAHA uses the approved Swedish text. */
+      const prodDoc = lg.productionDoc(c.id, savedCampaignId, savedDoc);
       const info = {
         client: c,
         campaignId: savedCampaignId,
-        doc: savedDoc,
+        doc: prodDoc,
         d,
         brain,
         kit: vis.kitState(c.id).kit,
@@ -1106,6 +1129,7 @@ export function createCampaigns(ctx) {
       lp.renderPerformance(pane, info);
       /* V2 Parts A and B: client review, and the files she gets in Your content. */
       rv.renderBox(pane, { client: c, campaignId: savedCampaignId, doc: savedDoc, dirty: e.dirty && doc === e.working });
+      lg.renderBox(pane, { client: c, campaignId: savedCampaignId, doc: savedDoc, dirty: e.dirty && doc === e.working });
       rv.renderFiles(pane, {
         client: c,
         campaignId: savedCampaignId,
@@ -1129,9 +1153,25 @@ export function createCampaigns(ctx) {
       }
       if (card.key === "shortVideo") {
         /* V2 phase G1: the video goes to ScriptForge for one of the two generators it offers. */
-        actions.appendChild(h("button", { type: "button", class: "btn-copy gc-send", title: "Scenes and B-roll", on: { click: () => ctx.sendToScriptForge(doc.shortVideo.script, "veo") } }, "Send to ScriptForge: Veo 3.1"));
-        actions.appendChild(h("button", { type: "button", class: "btn-copy gc-send", title: "Talking avatar, founder voice", on: { click: () => ctx.sendToScriptForge(doc.shortVideo.script, "heygen") } }, "Send to ScriptForge: HeyGen"));
+        /* V2 Part H: the video goes with its approved Swedish script, or waits for it. */
+        const sendVideo = (target) => {
+          const blocked = savedCampaignId && lg.videoBlocked(c.id, savedCampaignId);
+          if (blocked && !e.videoOverride) {
+            e.cardMsg.shortVideo = { cls: "err", text: "Waiting for language review: the Swedish script is not approved yet. Click again to send the machine script anyway." };
+            e.videoOverride = true;
+            ctx.rerender(c.id);
+            return;
+          }
+          e.videoOverride = false;
+          e.cardMsg.shortVideo = null;
+          const script = savedCampaignId ? lg.productionDoc(c.id, savedCampaignId, doc).shortVideo.script : doc.shortVideo.script;
+          ctx.sendToScriptForge(script, target);
+        };
+        actions.appendChild(h("button", { type: "button", class: "btn-copy gc-send", title: "Scenes and B-roll", on: { click: () => sendVideo("veo") } }, "Send to ScriptForge: Veo 3.1"));
+        actions.appendChild(h("button", { type: "button", class: "btn-copy gc-send", title: "Talking avatar, founder voice", on: { click: () => sendVideo("heygen") } }, "Send to ScriptForge: HeyGen"));
       }
+      const lb = savedCampaignId ? lg.cardBadge(c.id, savedCampaignId, card.key) : null;
+      if (lb) head.querySelector("h4").appendChild(lb);
       head.appendChild(actions);
       const body = h("div", { class: "gc-card-body" });
       if (e.editing[card.key]) {
@@ -1188,5 +1228,5 @@ export function createCampaigns(ctx) {
     pane.appendChild(list);
   }
 
-  return { renderTab, entry, load };
+  return { renderTab, entry, load, renderTeam: lg.renderTeam };
 }

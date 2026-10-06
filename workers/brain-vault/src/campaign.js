@@ -15,6 +15,7 @@ import { validate } from "./validate.js";
 import { json, nowIso, readJson } from "./util.js";
 import { looksLikeKey } from "./brain.js";
 import { composeDeliveredEmail, sendMail } from "./mail.js";
+import { afterCampaignSaved, checkLangGate } from "./lang.js";
 
 const M = {
   badRequest: { sv: "Ogiltig förfrågan.", en: "Bad request." },
@@ -63,7 +64,7 @@ async function setClientStatus(env, clientId, status, t) {
   return stmts;
 }
 
-export async function saveCampaign(request, env, clientId) {
+export async function saveCampaign(request, env, clientId, cfg, ctx) {
   const client = await env.DB.prepare("SELECT id FROM clients WHERE id = ?").bind(clientId).first();
   if (!client) return json({ error: "not_found", message: M.notFound }, 404);
   const b = await readJson(request, 512 * 1024);
@@ -93,6 +94,10 @@ export async function saveCampaign(request, env, clientId) {
           .bind(clientId, doc.campaignId, bv, doc.month, JSON.stringify(doc), t, t)
   ].concat(await setClientStatus(env, clientId, "campaign_in_production", t));
   await env.DB.batch(stmts);
+  /* V2 Part H: edited texts become Outdated; Always review Swedish queues new campaigns. */
+  if (cfg && ctx) {
+    try { await afterCampaignSaved(env, cfg, ctx, clientId, doc); } catch (e) { console.error("language review hook failed: " + e.message); }
+  }
   return json({ ok: true, created: !existing, campaign: doc, clientStatus: "campaign_in_production", statusLabel: STATUS_LABELS.campaign_in_production, savedAt: t }, existing ? 200 : 201);
 }
 
@@ -108,6 +113,9 @@ export async function setCampaignStatus(request, env, clientId, campaignId, cfg,
      reason from Harry, which is logged. */
   const logs = [];
   if (status === "delivered" && r.status !== "delivered") {
+    /* V2 Part H: Swedish texts must be approved first (or Harry gives a reason). */
+    const lg = await checkLangGate(env, clientId, campaignId, JSON.parse(r.data), b.langOverride);
+    if (lg) return lg;
     const rv = await env.DB.prepare("SELECT state, round FROM reviews WHERE client_id = ? AND campaign_id = ? AND state != 'withdrawn' ORDER BY round DESC LIMIT 1").bind(clientId, campaignId).first();
     const reason = typeof b.override === "string" ? b.override.replace(/\u2014/g, ", ").trim().slice(0, 500) : "";
     if (!rv || rv.state !== "approved") {

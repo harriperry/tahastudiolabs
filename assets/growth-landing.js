@@ -768,7 +768,7 @@ export function createLandingUi(ctx) {
     ctx.rerender(info.client.id);
   }
 
-  function publish(info) {
+  function publish(info, langOverride) {
     return run(info, "Publishing", async (step) => {
       const s = st(info.client.id, info.campaignId);
       const probs = check(s.form, info.doc);
@@ -779,7 +779,13 @@ export function createLandingUi(ctx) {
       step("building the page");
       const b = await build(info, "hosted", images);
       step("sending it to the Vault");
-      const r = await api("/admin/page/" + encodeURIComponent(info.client.id) + "/" + encodeURIComponent(info.campaignId) + "/publish", { method: "POST", body: { html: b.html, endedHtml: b.ended } });
+      const r = await api("/admin/page/" + encodeURIComponent(info.client.id) + "/" + encodeURIComponent(info.campaignId) + "/publish", { method: "POST", body: langOverride ? { html: b.html, endedHtml: b.ended, langOverride } : { html: b.html, endedHtml: b.ended } });
+      /* V2 Part H: a Swedish page waits for approved text. */
+      if (r.status === 409 && r.d && r.d.error === "lang_pending") {
+        s.langAsk = true;
+        throw new Error(r.d.message.en + " Approve them in the Language review box, or give a reason to publish anyway.");
+      }
+      s.langAsk = false;
       if (!r.ok || !r.d) throw new Error((r.d && r.d.message && r.d.message.en) || "Could not publish the page.");
       s.page = r.d.page;
       s.links = r.d.links || s.links;
@@ -997,6 +1003,12 @@ export function createLandingUi(ctx) {
     if (probs.length && !busy) box.appendChild(h("div", { class: "gc-meta", text: "Before publishing: " + probs.join(" ") }));
     if (s.busy) box.appendChild(h("div", { class: "gc-msg info" }, h("span", { class: "spin" }), s.busy + "..."));
     if (s.msg) box.appendChild(h("div", { class: "gc-msg " + s.msg.cls, role: "status", text: s.msg.text }));
+    if (s.langAsk && !busy) {
+      const wid = "lp-lang-why-" + client.id;
+      const why = h("input", { type: "text", id: wid, placeholder: "For example: page goes live now, Swedish check tomorrow" });
+      box.appendChild(h("div", { class: "gc-ed" }, h("label", { for: wid, text: "Reason to publish before language review (logged)" }), why));
+      box.appendChild(h("button", { type: "button", class: "btn-ghost", on: { click: () => { if (why.value.trim().length >= 5) publish(info, why.value.trim()); else why.focus(); } } }, "Publish anyway"));
+    }
 
     if (s.preview && s.previewHtml) {
       const bar = h("div", { class: "gc-brain-tools" });

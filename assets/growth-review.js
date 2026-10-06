@@ -61,13 +61,21 @@ export function createReviewUi(ctx) {
       });
   }
 
-  async function send(info) {
+  async function send(info, langOverride) {
     const s = st(info.client.id, info.campaignId);
     s.busy = true;
     s.msg = null;
     ctx.rerender(info.client.id);
-    const r = await api("/admin/campaign/" + encodeURIComponent(info.client.id) + "/" + encodeURIComponent(info.campaignId) + "/review", { method: "POST", body: {} });
+    const r = await api("/admin/campaign/" + encodeURIComponent(info.client.id) + "/" + encodeURIComponent(info.campaignId) + "/review", { method: "POST", body: langOverride ? { langOverride } : {} });
     s.busy = false;
+    /* V2 Part H: Swedish texts not approved yet. */
+    if (r.status === 409 && r.d && r.d.error === "lang_pending") {
+      s.langAsk = true;
+      s.msg = { cls: "err", text: r.d.message.en + " Approve them in the Language review box, or give a reason to send the campaign anyway." };
+      ctx.rerender(info.client.id);
+      return;
+    }
+    s.langAsk = false;
     if (r.ok && r.d) {
       s.rounds = r.d.rounds || [];
       s.log = r.d.log || [];
@@ -105,6 +113,12 @@ export function createReviewUi(ctx) {
     if (dirty) tools.appendChild(h("span", { class: "gc-meta", text: "Save your changes first; she sees the saved campaign." }));
     box.appendChild(tools);
     if (s.msg) box.appendChild(h("div", { class: "gc-msg " + s.msg.cls, role: "status", text: s.msg.text }));
+    if (s.langAsk) {
+      const id = "rv-lang-why-" + client.id;
+      const why = h("input", { type: "text", id, placeholder: "For example: she reads English, Swedish check after" });
+      box.appendChild(h("div", { class: "gc-ed" }, h("label", { for: id, text: "Reason to send before language review (logged)" }), why));
+      box.appendChild(h("button", { type: "button", class: "btn-ghost", on: { click: () => { if (why.value.trim().length >= 5) send(info, why.value.trim()); else why.focus(); } } }, "Send anyway"));
+    }
     const older = s.rounds.filter((x) => x !== r);
     if (older.length || s.log.length) {
       box.appendChild(h("button", { type: "button", class: "gc-link", on: { click: () => { s.showOld = !s.showOld; ctx.rerender(client.id); } } }, s.showOld ? "Hide history" : "History (" + (older.length) + " earlier rounds, " + s.log.length + " events)"));
