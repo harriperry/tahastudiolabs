@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ScriptForge | AI Video Script Splitter and Prompt Generator</title>
-<meta name="description" content="Turn one idea into a timed video script. ScriptForge writes TTS text, B-roll prompts and camera notes per segment for Veo 3.1, Grok and HeyGen. Free mock test.">
+<meta name="description" content="Turn one idea into a timed video script. ScriptForge writes TTS text, B-roll prompts and camera notes per segment for Veo 3.1 and HeyGen. Free mock test.">
 <link rel="icon" href="/assets/brand/scriptforge-32.png" sizes="32x32" type="image/png">
 <link rel="icon" type="image/png" href="/assets/brand/scriptforge-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="/assets/brand/scriptforge-apple-touch.png">
@@ -12,14 +12,14 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TAHA Studio Labs">
 <meta property="og:title" content="ScriptForge | AI Video Script Splitter and Prompt Generator">
-<meta property="og:description" content="Turn one idea into a timed video script. ScriptForge writes TTS text, B-roll prompts and camera notes per segment for Veo 3.1, Grok and HeyGen. Free mock test.">
+<meta property="og:description" content="Turn one idea into a timed video script. ScriptForge writes TTS text, B-roll prompts and camera notes per segment for Veo 3.1 and HeyGen. Free mock test.">
 <meta property="og:url" content="https://www.tahastudiolabs.com/scriptforge/">
 <meta property="og:image" content="https://www.tahastudiolabs.com/assets/brand/og-scriptforge.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="ScriptForge | AI Video Script Splitter and Prompt Generator">
-<meta name="twitter:description" content="Turn one idea into a timed video script. ScriptForge writes TTS text, B-roll prompts and camera notes per segment for Veo 3.1, Grok and HeyGen. Free mock test.">
+<meta name="twitter:description" content="Turn one idea into a timed video script. ScriptForge writes TTS text, B-roll prompts and camera notes per segment for Veo 3.1 and HeyGen. Free mock test.">
 <meta name="twitter:image" content="https://www.tahastudiolabs.com/assets/brand/og-scriptforge.png">
 <script type="application/ld+json">
 {
@@ -27,7 +27,7 @@
   "@type": "SoftwareApplication",
   "name": "ScriptForge",
   "url": "https://www.tahastudiolabs.com/scriptforge/",
-  "description": "ScriptForge turns one idea or a full script into a timed, segmented video script with TTS-ready dialogue, B-roll prompts, camera motion and audio notes, then hands each segment to Google Veo 3.1, xAI Grok Imagine or HeyGen.",
+  "description": "ScriptForge turns one idea or a full script into a timed, segmented video script with TTS-ready dialogue, B-roll prompts, camera motion and audio notes, then hands each segment to Google Veo 3.1 or HeyGen.",
   "applicationCategory": "MultimediaApplication",
   "operatingSystem": "Web browser",
   "publisher": {
@@ -36,7 +36,7 @@
 }
 </script>
 <link rel="stylesheet" href="/assets/app.css">
-<link rel="stylesheet" href="/assets/growth.css?v=p6">
+<link rel="stylesheet" href="/assets/growth.css?v=g1">
 <script src="/assets/jspdf.umd.min.js" defer></script>
 </head>
 <body>
@@ -50,6 +50,10 @@
 <main>
 <!-- ══════════ LEFT: CONFIG ══════════ -->
 <div>
+  <div class="card" id="retiredProviderNotice" role="status" style="display:none;border-color:var(--accent)">
+    <p style="margin:0 0 10px;line-height:1.6"><b>Grok Imagine has been retired from ScriptForge.</b> Your video segments now use Veo 3.1, and the xAI key saved on this device was removed. Add a Google Gemini key in section 6 to keep generating clips.</p>
+    <button type="button" class="btn-copy" id="retiredProviderOk">Got it</button>
+  </div>
   <div class="card">
     <h2>1 · Production Type</h2>
     <label>Script type <span style="color:var(--muted);font-weight:400">(drives the recommendation below - provider, video and voice tips are all keyed off this)</span></label>
@@ -233,11 +237,6 @@
     <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
       <input type="checkbox" id="rememberVideoKeyVeo" style="width:auto"> Remember on this device
     </label>
-    <label style="margin-top:12px">xAI API key (for Grok Imagine) - console.x.ai</label>
-    <input type="password" id="videoKeyGrok" placeholder="xai-...">
-    <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
-      <input type="checkbox" id="rememberVideoKeyGrok" style="width:auto"> Remember on this device
-    </label>
     <label style="margin-top:12px">HeyGen API key (for HeyGen Video Agent) - app.heygen.com Settings → API</label>
     <input type="password" id="videoKeyHeygen" placeholder="your HeyGen key">
 <label style="margin-top:12px">HeyGen Avatar ID <span style="color:var(--muted);font-weight:400">(optional - only needed for ElevenLabs audio-driven voice matching, see section 6 below)</span></label>
@@ -245,32 +244,32 @@
     <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
       <input type="checkbox" id="rememberVideoKeyHeygen" style="width:auto"> Remember on this device
     </label>
-    <label style="margin-top:14px">Aspect ratio <span style="color:var(--muted);font-weight:400">(Veo 3.1 &amp; Grok Imagine)</span></label>
+    <label style="margin-top:14px">Aspect ratio <span style="color:var(--muted);font-weight:400">(Veo 3.1)</span></label>
     <select id="vidAspectRatio">
       <option value="16:9" selected>16:9 - landscape</option>
       <option value="9:16">9:16 - portrait</option>
     </select>
-    <label style="margin-top:12px">Resolution <span style="color:var(--muted);font-weight:400">(Veo 3.1 - Grok is capped lower, see note below)</span></label>
+    <label style="margin-top:12px">Resolution <span style="color:var(--muted);font-weight:400">(Veo 3.1)</span></label>
     <select id="vidResolution">
       <option value="720p" selected>720p</option>
       <option value="1080p">1080p (Veo: forces 8s duration)</option>
       <option value="4k">4k (Veo: forces 8s duration, slower/pricier)</option>
     </select>
-    <p style="color:var(--muted);font-size:.72rem;margin-top:6px">HeyGen has no resolution or aspect-ratio parameter - it auto-detects orientation from your script/prompt. Grok Imagine only supports 16:9/9:16 here (same as Veo) and always renders at 720p regardless of the Resolution setting above, since this model tier doesn't support 1080p/4k.</p>
-    <label style="margin-top:14px">Reference images <span style="color:var(--muted);font-weight:400">(optional, Veo 3.1 or Grok Imagine - up to 3)</span></label>
+    <p style="color:var(--muted);font-size:.72rem;margin-top:6px">HeyGen has no resolution or aspect-ratio parameter - it auto-detects orientation from your script/prompt.</p>
+    <label style="margin-top:14px">Reference images <span style="color:var(--muted);font-weight:400">(optional, Veo 3.1 - up to 3)</span></label>
       <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
         <div><input type="file" id="refImg1" accept="image/*" style="max-width:150px"><br><span style="color:var(--muted);font-size:.68rem">1 - required speaker</span><br><img id="refImg1prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
         <div><input type="file" id="refImg2" accept="image/*" style="max-width:150px"><br><span style="color:var(--muted);font-size:.68rem">2 - other participant</span><br><img id="refImg2prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
         <div><input type="file" id="refImg3" accept="image/*" style="max-width:150px"><br><span style="color:var(--muted);font-size:.68rem">3 - other participant</span><br><img id="refImg3prev" style="display:none;max-width:70px;border-radius:6px;margin-top:4px"></div>
       </div>
-      <p style="color:var(--muted);font-size:.72rem;margin-top:6px">Slot 1 is treated as the required on-camera narrator/speaker - the clip is explicitly instructed to preserve that face throughout. Slots 2-3 are optional supporting participants or objects. Not used by HeyGen (no reference-image support in its API). If attached: Veo clips generate at 8s (Google's requirement for image-referenced video); Grok clips are capped at 10s even if you selected a longer duration above (xAI's requirement for reference-guided video).</p>
+      <p style="color:var(--muted);font-size:.72rem;margin-top:6px">Slot 1 is treated as the required on-camera narrator/speaker - the clip is explicitly instructed to preserve that face throughout. Slots 2-3 are optional supporting participants or objects. Not used by HeyGen (no reference-image support in its API). If attached: Veo clips generate at 8s (Google's requirement for image-referenced video).</p>
   </div>
   <div class="card">
     <h2>7 · ElevenLabs Voice <span style="color:var(--muted);font-weight:400;font-size:.8rem">(optional, voice ID picker)</span></h2>
     <p style="color:var(--muted);font-size:.8rem;margin:0 0 10px">
       Connect your ElevenLabs account and pick a Voice ID to get real narration audio generated per segment. For
 <b>HeyGen</b>: also fill in a HeyGen Avatar ID above and each clip is generated in HeyGen's audio-driven mode using
-this exact voice, for genuine lip-synced consistency across segments. For <b>Veo / Grok</b>: neither accepts
+this exact voice, for genuine lip-synced consistency across segments. For <b>Veo</b>: it does not accept
 external audio, so the narration is generated alongside each clip as a downloadable file to mux in your own editor
 instead. The Voice ID is also still written into your script's TECHNICAL SPECS block as before.</p>
     <label>ElevenLabs API key <span style="color:var(--muted);font-weight:400"> - elevenlabs.io → Profile → API Keys</span></label>
@@ -311,14 +310,14 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
   <div class="card" style="padding:32px 30px">
     <h2 style="margin-bottom:6px">About ScriptForge</h2>
     <p style="font-size:1.3rem;font-weight:700;color:var(--text);line-height:1.35;margin:0 0 18px">Your go-to AI tool that transforms ideas into content.</p>
-    <p style="color:var(--text);line-height:1.7;margin-bottom:14px">ScriptForge is TAHA Studio Labs' end-to-end AI writing and video production tool. Paste a single idea - a product, a story, a message you want people to hear - and ScriptForge writes it into a fully segmented, timed script, complete with on-camera direction, TTS-ready dialogue, B-roll prompts, camera motion, and audio notes. Then, segment by segment, it hands that script straight to Google Veo 3.1, xAI's Grok Imagine, or HeyGen's Video Agent to generate an actual video clip - voice, music, and all. No separate scriptwriting app. No separate storyboard tool. No separate video generator. One idea in, one production-ready video out.</p>
+    <p style="color:var(--text);line-height:1.7;margin-bottom:14px">ScriptForge is TAHA Studio Labs' end-to-end AI writing and video production tool. Paste a single idea - a product, a story, a message you want people to hear - and ScriptForge writes it into a fully segmented, timed script, complete with on-camera direction, TTS-ready dialogue, B-roll prompts, camera motion, and audio notes. Then, segment by segment, it hands that script straight to Google Veo 3.1 or HeyGen's Video Agent to generate an actual video clip - voice, music, and all. No separate scriptwriting app. No separate storyboard tool. No separate video generator. One idea in, one production-ready video out.</p>
     <p style="color:var(--text);line-height:1.7;margin-bottom:14px">It's built for solo creators, marketers, agencies, and small businesses who need short-form video - ads, explainers, social clips, documentary segments - without a writers' room, a studio, or a production schedule measured in weeks.</p>
     <p style="color:var(--text);line-height:1.7;margin-bottom:18px"><b style="color:var(--accent2)">Time saved:</b> what used to take a script draft, a revision pass, a storyboard, a voice actor booking, and a day in an edit bay now takes minutes. Paste your idea and ScriptForge formats a complete, timed script in under a minute. Click "Generate clip" on any segment, and a spoken, scored video clip is ready a few minutes later - no editing software, no timeline, no rendering rig of your own. Projects that used to take days now finish in one sitting.</p>
     <p style="color:var(--accent2);font-size:.8rem;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">What makes it different</p>
     <ul style="color:var(--text);line-height:1.8;margin:0 0 20px;padding-left:20px">
       <li><b>All-in-one pipeline</b> - script writing, segmenting, and video generation in one tool, not three.</li>
-      <li><b>Your keys, your cost</b> - bring your own Veo, Grok, or HeyGen API key and pay providers directly. No markup, no locked-in credit packs.</li>
-      <li><b>Provider choice per segment</b> - pick the best generator for each moment: Veo or Grok for silent B-roll and dialogue, HeyGen for a talking, on-camera presenter.</li>
+      <li><b>Your keys, your cost</b> - bring your own Veo or HeyGen API key and pay providers directly. No markup, no locked-in credit packs.</li>
+      <li><b>Provider choice per segment</b> - pick the best generator for each moment: Veo for B-roll and dialogue scenes, HeyGen for a talking, on-camera presenter.</li>
       <li><b>Full creative control</b> - aspect ratio, resolution, duration, and up to three reference images to keep a character or product consistent across every clip.</li>
       <li><b>Privacy by design</b> - your scripts and API keys are relayed for a single request only, never stored, never logged.</li>
       <li><b>Built for real production</b> - every segment lands on exact, precisely timed boundaries (10s for the first three, 15s from there on), matching how social platforms and ad slots actually cut.</li>
@@ -334,7 +333,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     <h3 style="font-size:1rem;color:var(--accent2);margin:18px 0 6px">How long are the video segments?</h3>
     <p style="color:var(--text);line-height:1.7;margin:0">ScriptForge splits your script into precisely timed segments of 10 to 15 seconds. A project can run from 30 seconds up to 5 minutes.</p>
     <h3 style="font-size:1rem;color:var(--accent2);margin:18px 0 6px">Which AI video generators does ScriptForge work with?</h3>
-    <p style="color:var(--text);line-height:1.7;margin:0">Google Veo 3.1, xAI Grok Imagine and HeyGen Video Agent. You choose the generator for each segment, for example Veo or Grok for B-roll and HeyGen for a talking presenter.</p>
+    <p style="color:var(--text);line-height:1.7;margin:0">Google Veo 3.1 and HeyGen Video Agent. You choose the generator for each segment, for example Veo for B-roll and scenes and HeyGen for a talking presenter.</p>
     <h3 style="font-size:1rem;color:var(--accent2);margin:18px 0 6px">Do I need my own API keys?</h3>
     <p style="color:var(--text);line-height:1.7;margin:0">Yes. You bring your own API key for the AI writing provider and for each video generator you use, and you pay those providers directly with no markup. Your scripts and keys are relayed for a single request only, and are never stored or logged.</p>
     <h3 style="font-size:1rem;color:var(--accent2);margin:18px 0 6px">Is ScriptForge free?</h3>
@@ -520,7 +519,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
 <footer style="max-width:1200px;margin:0 auto;padding:18px 24px;color:var(--muted);font-size:.78rem;border-top:1px solid var(--border)">
   © 2026 TAHA Studio Labs · <a href="/privacy.html" style="color:var(--accent2)">Privacy Policy</a> · <a href="/terms.html" style="color:var(--accent2)">Terms of Service</a> · Your scripts and API key are never stored or logged - see our Privacy Policy for details.
 </footer>
-<script src="/assets/app.js?v=craft13" defer></script>
+<script src="/assets/app.js?v=g1" defer></script>
 <!-- LONG-FORM PROJECT ORCHESTRATION ENGINE - additive only, loaded after app.js so it can reuse
      app.js's own top-level functions/constants (timing model, model advisory, provider config,
      segment rendering) directly by name. See the header comment in assets/longform.js for the
@@ -529,6 +528,6 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
 <script src="/assets/visit-tracker.js" defer></script>
 <!-- Growth Clients panel (TAHA Growth Department, admin only). It stays invisible unless the
      Brain Vault confirms the signed-in account is the admin. Remove this line to switch it off. -->
-<script src="/assets/growth.js?v=p6" defer></script>
+<script src="/assets/growth.js?v=g1" defer></script>
 </body>
 </html>

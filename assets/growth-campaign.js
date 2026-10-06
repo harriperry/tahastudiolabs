@@ -15,9 +15,29 @@
       and Edit. The short video card has Send to ScriptForge.
    6. Save campaign stores it in the Vault (status: Campaign in production), Mark delivered sets
       Campaign delivered, and Export downloads the campaign as JSON and as a formatted HTML page.
-   An unsaved campaign is kept in this browser (localStorage) until it is saved or discarded. */
+   An unsaved campaign is kept in this browser (localStorage) until it is saved or discarded.
+
+   V2 phase G1: step 2, Make visuals, writes the Visual Pack (growth-visuals.js) and turns the
+   campaign into a campaign-2 document. Add visuals does the same for campaigns made before
+   Part G. Send to ScriptForge targets HeyGen or Veo 3.1. */
 import { validate } from "./growth-validate.js?v=p5";
 import { callModel, extractJson, fillTemplate, fitToSchema, stripDashes } from "./growth-brain.js?v=p5";
+import {
+  PLATFORMS_URL,
+  VISUALS_PROMPT_URL,
+  brainForVisuals,
+  briefModelSchema,
+  briefsFor,
+  buildSlots,
+  checkVisuals,
+  createVisualsUi,
+  kitPromptText,
+  normalizeVisuals,
+  overlayText,
+  photoList,
+  sizeLabel,
+  withVisuals
+} from "./growth-visuals.js?v=g1";
 
 const VAULT = "/api/vault";
 const PROMPT_URL = "/assets/growth/campaign.prompt.json?v=p5";
@@ -43,6 +63,9 @@ const NO_HASHTAGS = ["google_business", "email"];
 export function campaignModelSchema(schema) {
   const s = JSON.parse(JSON.stringify(schema));
   for (const k of SET_BY_SCRIPTFORGE) delete s.properties[k];
+  /* The Visual Pack is written by its own step (Make visuals), never with the campaign. */
+  delete s.properties.visuals;
+  delete s.properties.visualsMadeAt;
   s.required = s.required.filter((k) => !SET_BY_SCRIPTFORGE.includes(k));
   delete s.$id;
   delete s.$schema;
@@ -104,7 +127,7 @@ export function normalizeCampaign(raw, meta, schema) {
   }
   const full = Object.assign(
     {
-      schemaVersion: "campaign-1",
+      schemaVersion: Array.isArray(doc.visuals) && doc.visuals.length ? "campaign-2" : "campaign-1",
       clientId: meta.clientId,
       campaignId: meta.campaignId,
       brainVersion: meta.brainVersion,
@@ -125,7 +148,7 @@ export function findAvoidWords(doc, avoid) {
   const words = (avoid || []).map((w) => String(w || "").trim()).filter(Boolean);
   const hits = {};
   if (!words.length || !doc) return hits;
-  const keys = ["concept", "hook", "offer", "shortVideo", "socialCopy", "adVariations", "cta", "landingPage", "email", "googleBusinessPost"];
+  const keys = ["concept", "hook", "offer", "shortVideo", "socialCopy", "adVariations", "cta", "landingPage", "email", "googleBusinessPost", "visuals"];
   for (const k of keys) {
     const text = JSON.stringify(doc[k] || "").toLowerCase();
     const found = words.filter((w) => {
@@ -185,6 +208,13 @@ export function campaignHtml(doc, company) {
     sec("8. Email", p("Subject A: " + pad((em.subjects || [])[0])) + p("Subject B: " + pad((em.subjects || [])[1])) + p("Preview: " + pad(em.preview)) + p(em.body) + p("CTA: " + pad(em.cta))),
     sec("9. Google Business post", p(g.text) + p("Button: " + pad(g.ctaType)))
   ];
+  if (Array.isArray(doc.visuals) && doc.visuals.length) {
+    parts.push(sec("Visual Pack (" + doc.visuals.length + " briefs)", doc.visuals.map((v) =>
+      "<h3>" + esc(v.placement) + " · " + esc(sizeLabel(v)) + "</h3>" +
+      p(v.source === "client_photo" ? (v.photo_ref ? "Client photo " + v.photo_ref + ": " : "PHOTO NEEDED FROM CLIENT: ") + v.prompt : v.prompt) +
+      p("Overlay: " + overlayText(v).replace(/\n/g, " / ")) + p("Keep clear: " + v.clear_zone) + p("Alt text: " + v.alt_text.sv + " / " + v.alt_text.en)
+    ).join("")));
+  }
   const meta = [monthLabel(doc.month, "en"), "Goal: " + doc.goal, "Language: " + (LANG_LABEL[doc.language] || doc.language), "Channels: " + (doc.channels || []).map((x) => CHANNEL_LABEL[x] || x).join(", "), "Brain v" + doc.brainVersion].join(" · ");
   return "<!doctype html><html lang=\"" + (doc.language === "sv" ? "sv" : "en") + "\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + esc(doc.name) + "</title>" +
     "<style>body{font-family:Arial,Helvetica,sans-serif;max-width:860px;margin:0 auto;padding:32px 16px;color:#14161C;background:#F6F1E7;line-height:1.55}h1{font-size:28px;margin:0 0 6px}.meta{color:#5E6470;font-size:14px;margin-bottom:24px}section{background:#fff;border:1px solid #DDD5C6;border-radius:10px;padding:18px 22px;margin:0 0 16px}h2{font-size:15px;text-transform:uppercase;letter-spacing:1px;color:#8A5D08;margin:0 0 10px}h3{font-size:17px;margin:14px 0 6px}h4{margin:12px 0 4px}pre{white-space:pre-wrap;font-family:inherit;background:#F6F1E7;padding:12px;border-radius:8px}.foot{color:#5E6470;font-size:12px}</style></head><body>" +
@@ -253,11 +283,15 @@ export function createCampaigns(ctx) {
   const cache = {};
   let promptDef = null;
   let schema = null;
+  let visualsPrompt = null;
+  let platforms = null;
+  const vis = createVisualsUi(ctx);
 
   function entry(id) {
     if (!cache[id]) {
       cache[id] = { loaded: false, loading: false, list: [], saved: {}, view: null, working: null, dirty: false, isNew: false, showForm: false, form: null,
-        building: false, steps: [], error: null, errors: null, msg: null, editing: {}, regen: {}, cardMsg: {} };
+        building: false, steps: [], error: null, errors: null, msg: null, editing: {}, regen: {}, cardMsg: {},
+        vbuilding: false, vsteps: [], verror: null, verrors: null, vedit: {}, vconfirm: false, opening: {} };
       try {
         const raw = localStorage.getItem(DRAFT_PREFIX + id);
         const d = raw && JSON.parse(raw);
@@ -297,6 +331,16 @@ export function createCampaigns(ctx) {
     return promptDef;
   }
 
+  async function getVisualsDefs() {
+    if (!visualsPrompt || !platforms) {
+      const [a, b] = await Promise.all([fetch(VISUALS_PROMPT_URL, { credentials: "same-origin" }), fetch(PLATFORMS_URL, { credentials: "same-origin" })]);
+      if (!a.ok || !b.ok) throw new Error("Could not load the Visual Pack prompt or the platform sizes.");
+      visualsPrompt = await a.json();
+      platforms = await b.json();
+    }
+    return { prompt: visualsPrompt, platforms };
+  }
+
   function load(id, force) {
     const e = entry(id);
     if ((e.loaded && !force) || e.loading) return;
@@ -326,7 +370,13 @@ export function createCampaigns(ctx) {
     e.cardMsg = {};
     if (e.working && e.working.campaignId === campaignId) { ctx.rerender(id); return; }
     if (e.saved[campaignId]) { ctx.rerender(id); return; }
+    /* G1 fix: renderTab calls this while the campaign is loading, and the rerender below calls
+       renderTab again. Without this guard every render started a new request (hundreds per
+       second until the first answer arrived). */
+    if (e.opening[campaignId]) return;
+    e.opening[campaignId] = true;
     api("/admin/campaign/" + encodeURIComponent(id) + "/" + encodeURIComponent(campaignId)).then((r) => {
+      delete e.opening[campaignId];
       if (r.ok && r.d) e.saved[campaignId] = r.d.campaign;
       ctx.rerender(id);
     });
@@ -446,6 +496,7 @@ export function createCampaigns(ctx) {
     }
     e.building = false;
     ctx.rerender(id);
+    if (!e.error && f.visuals) await makeVisuals(c, d, brain);
   }
 
   async function regenerate(c, d, brain, key) {
@@ -481,6 +532,102 @@ export function createCampaigns(ctx) {
     ctx.rerender(id);
   }
 
+  /* ----- step 2: Make visuals (V2 phase G1) ----- */
+
+  function vstep(e, id, text, state) {
+    const last = e.vsteps[e.vsteps.length - 1];
+    if (last && last.state === "run") last.state = "done";
+    if (text) e.vsteps.push({ text, state: state || "run" });
+    ctx.rerender(id);
+  }
+
+  /* Writes the Visual Pack for the campaign shown (a new one, or one made before Part G). */
+  async function makeVisuals(c, d, brain) {
+    const id = c.id;
+    const e = entry(id);
+    if (e.vbuilding) return;
+    const p = ctx.providerInfo(true);
+    if (!p.key) { ctx.pointToSection2(); return; }
+    const doc = editable(e);
+    if (!doc) return;
+    e.vbuilding = true;
+    e.verror = null;
+    e.verrors = null;
+    e.vsteps = [];
+    ctx.rerender(id);
+    try {
+      vstep(e, id, "Loading the Visual Pack prompt, the platform sizes and the brand kit");
+      const [{ prompt, platforms: pf }, sch] = await Promise.all([getVisualsDefs(), getSchema()]);
+      const kitS = vis.kitState(id);
+      for (let i = 0; i < 40 && !kitS.loaded; i++) await new Promise((r) => setTimeout(r, 100));
+      const kit = kitS.kit;
+      const slots = buildSlots(doc, pf);
+      const files = (d && d.files) || [];
+      const photos = photoList(files, brain);
+      const profile = (d && d.intake && d.intake.profile) || {};
+      const briefs = slots.map((s) => ({ id: s.id, output: s.output_key, placement: s.placement, size: s.width + " x " + s.height + " (" + s.ratio + ")", clear_zone: s.clear_zone, focus: s.focus, angle: s.angle, copy: s.copy }));
+      const system = fillTemplate(prompt.system.join("\n"), {
+        LANGUAGE_RULE: prompt.languageRules[doc.language] || prompt.languageRules.en,
+        SCHEMA: JSON.stringify(briefModelSchema(sch))
+      });
+      const userText = fillTemplate(prompt.user.join("\n"), {
+        COMPANY: profile.companyName || c.name,
+        LOCATION: profile.location || "",
+        NAME: doc.name,
+        MONTH_LABEL: monthLabel(doc.month, "en"),
+        GOAL: doc.goal,
+        CONCEPT: doc.concept ? doc.concept.title + ". " + doc.concept.bigIdea + " " + doc.concept.keyMessage : "",
+        OFFER: doc.offer ? doc.offer.framing + " " + doc.offer.terms : "",
+        BRAND_KIT: kit ? kitPromptText(kit) : prompt.noKit,
+        PHOTOS: photos.length ? photos.map((x) => "- " + x.fileId + ": " + (x.caption || x.name || "no caption") + (x.bestUse ? " (best use: " + x.bestUse + ")" : "")).join("\n") : prompt.noPhotos,
+        BRAIN_VERSION: String(brain.brainVersion),
+        BRAIN_JSON: JSON.stringify(brainForVisuals(brain), null, 1),
+        BRIEFS_JSON: JSON.stringify(briefs, null, 1)
+      });
+      const messages = [{ role: "user", content: userText }];
+      const maxTokens = (prompt.maxTokens && prompt.maxTokens[p.provider]) || 8000;
+      const nctx = { photoIds: photos.map((x) => x.fileId), language: doc.language, noTextSentence: prompt.noTextSentence, avoidDefault: prompt.avoidDefault };
+      const check = (text) => {
+        try {
+          const out = normalizeVisuals(extractJson(text), slots, nctx);
+          const errs = checkVisuals(sch, out.visuals).concat(out.problems);
+          return { visuals: out.visuals, fixes: out.fixes, errs: errs.length ? errs : null };
+        } catch (err) {
+          return { visuals: null, errs: [err.message] };
+        }
+      };
+      vstep(e, id, "Asking " + p.label + " for " + slots.length + " visual briefs (this can take a minute or two)");
+      let reply = await callModel(p, system, messages, maxTokens);
+      let res = check(reply);
+      if (res.errs) {
+        vstep(e, id, "The first answer had " + res.errs.length + (res.errs.length === 1 ? " problem" : " problems") + ". Asking once more with the list");
+        reply = await callModel(p, system, messages.concat([
+          { role: "assistant", content: reply.slice(0, 60000) },
+          { role: "user", content: fillTemplate(prompt.retry, { ERRORS: res.errs.slice(0, 30).map((x) => "- " + x).join("\n") }) }
+        ]), maxTokens);
+        res = check(reply);
+      }
+      if (res.errs) {
+        e.verrors = res.errs;
+        throw new Error("The Visual Pack still did not pass the checks after one retry.");
+      }
+      const need = res.visuals.filter((v) => v.source === "client_photo" && !v.photo_ref).length;
+      vstep(e, id, slots.length + " briefs ready" + (need ? ", " + need + " need a photo from the client" : "") + ". Save to keep them.", "done");
+      const next = withVisuals(doc, res.visuals);
+      Object.keys(doc).forEach((k) => delete doc[k]);
+      Object.assign(doc, next);
+      e.dirty = true;
+      e.vedit = {};
+      keepDraft(id);
+    } catch (err) {
+      const last = e.vsteps[e.vsteps.length - 1];
+      if (last) last.state = "fail";
+      e.verror = err.message || "Something went wrong.";
+    }
+    e.vbuilding = false;
+    ctx.rerender(id);
+  }
+
   /* ----- saving and status ----- */
 
   async function save(c) {
@@ -504,6 +651,8 @@ export function createCampaigns(ctx) {
       e.dirty = false;
       e.isNew = false;
       e.editing = {};
+      e.vedit = {};
+      if (!e.vbuilding && !e.verror) e.vsteps = [];
       keepDraft(id);
       e.loaded = false;
       load(id, true);
@@ -647,7 +796,8 @@ export function createCampaigns(ctx) {
         offerPick: offers.length ? "0" : "custom",
         offer: offers.length ? [offers[0].name, offers[0].terms, offers[0].validUntil ? "valid until " + offers[0].validUntil : ""].filter(Boolean).join(". ") : "",
         language: lang0,
-        channels: ["instagram", "facebook", "google_business"]
+        channels: ["instagram", "facebook", "google_business"],
+        visuals: true
       };
     }
     const f = e.form;
@@ -708,6 +858,9 @@ export function createCampaigns(ctx) {
       chBox.appendChild(h("label", { for: "gccCh-" + ch[0], class: "gc-check" }, cb, ch[1]));
     });
     grid.appendChild(chBox);
+    const visCb = h("input", { type: "checkbox", id: "gccVisuals", checked: f.visuals !== false });
+    visCb.addEventListener("change", () => { f.visuals = visCb.checked; });
+    grid.appendChild(h("div", { class: "gc-ed wide" }, h("label", { for: "gccVisuals", class: "gc-check" }, visCb, "Then make visuals: an image brief for every output at its platform size (step 2)")));
     box.appendChild(grid);
 
     const p = ctx.providerInfo();
@@ -715,7 +868,7 @@ export function createCampaigns(ctx) {
     const actions = h("div", { class: "gc-brain-tools" }, go);
     if (e.list.length || e.working) actions.appendChild(h("button", { type: "button", class: "btn-ghost", on: { click: () => { e.showForm = false; ctx.rerender(c.id); } } }, "Cancel"));
     box.appendChild(actions);
-    box.appendChild(h("div", { class: "gc-meta", text: p.hasKey ? "Uses " + p.label + (p.model ? " · " + p.model : "") + " with your key from section 2. One call writes the concept and all nine outputs." : "Add your " + p.label + " key in section 2 first." }));
+    box.appendChild(h("div", { class: "gc-meta", text: p.hasKey ? "Uses " + p.label + (p.model ? " · " + p.model : "") + " with your key from section 2. One call writes the concept and all nine outputs; step 2 is a second call for the visuals." : "Add your " + p.label + " key in section 2 first." }));
     box.addEventListener("submit", (ev) => {
       ev.preventDefault();
       if (!f.name.trim()) f.name = defaultName(f.month, company, f.language);
@@ -815,6 +968,40 @@ export function createCampaigns(ctx) {
     fillHeader();
     pane.appendChild(hdr);
 
+    /* Visual Pack (V2 phase G1): brand kit, Make or Add visuals, progress and the finished images. */
+    const savedDoc = !(e.isNew && e.working === doc) ? e.saved[doc.campaignId] || (doc !== e.working ? doc : null) : null;
+    const savedCampaignId = savedDoc ? doc.campaignId : null;
+    const savedVisualIds = new Set(((savedDoc && savedDoc.visuals) || []).map((v) => v.id));
+    const vbox = h("div", { class: "gc-box gv-pack" });
+    const hasVisuals = Array.isArray(doc.visuals) && doc.visuals.length > 0;
+    vbox.appendChild(h("div", { class: "gc-bh" }, "Visual Pack", h("span", { text: hasVisuals ? "campaign-2 · made " + when(doc.visualsMadeAt) : doc.schemaVersion === "campaign-1" && savedDoc ? "Made before Part G: no visuals yet" : "No visuals yet" })));
+    vis.renderKit(vbox, c.id);
+    if (e.vbuilding || e.vsteps.length) {
+      const ol = h("ol", { class: "gc-steps" });
+      e.vsteps.forEach((s) => ol.appendChild(h("li", { class: "gc-step " + s.state }, s.state === "run" ? h("span", { class: "spin" }) : null, s.text)));
+      vbox.appendChild(ol);
+      if (e.verror) vbox.appendChild(h("div", { class: "gc-msg err", text: e.verror }));
+      if (e.verrors) vbox.appendChild(h("div", { class: "gc-files" }, e.verrors.slice(0, 20).map((x) => h("div", { class: "gc-meta", text: x }))));
+      if (!e.vbuilding) vbox.appendChild(h("button", { type: "button", class: "gc-link", on: { click: () => { e.vsteps = []; e.verror = null; e.verrors = null; ctx.rerender(c.id); } } }, "Hide this"));
+    }
+    if (!e.vbuilding) {
+      const pinfo = ctx.providerInfo();
+      const label = hasVisuals ? (e.vconfirm ? "Yes, write new briefs" : "Remake visuals") : savedDoc && doc.schemaVersion !== "campaign-2" ? "Add visuals" : "Make visuals";
+      const vtools = h("div", { class: "gc-brain-tools" },
+        h("button", { type: "button", class: hasVisuals && !e.vconfirm ? "btn-ghost" : "gc-brain-btn", on: { click: () => {
+          /* Remaking asks for a second click instead of a browser dialog. */
+          if (hasVisuals && !e.vconfirm) { e.vconfirm = true; ctx.rerender(c.id); return; }
+          e.vconfirm = false;
+          makeVisuals(c, d, brain);
+        } } }, label));
+      if (e.vconfirm) vtools.appendChild(h("button", { type: "button", class: "gc-link", on: { click: () => { e.vconfirm = false; ctx.rerender(c.id); } } }, "Keep these"));
+      if (e.vconfirm) vbox.appendChild(h("div", { class: "gc-msg info", text: "A new Visual Pack replaces the current briefs when you save. Attached images stay attached." }));
+      vtools.appendChild(h("span", { class: "gc-meta", text: pinfo.hasKey ? "Uses " + pinfo.label + " with your key from section 2." : "Add your " + pinfo.label + " key in section 2 first." }));
+      vbox.appendChild(vtools);
+    }
+    if (hasVisuals) vis.renderStrip(vbox, doc, c.id, savedCampaignId);
+    pane.appendChild(vbox);
+
     const list = h("div", { class: "gc-cards one" });
     CARDS.forEach((card) => {
       const val = doc[card.key];
@@ -828,7 +1015,9 @@ export function createCampaigns(ctx) {
         actions.appendChild(h("button", { type: "button", class: "gc-link", on: { click: () => { editable(e); e.editing[card.key] = !e.editing[card.key]; ctx.rerender(c.id); } } }, e.editing[card.key] ? "Done" : "Edit"));
       }
       if (card.key === "shortVideo") {
-        actions.appendChild(h("button", { type: "button", class: "btn-copy gc-send", on: { click: () => ctx.sendToScriptForge(doc.shortVideo.script) } }, "Send to ScriptForge"));
+        /* V2 phase G1: the video goes to ScriptForge for one of the two generators it offers. */
+        actions.appendChild(h("button", { type: "button", class: "btn-copy gc-send", title: "Scenes and B-roll", on: { click: () => ctx.sendToScriptForge(doc.shortVideo.script, "veo") } }, "Send to ScriptForge: Veo 3.1"));
+        actions.appendChild(h("button", { type: "button", class: "btn-copy gc-send", title: "Talking avatar, founder voice", on: { click: () => ctx.sendToScriptForge(doc.shortVideo.script, "heygen") } }, "Send to ScriptForge: HeyGen"));
       }
       head.appendChild(actions);
       const body = h("div", { class: "gc-card-body" });
@@ -850,6 +1039,29 @@ export function createCampaigns(ctx) {
         });
         else fieldsInto(body, target[card.key] || (target[card.key] = {}), card.fields, onEdit);
       } else body.appendChild(readView(card.key, val));
+      const briefs = briefsFor(doc, card.key);
+      if (briefs.length) {
+        vis.renderBriefs(body, briefs, {
+          clientId: c.id,
+          campaignId: savedCampaignId,
+          savedVisualIds,
+          files: (d && d.files) || [],
+          editing: e.vedit,
+          copy,
+          toggleEdit: (vid) => {
+            const w = editable(e);
+            if (w !== doc) { e.vedit = {}; e.vedit[vid] = true; ctx.rerender(c.id); return; }
+            e.vedit[vid] = !e.vedit[vid];
+            ctx.rerender(c.id);
+          },
+          onEdit: () => {
+            const first = !e.dirty;
+            e.dirty = true;
+            keepDraft(c.id);
+            if (first) fillHeader();
+          }
+        });
+      }
       if (hits[card.key]) body.appendChild(h("div", { class: "gc-msg err", text: "Avoid: " + hits[card.key].join(", ") }));
       if (e.cardMsg[card.key]) body.appendChild(h("div", { class: "gc-msg " + e.cardMsg[card.key].cls, text: e.cardMsg[card.key].text }));
       body.appendChild(msgEl);

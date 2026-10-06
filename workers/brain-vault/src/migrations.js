@@ -128,5 +128,39 @@ export const MIGRATIONS = [
       /* Who erased: "admin" (Erase now) or "retention" (the 6 month rule). */
       `ALTER TABLE erasure_log ADD COLUMN reason TEXT`
     ]
+  },
+  {
+    id: 4,
+    name: "g1-visual-pack",
+    statements: [
+      /* Finished files Harry attaches to a campaign (V2 phase G1: images for the Visual Pack
+         briefs). Part B later shows them to the client in Your content. The bytes live in R2 at
+         c/<clientId>/<id>, so erasing the client's folder removes them. ai_image is 1 when the
+         picture was made with an AI tool, 0 for a client photo or other real photo. */
+      `CREATE TABLE IF NOT EXISTS deliveries (
+        id TEXT PRIMARY KEY,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        campaign_id TEXT NOT NULL,
+        visual_id TEXT,
+        title TEXT,
+        kind TEXT NOT NULL CHECK (kind IN ('image','video','pdf','html')),
+        ai_image INTEGER NOT NULL DEFAULT 0 CHECK (ai_image IN (0,1)),
+        mime TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        width INTEGER,
+        height INTEGER,
+        r2_key TEXT NOT NULL,
+        original_name TEXT,
+        added_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_deliveries_campaign ON deliveries (client_id, campaign_id, added_at)`,
+      /* The client's brand kit as Harry keeps it (colours, fonts, logo notes), used by the
+         Visual Pack briefs and, in phase G2, the landing pages. */
+      `CREATE TABLE IF NOT EXISTS brand_kits (
+        client_id TEXT PRIMARY KEY REFERENCES clients(id) ON DELETE CASCADE,
+        data TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`
+    ]
   }
 ];

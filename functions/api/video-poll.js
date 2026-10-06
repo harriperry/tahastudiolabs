@@ -16,7 +16,6 @@ export async function onRequestPost(context) {
 
   try {
     if (provider === "veo") return await pollVeo(apiKey, jobRef);
-    if (provider === "grok") return await pollGrok(apiKey, jobRef);
     if (provider === "heygen") return await pollHeyGen(apiKey, jobRef);
     return json({ error: { message: "Unknown provider." } }, 400);
   } catch (e) {
@@ -35,17 +34,6 @@ async function pollVeo(apiKey, jobRef) {
   const uri = findUriDeep(data.response);
   if (!uri) return json({ error: { message: "Job finished but no video URI was found." } }, 500);
   return json({ done: true, uri, jobRef });
-}
-
-async function pollGrok(apiKey, jobRef) {
-  const res = await fetch(`https://api.x.ai/v1/videos/${jobRef.requestId}`, {
-    headers: { "Authorization": `Bearer ${apiKey}` }
-  });
-  const data = await res.json().catch(() => null);
-  if (!res.ok) return json({ error: data?.error || { message: `HTTP ${res.status}` } }, res.status);
-  if (data.status === "failed") return json({ error: { message: "Grok reported the job failed." } }, 500);
-  if (data.status === "done" || data?.video?.url) return json({ done: true, uri: data.video.url, jobRef });
-  return json({ done: false, jobRef });
 }
 
 async function pollHeyGen(apiKey, jobRef) {

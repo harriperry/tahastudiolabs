@@ -7,7 +7,8 @@
    PATCH /admin/campaign/:clientId/:campaignId/status {status}        delivered or back in production
    PATCH /admin/status/:clientId {status}                             manual status change
    GET  /admin/campaigns/:clientId                                    list of the client's campaigns
-   GET  /admin/campaign/:clientId/:campaignId                         one campaign */
+   GET  /admin/campaign/:clientId/:campaignId                         one campaign
+   From V2 phase G1 a campaign may carry a visuals array (campaign-2). */
 import { STATUS_LABELS } from "./config.js";
 import { SCHEMAS } from "./schemas.js";
 import { validate } from "./validate.js";
@@ -71,8 +72,12 @@ export async function saveCampaign(request, env, clientId) {
   const brain = Number.isInteger(bv) ? await env.DB.prepare("SELECT version FROM brains WHERE client_id = ? AND version = ?").bind(clientId, bv).first() : null;
   if (!brain) return json({ error: "brain", message: M.brain }, 400);
 
-  /* Saving always puts the campaign (and the client) in production. Mark delivered is its own step. */
-  const doc = stripDashes(Object.assign({}, b.campaign, { schemaVersion: "campaign-1", clientId, status: "in_production" }));
+  /* Saving always puts the campaign (and the client) in production. Mark delivered is its own step.
+     V2 phase G1: a campaign with a Visual Pack is a campaign-2 document; one without stays
+     campaign-1, so V1 campaigns keep their version when they are saved again. */
+  const hasVisuals = Array.isArray(b.campaign.visuals) && b.campaign.visuals.length > 0;
+  const schemaVersion = hasVisuals ? "campaign-2" : b.campaign.schemaVersion === "campaign-2" ? "campaign-2" : "campaign-1";
+  const doc = stripDashes(Object.assign({}, b.campaign, { schemaVersion, clientId, status: "in_production" }));
   const v = validate(SCHEMAS.campaign, doc);
   if (!v.valid) return json({ error: "invalid", message: M.invalid, details: v.errors }, 400);
 

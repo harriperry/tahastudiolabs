@@ -11,7 +11,9 @@ const schema = read("../schemas/brain.schema.json");
 const intake = read("./fixtures/pilot-intake-v1.json");
 const model = read("./fixtures/pilot-brain-v1.json");
 
-ok(fs.readFileSync(new URL("../src/validate.js", import.meta.url), "utf8") === fs.readFileSync(new URL("../../../assets/growth-validate.js", import.meta.url), "utf8"), "assets/growth-validate.js is an exact copy of src/validate.js");
+/* Line endings are ignored: a Windows checkout can store one copy with CRLF. */
+const lf = (u) => fs.readFileSync(new URL(u, import.meta.url), "utf8").replace(/\r\n/g, "\n");
+ok(lf("../src/validate.js") === lf("../../../assets/growth-validate.js"), "assets/growth-validate.js is an exact copy of src/validate.js");
 ok(extractJson("Sure!\n```json\n{\"a\":1}\n```\nDone.").a === 1, "extractJson reads a fenced reply");
 ok(extractJson("text {\"a\":{\"b\":2}} trailing").a.b === 2, "extractJson reads a reply with text around it");
 let threw = false;

@@ -309,7 +309,9 @@
 
   /* Phase 5: the short video card's "Send to ScriptForge". Sets section 1 to Short Advert,
      section 4 to 9:16, three 10 second segments, pastes the script into section 5, closes the
-     panel and scrolls there. ScriptForge's own Format button and video steps take it from there. */
+     panel and scrolls there. ScriptForge's own Format button and video steps take it from there.
+     V2 phase G1: target is "veo" (Veo 3.1, scenes) or "heygen" (HeyGen, talking avatar). The
+     formatted segments then start on that generator (window.__sfVideoTarget, read by app.js). */
   function setField(id, value, evt) {
     var el = document.getElementById(id);
     if (!el) return false;
@@ -317,7 +319,8 @@
     el.dispatchEvent(new Event(evt || "change", { bubbles: true }));
     return true;
   }
-  function sendToScriptForge(script) {
+  function sendToScriptForge(script, target) {
+    window.__sfVideoTarget = target === "heygen" ? "heygen" : "veo";
     setField("scriptType", "Short Advert");
     setField("ratio", "9:16");
     setField("segCount", "3");
@@ -351,7 +354,7 @@
         refresh();
       }
     };
-    brainLoading = Promise.all([import("/assets/growth-brain.js?v=p5"), import("/assets/growth-campaign.js?v=p5")]).then(function (mods) {
+    brainLoading = Promise.all([import("/assets/growth-brain.js?v=p5"), import("/assets/growth-campaign.js?v=g1")]).then(function (mods) {
       brain = mods[0].createBrain(ctx);
       camps = mods[1].createCampaigns(ctx);
       if (ui) renderDetail();

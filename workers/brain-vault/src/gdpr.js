@@ -7,11 +7,13 @@
 
    Erasure removes every R2 file under the client's folder and every D1 row that belongs to the
    client: the client record, consents, intake drafts and versions, file records, brains,
-   campaigns, status history, sessions, login links and the rate-limit entries for the email.
+   campaigns, attached finished files (deliveries), the brand kit, status history, sessions,
+   login links and the rate-limit entries for the email.
    Only an anonymous line stays in erasure_log: a SHA-256 hash of the client id, the date and
    whether Harry or the retention rule erased it. No name, email or content is kept. */
 import { STATUS_LABELS } from "./config.js";
 import { json, normEmail, nowIso, readJson, sha256hex } from "./util.js";
+import { deliveryOut } from "./delivery.js";
 
 const M = {
   badRequest: { sv: "Ogiltig förfrågan.", en: "Bad request." },
@@ -29,6 +31,8 @@ const CLIENT_TABLES = [
   ["intake_drafts", "client_id"],
   ["brains", "client_id"],
   ["campaigns", "client_id"],
+  ["deliveries", "client_id"],
+  ["brand_kits", "client_id"],
   ["consents", "client_id"],
   ["status_history", "client_id"],
   ["sessions", "client_id"],
@@ -75,7 +79,11 @@ export async function exportClient(env, cfg, clientId) {
       Object.assign(f, { url: cfg.siteOrigin + cfg.basePath + "/files/" + f.id })
     ),
     brains: parse(await all(env, "SELECT version, built_from_intake_version AS builtFromIntakeVersion, created_at AS createdAt, data FROM brains WHERE client_id = ? ORDER BY version ASC", clientId)),
-    campaigns: parse(await all(env, "SELECT campaign_id AS campaignId, brain_version AS brainVersion, month, status, created_at AS createdAt, updated_at AS updatedAt, data FROM campaigns WHERE client_id = ? ORDER BY created_at ASC", clientId))
+    campaigns: parse(await all(env, "SELECT campaign_id AS campaignId, brain_version AS brainVersion, month, status, created_at AS createdAt, updated_at AS updatedAt, data FROM campaigns WHERE client_id = ? ORDER BY created_at ASC", clientId)),
+    deliveries: (await all(env, "SELECT * FROM deliveries WHERE client_id = ? ORDER BY added_at ASC", clientId)).map((r) =>
+      Object.assign(deliveryOut(r), { url: cfg.siteOrigin + deliveryOut(r).url })
+    ),
+    brandKit: (await all(env, "SELECT data, updated_at AS updatedAt FROM brand_kits WHERE client_id = ?", clientId)).map((r) => ({ kit: JSON.parse(r.data), updatedAt: r.updatedAt }))[0] || null
   };
   const slug = String(c.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "client";
   return json(doc, 200, { "Content-Disposition": 'attachment; filename="client-record-' + slug + '.json"' });
@@ -117,7 +125,7 @@ export async function eraseClient(env, clientId, reason) {
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
   /* Any file row whose key sits elsewhere (should never happen) is deleted by key too. */
-  const stray = await all(env, "SELECT r2_key FROM files WHERE client_id = ? AND r2_key NOT LIKE ?", clientId, "c/" + clientId + "/%");
+  const stray = await all(env, "SELECT r2_key FROM files WHERE client_id = ? AND r2_key NOT LIKE ? UNION ALL SELECT r2_key FROM deliveries WHERE client_id = ? AND r2_key NOT LIKE ?", clientId, "c/" + clientId + "/%", clientId, "c/" + clientId + "/%");
   if (stray.length) {
     await env.FILES.delete(stray.map((r) => r.r2_key));
     filesDeleted += stray.length;

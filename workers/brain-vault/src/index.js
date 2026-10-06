@@ -5,6 +5,8 @@
    Phase 4: Business Brain versions (saved from ScriptForge, never built here).
    Phase 5: campaigns from the Campaign Generator, campaign and manual status changes.
    Phase 6: GDPR tools (full export, erase now, leaving and the 6 month retention rule).
+   V2 phase G1: campaign-2 documents with a Visual Pack, finished images attached to a
+   campaign (deliveries) and the client's brand kit. Admin only; the portal is unchanged.
 
    House rules enforced here:
    1. The Vault never receives, stores or logs an LLM API key. No endpoint accepts one.
@@ -28,6 +30,7 @@ import { createClient, getIntakeAdmin, listClients, markSeen, resendInvite } fro
 import { getBrains, getBrainVersion, saveBrain } from "./brain.js";
 import { getCampaign, listCampaigns, saveCampaign, setCampaignStatus, setManualStatus } from "./campaign.js";
 import { eraseNow, exportClient, retentionSweep, setLeft } from "./gdpr.js";
+import { addDelivery, deleteDelivery, getBrandKit, getDelivery, listDeliveries, putBrandKit } from "./delivery.js";
 import {
   deleteFile,
   getFile,
@@ -150,7 +153,7 @@ async function handle(request, env, ctx) {
 
   if (method === "GET" && path === "/health") {
     const db = await env.DB.prepare("SELECT 1 AS ok").first();
-    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6 });
+    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "g1" });
   }
 
   if (method === "GET" && path === "/portal/meta") {
@@ -256,6 +259,15 @@ async function handle(request, env, ctx) {
     if (er && method === "DELETE") return respond(await eraseNow(request, env, er[1]));
     const ai = path.match(/^\/admin\/intake\/(cl_[a-z0-9]{4,32})$/);
     if (ai && method === "GET") return respond(await getIntakeAdmin(env, ai[1]));
+    /* V2 phase G1 */
+    const dl = path.match(/^\/admin\/delivery\/(cl_[a-z0-9]{4,32})\/(cp_[a-z0-9_]{2,40})(?:\/(d_[a-z0-9]{4,32}))?$/);
+    if (dl && method === "POST" && !dl[3]) return respond(await addDelivery(request, env, dl[1], dl[2], url));
+    if (dl && method === "GET" && !dl[3]) return respond(await listDeliveries(env, dl[1], dl[2]));
+    if (dl && method === "GET" && dl[3]) return respond(await getDelivery(env, dl[1], dl[2], dl[3]));
+    if (dl && method === "DELETE" && dl[3]) return respond(await deleteDelivery(env, dl[1], dl[2], dl[3]));
+    const bk = path.match(/^\/admin\/brandkit\/(cl_[a-z0-9]{4,32})$/);
+    if (bk && method === "GET") return respond(await getBrandKit(env, bk[1]));
+    if (bk && method === "PUT") return respond(await putBrandKit(request, env, bk[1]));
   }
 
   return json({ error: "not_found", message: MSG.notFound }, 404);

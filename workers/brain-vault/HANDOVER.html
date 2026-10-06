@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Growth Department V1 Handover</title>
+<title>Growth Department Handover</title>
 <style>
 :root{--ink:#14161C;--muted:#5E6470;--line:#DDD5C6;--paper:#F6F1E7;--card:#FFFFFF;--amber:#8A5D08;--ok:#1F6B4E;--warn:#B8452A}
 *{box-sizing:border-box}
@@ -28,8 +28,34 @@ li{margin:0 0 6px}
 </head>
 <body>
 <main>
-<h1>TAHA Studio Labs Growth Department V1</h1>
-<p class="sub">Handover, 5 October 2026. Built in six phases, each confirmed by Harry before the next started.</p>
+<h1>TAHA Studio Labs Growth Department</h1>
+<p class="sub">V1 handover, 5 October 2026, built in six phases. V2 phase G1 added 6 October 2026 (below), on the branch <code>growth-g1</code>, not live yet.</p>
+
+<h2>V2 phase G1: Visual Pack and Grok removal</h2>
+<div class="card">
+<ul>
+<li><b>Make visuals</b> is step 2 of the Campaign Generator (on by default). <b>Add visuals</b> does the same for a campaign made before Part G. One call through ScriptForge's relay with Harry's key, checked against the campaign-2 schema and the house rules, one automatic retry.</li>
+<li>Every output that needs an image gets a brief at its platform size from <code>assets/growth/platforms.json</code>: offer, video cover (plus a TikTok cover when TikTok is a channel), each social post, five ads, landing page hero and link preview, email header, Google Business post.</li>
+<li>House rules in the prompt and in code: a dish, the place or the team is always the client's own photo, or shows <b>Photo needed from client</b> with what to ask for; no text inside any image (overlay text separate, in the campaign language); people cast from the brain's audience; colours from the brand kit; prompts in English; alt text in Swedish and English.</li>
+<li>Each brief card: Copy prompt (or Copy photo request), Copy overlay, Edit, the size, the clear zone, and <b>Attach finished image</b> with a Made with AI tick. Images go to R2 under the client's folder with the <code>ai_image</code> flag and are listed on the card and in the Visual Pack strip. Clients see them in Part B.</li>
+<li><b>Brand kit</b> per client: Import brand.json from <code>D:\BRAND-KITS\&lt;brand&gt;\brand.json</code>, or type the colours.</li>
+<li><b>Send to ScriptForge</b> has two targets, Veo 3.1 and HeyGen. The formatted segments start on the chosen generator.</li>
+<li><b>Grok removed</b> from ScriptForge (generator option, xAI key field, relays, prompt branches, page copy, FAQ, privacy policy, terms, llms.txt) and from ScriptEngine (provider switch, key field, relay). A saved xAI key in ScriptForge is deleted and that person sees a one-time notice that segments now use Veo 3.1. A saved Grok provider in ScriptEngine moves to Anthropic with a one-time notice.</li>
+</ul>
+</div>
+<div class="tw"><table>
+<tr><th>G1 is done when</th><th>How it was checked</th><th>Status</th></tr>
+<tr><td>Make visuals on Chef Sandy's "A Little Extra" gives every output its briefs at the right size, and every dish shot uses her photos or shows Photo needed from client</td><td>visuals-helpers test (sizes from platforms.json, client photo rule, invented photo ids become Photo needed); browser run on local pilot data (13 briefs, 12 with her photo or AI mood, 1 Photo needed)</td><td class="you">Harry live, with his key</td></tr>
+<tr><td>Harry attaches at least three finished images and they show in the panel</td><td>visuals test; browser run: three attached, on the cards, in the strip, after a reload</td><td class="you">Harry live</td></tr>
+<tr><td>An old campaign-1 campaign still opens, and Add visuals works on it</td><td>visuals test and browser run</td><td class="you">Harry live</td></tr>
+<tr><td>Grok is gone from ScriptForge, and a saved Grok setting lands on Veo 3.1 with the notice</td><td>grok-removed test scans every file; browser run of both notices</td><td class="you">Harry live</td></tr>
+<tr><td>Every V1 test suite still passes</td><td><code>node test/run-all.mjs</code>: all 13 suites</td><td class="ok">Done</td></tr>
+</table></div>
+<div class="card">
+<p><b>Sizes changed from the spec table</b> (checked 6 October 2026, sources in platforms.json): Instagram feed clear zone in pixels (centre 1012 x 1350, the 3:4 grid crop) and a native 3:4 size 1080 x 1440; Story and Reel cover top 270, bottom 384 (Story) or 672 (Reel), 65 each side; TikTok bottom 484, top 130, left 44, right 140; LinkedIn adds 4:5 1080 x 1350; Google Business keeps the centre 900 x 900.</p>
+<p><b>Not in G1:</b> landing pages, tracking, enquiries (G2), any portal change, and generating images inside ScriptForge (the Character Library has no image step to reuse; it would need a new image relay).</p>
+<p><b>To go live</b> (needs Harry's approval): merge <code>growth-g1</code> into <code>main</code> (site) and push the Vault to <code>growth-phase-1</code> (Worker). No DNS or route change: all new endpoints sit under <code>/api/vault/*</code>. The new tables create themselves on the first request. This also ships the Gemini key hint fix that was on <code>growth-phase-6</code>.</p>
+</div>
 
 <h2>What is live</h2>
 <div class="card">
@@ -85,7 +111,7 @@ li{margin:0 0 6px}
 
 <h2>Where to start reading</h2>
 <div class="card">
-<p><code>README.html</code> explains every file and how to redeploy. <code>SETUP-RECORD.html</code> lists the Cloudflare resources and setting names (no secrets). The prompts are <code>assets/growth/brain.prompt.json</code> and <code>assets/growth/campaign.prompt.json</code>.</p>
+<p><code>README.html</code> explains every file and how to redeploy. <code>SETUP-RECORD.html</code> lists the Cloudflare resources and setting names (no secrets). The prompts are <code>assets/growth/brain.prompt.json</code>, <code>assets/growth/campaign.prompt.json</code> and, from G1, <code>assets/growth/visuals.prompt.json</code>; the image sizes are in <code>assets/growth/platforms.json</code>. Run every test with <code>node test/run-all.mjs</code>.</p>
 </div>
 </main>
 </body>

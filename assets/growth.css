@@ -132,3 +132,29 @@
 .gc-danger-box{border:1px solid #B8452A}
 .gc-danger{background:#B8452A;color:#fff;padding:9px 16px}
 .gc-danger:disabled{opacity:.45}
+/* V2 phase G1: Visual Pack */
+.gv-pack .gc-brain-tools{align-items:center}
+.gv-kit{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.84rem}
+.gv-kit-ed{display:flex;flex-direction:column;gap:8px}
+.gv-swatch{display:inline-block;width:18px;height:18px;border-radius:4px;border:1px solid var(--border)}
+.gv-file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.gv-briefs{display:flex;flex-direction:column;gap:10px;border-top:1px dashed var(--border);padding-top:10px}
+.gv-brief{border:1px solid var(--border);border-radius:9px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--bg);min-width:0}
+.gv-brief.need{border-color:#8A5D08}
+.gv-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.86rem}
+.gv-size{font-family:var(--mono);font-size:.74rem;color:var(--accent2)}
+.gv-prompt{margin:0;font-size:.82rem;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.gv-overlay{display:flex;flex-direction:column;gap:2px;font-size:.84rem;border-left:3px solid #F0B94A;padding-left:9px}
+.gv-cta{display:inline-block;align-self:flex-start;font-size:.76rem;font-weight:700;border:1px solid #F0B94A;border-radius:999px;padding:1px 9px;color:#F0B94A}
+.gv-photo{display:flex;align-items:center;gap:10px}
+.gv-photo img{width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border)}
+.gv-thumbs{display:flex;gap:10px;flex-wrap:wrap}
+.gv-thumb{margin:0;display:flex;flex-direction:column;gap:4px;width:120px}
+.gv-thumb img{width:120px;height:120px;object-fit:cover;border-radius:6px;border:1px solid var(--border);display:block}
+.gv-thumb figcaption{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.gv-thumbs.strip .gv-thumb{width:96px}
+.gv-thumbs.strip .gv-thumb img{width:96px;height:96px}
+.gv-attach{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.gv-attach-btn{cursor:pointer;padding:5px 10px;display:inline-block}
+.gv-file:focus-visible+label{outline:2px solid var(--accent2);outline-offset:2px}
+.gv-attach,.gv-kit{position:relative}

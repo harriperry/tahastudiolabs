@@ -6,8 +6,8 @@
      4. AvatarsTab           (header tab)  portrait prompts for every character in the registry
 
    Load order: this file is loaded BEFORE app.js (see index.html). It only exposes
-   window.SEExtras. app.js passes in its own callAI() and the aiConfig, so the AI provider
-   and key chosen in Settings (Anthropic or Grok) are used exactly as they are today. Nothing
+   window.SEExtras. app.js passes in its own callAI() and the aiConfig, so the Anthropic key
+   saved in Settings is used exactly as it is everywhere else in ScriptEngine. Nothing
    here stores or sends a key anywhere.
 
    Reliability notes (fixes for the old avatar error "Unterminated string in JSON"):

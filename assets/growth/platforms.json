@@ -1,0 +1,131 @@
+{
+  "schema": "taha-growth-platforms-1",
+  "checked": "2026-10-06",
+  "note": "Every image size and clear zone the Visual Pack uses. Sizes live here, not in code. Pixel margins are measured on the full canvas. Checked against each platform's published guidance on 6 October 2026; see changes for what moved from the V2 spec table.",
+  "sources": [
+    { "platform": "Instagram", "url": "https://nealschaffer.com/instagram-post-size/", "what": "4:5 feed posts crop to a centred 3:4 tile on the profile grid (about 1012 x 1350); native 3:4 at 1080 x 1440 since 2025" },
+    { "platform": "Meta (Instagram and Facebook)", "url": "https://billo.app/blog/meta-ads-safe-zones", "what": "March 2026 9:16 safe zones: top 14 percent, bottom 20 to 35 percent, sides 6 percent; 4:5 favoured over 1:1 in feed" },
+    { "platform": "TikTok", "url": "https://cadenus.io/resources/blog/tiktok-safe-zone/", "what": "1080 x 1920 safe zone: top 130, bottom 484, left 44, right 140 (July 2026)" },
+    { "platform": "LinkedIn", "url": "https://postfa.st/sizes/linkedin/posts", "what": "Image posts 3:1 to 4:5, square 1200 x 1200, link share 1200 x 627" },
+    { "platform": "Google Business Profile", "url": "https://recurpost.com/schedule-google-business-profile-posts/google-business-profile-post-image-size/", "what": "1200 x 900 (4:3), JPG or PNG, 10 KB to 5 MB, keep key content in the centre 900 x 900" }
+  ],
+  "changes": [
+    "Instagram feed: clear zone given in pixels, subject inside the centre 1012 x 1350 (the 3:4 grid crop). Added a native 3:4 size, 1080 x 1440, for uncropped client phone photos.",
+    "Instagram Story and Reel cover: top 250 and bottom 340 became top 270, bottom 384 for Stories and 672 for Reel covers (longer captions), plus 65 on each side.",
+    "TikTok cover: bottom 420 became 484, and top 130 and left 44 were added (right 140 unchanged).",
+    "LinkedIn: added a 4:5 portrait size, 1080 x 1350.",
+    "Google Business: clear zone made exact, everything important inside the centre 900 x 900."
+  ],
+  "platforms": {
+    "instagram_feed": {
+      "label": "Instagram feed post",
+      "ratio": "4:5", "width": 1080, "height": 1350,
+      "clear": { "top": 270, "bottom": 270, "left": 34, "right": 34 },
+      "clear_zone": "Keep the subject and faces inside the centre 1012 x 1350 (the profile grid crops 34 px from each side). Leave the top 270 px or the bottom 270 px empty for the overlay text.",
+      "focus": "One strong subject, close and tactile, colour contrast that stops the scroll."
+    },
+    "instagram_feed_3x4": {
+      "label": "Instagram feed post (native 3:4)",
+      "ratio": "3:4", "width": 1080, "height": 1440,
+      "clear": { "top": 288, "bottom": 288, "left": 0, "right": 0 },
+      "clear_zone": "Matches the profile grid tile with no crop. Leave the top 288 px or the bottom 288 px empty for the overlay text.",
+      "focus": "For an uncropped client phone photo: one strong subject, close and tactile."
+    },
+    "instagram_story": {
+      "label": "Instagram Story and Reel cover",
+      "ratio": "9:16", "width": 1080, "height": 1920,
+      "clear": { "top": 270, "bottom": 672, "left": 65, "right": 65 },
+      "clear_zone": "Keep the top 270 px and the bottom 384 px empty on a Story, the bottom 672 px on a Reel cover (captions and buttons), and 65 px on each side. Subject in the middle third.",
+      "focus": "Vertical, subject in the middle third, room for a sticker or link."
+    },
+    "tiktok_cover": {
+      "label": "TikTok cover and opening frame",
+      "ratio": "9:16", "width": 1080, "height": 1920,
+      "clear": { "top": 130, "bottom": 484, "left": 44, "right": 140 },
+      "clear_zone": "Keep the top 130 px, the bottom 484 px (caption), the right 140 px (buttons) and the left 44 px empty. The bottom grows with a longer caption.",
+      "focus": "Candid, phone-shot feel, people mid-action, never a polished stock look."
+    },
+    "facebook_feed": {
+      "label": "Facebook feed post",
+      "ratio": "4:5", "width": 1080, "height": 1350,
+      "clear": { "top": 270, "bottom": 270, "left": 34, "right": 34 },
+      "clear_zone": "As the Instagram feed: subject inside the centre 1012 x 1350, the top 270 px or the bottom 270 px empty for the overlay text.",
+      "focus": "Warmer and more community: groups, families, the local setting."
+    },
+    "facebook_square": {
+      "label": "Facebook feed post (square, when reused)",
+      "ratio": "1:1", "width": 1080, "height": 1080,
+      "clear": { "top": 216, "bottom": 216, "left": 0, "right": 0 },
+      "clear_zone": "Leave the top 216 px or the bottom 216 px empty for the overlay text.",
+      "focus": "Warmer and more community: groups, families, the local setting."
+    },
+    "linkedin_square": {
+      "label": "LinkedIn post",
+      "ratio": "1:1", "width": 1200, "height": 1200,
+      "clear": { "top": 0, "bottom": 0, "left": 400, "right": 0 },
+      "clear_zone": "Keep the left third (400 px) or the right third empty for the overlay text; the subject sits in the other two thirds.",
+      "focus": "Founder or team at work, behind the scenes, calm and credible light."
+    },
+    "linkedin_portrait": {
+      "label": "LinkedIn post (portrait)",
+      "ratio": "4:5", "width": 1080, "height": 1350,
+      "clear": { "top": 0, "bottom": 0, "left": 360, "right": 0 },
+      "clear_zone": "Keep the left third (360 px) or the right third empty for the overlay text.",
+      "focus": "Founder or team at work, behind the scenes, calm and credible light."
+    },
+    "linkedin_link": {
+      "label": "LinkedIn link share",
+      "ratio": "1.91:1", "width": 1200, "height": 627,
+      "clear": { "top": 0, "bottom": 0, "left": 400, "right": 0 },
+      "clear_zone": "Keep the left third or the right third empty for the overlay text.",
+      "focus": "Founder or team at work, behind the scenes, calm and credible light."
+    },
+    "google_business": {
+      "label": "Google Business post",
+      "ratio": "4:3", "width": 1200, "height": 900,
+      "clear": { "top": 90, "bottom": 90, "left": 150, "right": 150 },
+      "clear_zone": "Google crops the edges: keep everything important, including the overlay, inside the centre 900 x 900.",
+      "focus": "The place itself: exterior, counter, finished product (client photo rule applies)."
+    },
+    "offer_graphic": {
+      "label": "Offer graphic",
+      "ratio": "1:1", "width": 1080, "height": 1080,
+      "clear": { "top": 270, "bottom": 270, "left": 270, "right": 270 },
+      "clear_zone": "Keep the centre half (540 x 540) empty for the offer text; the product cut-out sits beside it.",
+      "focus": "Textured or blurred background in brand colours, product photo as a cut-out."
+    },
+    "email_header": {
+      "label": "Email header",
+      "ratio": "2:1", "width": 1200, "height": 600,
+      "clear": { "top": 0, "bottom": 0, "left": 300, "right": 300 },
+      "clear_zone": "Keep the centre (600 px wide) calm and empty for the overlay; one subject on one side.",
+      "focus": "Wide and calm, one subject on one side."
+    },
+    "landing_hero": {
+      "label": "Landing page hero",
+      "ratio": "16:9", "width": 1920, "height": 1080,
+      "clear": { "top": 0, "bottom": 0, "left": 960, "right": 0 },
+      "mobile_crop": { "ratio": "4:5", "width": 864, "height": 1080, "x": 1056, "y": 0 },
+      "clear_zone": "Keep the left half (960 px) empty on desktop for the headline. The mobile crop is the right 864 x 1080 (4:5): keep its top third empty there.",
+      "focus": "The promise of the offer, matching the page headline."
+    },
+    "open_graph": {
+      "label": "Link preview (Open Graph)",
+      "ratio": "1.91:1", "width": 1200, "height": 630,
+      "clear": { "top": 60, "bottom": 60, "left": 60, "right": 60 },
+      "clear_zone": "Keep 60 px from every edge clear; platforms crop the edges. Room for the logo in one corner.",
+      "focus": "Hero crop plus logo: this is what shows when the link is shared on Facebook, LinkedIn or WhatsApp."
+    }
+  },
+  "slots": {
+    "socialCopy": { "instagram": "instagram_feed", "facebook": "facebook_feed", "tiktok": "tiktok_cover", "linkedin": "linkedin_square" },
+    "adPlatformOrder": ["facebook", "instagram", "linkedin", "tiktok"],
+    "adPlatform": { "facebook": "facebook_feed", "instagram": "instagram_feed", "linkedin": "linkedin_square", "tiktok": "tiktok_cover" },
+    "adAngles": ["product", "person", "setting", "product", "person"],
+    "offer": "offer_graphic",
+    "email": "email_header",
+    "googleBusinessPost": "google_business",
+    "landingPage": { "hero": "landing_hero", "og": "open_graph" },
+    "videoCover": { "default": "instagram_story", "tiktok": "tiktok_cover" }
+  }
+}

@@ -1,10 +1,8 @@
 import { json } from "../_utils.js";
 
 /* Relay for downloading the finished video bytes. Beyond the CORS-interference reason
-   shared with format.js and the other video-*.js relays, this specifically also solves
-   the Grok Imagine CDN issue found during pilot testing: vidgen.x.ai blocks JS fetch()
-   from arbitrary origins, so a direct browser download never worked for Grok even though
-   generation itself did. Routing the download through our own domain sidesteps that
+   shared with format.js and the other video-*.js relays, some provider CDNs block JS fetch()
+   from arbitrary origins. Routing the download through our own domain sidesteps that
    entirely, since the provider fetch happens server-to-server (no CORS applies there).
    DATA HANDLING: apiKey is used only to authenticate this one upstream request, in memory,
    then discarded. The video bytes are streamed straight through - never written to disk,
@@ -20,7 +18,6 @@ export async function onRequestPost(context) {
 
   const headers = {};
   if (provider === "veo") headers["x-goog-api-key"] = apiKey;
-  else if (provider === "grok") headers["Authorization"] = `Bearer ${apiKey}`;
   else if (provider === "heygen") headers["X-Api-Key"] = apiKey;
 
   let upstream;

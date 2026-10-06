@@ -102,7 +102,6 @@ const els = {
   scriptType: $("scriptType"), btnSaveLib: $("btnSaveLib"), btnPdf: $("btnPdf"),
   btnLibrary: $("btnLibrary"), libOverlay: $("libOverlay"), libList: $("libList"), btnLibClose: $("btnLibClose"),
   videoKeyVeo: $("videoKeyVeo"), rememberVideoKeyVeo: $("rememberVideoKeyVeo"),
-  videoKeyGrok: $("videoKeyGrok"), rememberVideoKeyGrok: $("rememberVideoKeyGrok"),
   videoKeyHeygen: $("videoKeyHeygen"), rememberVideoKeyHeygen: $("rememberVideoKeyHeygen"),
 heygenAvatarId: $("heygenAvatarId"),
   refImg1: $("refImg1"), refImg1prev: $("refImg1prev"),
@@ -363,12 +362,12 @@ function applyVoiceLock(stype) {
 }
 
 /* Per-second provider rates, sourced from each provider's published API pricing (checked
-   July 2026): Veo 3.1 standard ~$0.40/s, Grok Imagine ~$0.05/s, HeyGen Video Agent ~$0.033/s
-   (roughly $2/min). Earlier version of this estimate used one flat rate for every provider,
-   which understated Veo-recommended projects by 3-4x since Veo is the priciest of the three - 
+   July 2026): Veo 3.1 standard ~$0.40/s, HeyGen Video Agent ~$0.033/s (roughly $2/min).
+   Earlier version of this estimate used one flat rate for every provider, which understated
+   Veo-recommended projects by 3-4x since Veo is the pricier of the two - 
    this keeps the number honest per the actual provider being recommended. DEFAULT_CLIP_SECONDS
    matches video-start.js's own default durationSeconds (8) for a single generated clip. */
-const VIDEO_COST_PER_SECOND = { veo: 0.40, grok: 0.05, heygen: 0.033 };
+const VIDEO_COST_PER_SECOND = { veo: 0.40, heygen: 0.033 };
 const DEFAULT_CLIP_SECONDS = 8;
 
 function estimateRoughCostTime(n, videoKey) {
@@ -482,7 +481,6 @@ if (FEATURE_SMART_RECOMMEND && els.recommendCard) {
    switching between them never overwrites another provider's saved key */
 const VIDEO_PROVIDERS = {
   veo:    { keyEl: "videoKeyVeo",    rememberEl: "rememberVideoKeyVeo",    ls: "sf_video_key_veo" },
-  grok:   { keyEl: "videoKeyGrok",   rememberEl: "rememberVideoKeyGrok",   ls: "sf_video_key_grok" },
   heygen: { keyEl: "videoKeyHeygen", rememberEl: "rememberVideoKeyHeygen", ls: "sf_video_key_heygen" }
 };
 Object.values(VIDEO_PROVIDERS).forEach(p => {
@@ -493,6 +491,29 @@ Object.values(VIDEO_PROVIDERS).forEach(p => {
   els[p.keyEl].addEventListener("input", () => persistVideoKey(p));
   els[p.rememberEl].addEventListener("change", () => persistVideoKey(p));
 });
+/* Grok Imagine was retired from ScriptForge on 6 October 2026 (Growth Department phase G1).
+   Segments always start on Veo 3.1, so the only saved trace is the key remembered for the
+   retired generator. It is removed from this browser, and someone who had saved one sees a one-time notice that their
+   generator is now Veo 3.1. */
+const RETIRED_VIDEO_KEY = "sf_video_key_grok";
+const RETIRED_NOTICE_SEEN = "sf_video_provider_retired_seen";
+function retireOldVideoProvider() {
+  let had = false;
+  try {
+    had = !!(localStorage.getItem(RETIRED_VIDEO_KEY) || "").trim();
+    localStorage.removeItem(RETIRED_VIDEO_KEY);
+    if (!had || localStorage.getItem(RETIRED_NOTICE_SEEN)) return;
+  } catch (e) { return; }
+  const box = document.getElementById("retiredProviderNotice");
+  if (!box) return;
+  box.style.display = "";
+  const ok = document.getElementById("retiredProviderOk");
+  if (ok) ok.addEventListener("click", () => {
+    box.style.display = "none";
+    try { localStorage.setItem(RETIRED_NOTICE_SEEN, "1"); } catch (e) {}
+  });
+}
+retireOldVideoProvider();
 function persistVideoKey(p) {
   try {
     if (els[p.rememberEl].checked) localStorage.setItem(p.ls, els[p.keyEl].value);
@@ -607,11 +628,8 @@ function fileToBase64(file) {
   });
 }
 
-/* Grok Imagine’s reference-to-video mode (docs.x.ai/developers/model-capabilities/video/
-   reference-to-video) takes each reference image as {"url": "..."} where that field accepts
-   EITHER a public HTTPS URL OR a full base64 data URI directly - same pattern xAI uses for the
-   video-edit endpoint’s "video" field. So unlike Veo (which wants the base64 payload split from
-   its data-URI prefix), Grok wants the whole "data:image/...;base64,..." string as-is. */
+/* The whole "data:image/...;base64,..." string, used for Character Library previews and
+   storage (Veo itself takes the split payload from fileToBase64() above). */
 function fileToDataUri(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -637,7 +655,7 @@ function fileToDataUri(file) {
 
    PHASE 1 SCOPE NOTE: the original brief for this feature described an auto-generate step that
    would call "the existing T2I generation pathway" to produce reference images from typed
-   descriptors. That pathway doesn't exist - ScriptForge has video generation (Veo/Grok/HeyGen)
+   descriptors. That pathway doesn't exist - ScriptForge has video generation (Veo/HeyGen)
    but no standalone image-only generation endpoint anywhere in functions/api/. Reference images
    in Phase 1 are manually uploaded, using the same file-to-data-URI pattern already used for the
    segment reference-image inputs above. Auto-generation would need a new server relay (following
@@ -823,7 +841,7 @@ function parseCharacterBrief(text) {
 }
 
 /* CHARACTER CONTINUITY + ELEVENLABS AUDIO HELPERS (see genClip() below for where these are
-used). extractLastFrame grabs the final frame of a just-finished Veo/Grok clip client-side - 
+used). extractLastFrame grabs the final frame of a just-finished Veo clip client-side - 
 Cloudflare's Workers runtime (where every /api/* relay in this app runs) has no video codec
 support at all, so there is no way to decode a frame server-side; the browser already has the
 finished clip's bytes by the time this runs, so that's the only place this can happen. */
@@ -860,7 +878,7 @@ thumb.innerHTML = `<img src="${url}" style="max-width:70px;border-radius:6px;mar
 }
 /* ElevenLabs text-to-speech relay call - see functions/api/elevenlabs-tts.js. Used by
 genClip() below either to feed HeyGen's audio-driven avatar mode (real voice + lip-sync
-consistency) or, for Veo/Grok which can't accept external audio at all, to offer the
+consistency) or, for Veo which can't accept external audio at all, to offer the
 narration as a separate download to mux in your own editor. */
 async function fetchElevenTTS(voiceId, apiKey, text) {
 const res = await fetch("/api/elevenlabs-tts", {
@@ -1131,15 +1149,14 @@ function renderOutput(raw){
            <div style="display:flex;gap:8px;align-items:center">
              <select id="vidGen${num}" style="flex:1">
                <option value="veo">Veo 3.1</option>
-               <option value="grok">Grok Imagine</option>
-               <option value="heygen">HeyGen Video Agent</option>
+               <option value="heygen"${window.__sfVideoTarget === "heygen" ? " selected" : ""}>HeyGen Video Agent</option>
              </select>
-             <input type="number" id="vidDur${num}" min="1" max="15" step="1" value="15" style="width:52px" title="Clip length in seconds. Grok Imagine allows 1-15s (this dropdown only applies to Grok - Veo 3.1 is fixed at 8s per call, and HeyGen has no formal duration parameter).">
+             <input type="number" id="vidDur${num}" min="1" max="15" step="1" value="15" style="width:52px" title="Clip length in seconds. Veo 3.1 makes 4, 6 or 8 second clips (always 8 at 1080p or with a reference image), so the nearest is used. HeyGen treats it as a hint.">
              <button class="btn-copy" data-action="gen-clip" data-num="${num}">🎬 Generate clip</button>
            </div>
            <div class="status" id="vidStatus${num}"></div>
 <div id="charPickWrap${num}"></div>
-<label id="chainWrap${num}" style="display:none;align-items:center;gap:6px;font-size:.72rem;margin-top:6px;cursor:pointer"><input type="checkbox" id="chainUse${num}" checked style="width:auto"> 🔗 Use Segment ${Number(num)-1}'s final frame as this segment's character reference (Veo/Grok)</label>
+<label id="chainWrap${num}" style="display:none;align-items:center;gap:6px;font-size:.72rem;margin-top:6px;cursor:pointer"><input type="checkbox" id="chainUse${num}" checked style="width:auto"> 🔗 Use Segment ${Number(num)-1}'s final frame as this segment's character reference (Veo)</label>
 <div id="chainThumb${num}"></div>
            <div id="vidResult${num}" style="margin-top:8px"></div>
          </div>` : ""}
@@ -1631,7 +1648,7 @@ els.btnCharImportSave.addEventListener("click", async () => {
 /* Per-segment character picker - shown under every generated segment that has a Text-to-Image
    Prompt (same condition as the video-generation controls). Auto-preselects any saved character
    whose displayName appears (case-insensitive) in that segment's Type/TTS Script/T2I/I2V text,
-   capped at 3 to match the reference-image slot limit Veo and Grok both support - the user can
+   capped at 3 to match the reference-image slot limit Veo supports - the user can
    freely add/remove selections before generating. Selection is stored directly on the segment's
    window.__segPrompts entry (seg.libraryCharacterIds), read by genClip() below. */
 async function populateSegmentCharPickers() {
@@ -1975,7 +1992,7 @@ els2.libFile.addEventListener("change", () => {
   rd.readAsText(f);
 });
 
-/* ═════════════════════════  VIDEO GENERATION (Veo 3.1 / Grok Imagine / HeyGen)  ═════════════════════════
+/* ═════════════════════════  VIDEO GENERATION (Veo 3.1 / HeyGen)  ═════════════════════════
    Calls our own /api/video-start, /api/video-poll, /api/video-download relays - never the
    provider directly - using whichever of your own keys you entered in "6 · Video Generation".
    Ported from the standalone local pilot that validated all three providers; the only change
@@ -2022,7 +2039,7 @@ window.genClip = async function (num, btn) {
   /* Character Library (Phase 1) - if this segment has one or more saved characters selected
      (see populateSegmentCharPickers() above), their reference images and compiled anchor
      phrases take priority over both frame-chaining and any manually-attached reference images
-     for Veo/Grok, and get named into the prompt for all three providers. This is the actual
+     for Veo, and get named into the prompt for both providers. This is the actual
      fix for cross-segment identity drift (frame-chaining alone only carries forward whatever
      the previous clip happened to render, with no anchor to what a character is actually
      supposed to look like). */
@@ -2033,30 +2050,21 @@ window.genClip = async function (num, btn) {
   const provider = $("vidGen" + num).value;
   const providerMeta = VIDEO_PROVIDERS[provider];
   const apiKey = els[providerMeta.keyEl].value.trim();
-  if (!apiKey) { vidSetStatus(num, "err", `Enter your ${provider === "veo" ? "Gemini" : provider === "grok" ? "xAI" : "HeyGen"} API key in the "6 · Video Generation" section first (the "Google Gemini API key (for Veo 3.1)" box).`); return; }
+  if (!apiKey) { vidSetStatus(num, "err", provider === "veo" ? `Enter your Gemini API key in the "6 · Video Generation" section first (the "Google Gemini API key (for Veo 3.1)" box).` : `Enter your HeyGen API key in the "6 · Video Generation" section first.`); return; }
 
-  /* Duration: only Grok Imagine’s API actually accepts a variable duration (1-15s, confirmed
-     via docs.x.ai/developers/model-capabilities/video/generation). Veo 3.1 generates fixed
-     8-second clips per call (ai.google.dev/gemini-api/docs/veo) - sending it anything else
-     isn’t supported by this integration, so it’s ignored. HeyGen’s /v3/video-agents has no
+  /* Duration: Veo 3.1 makes 4, 6 or 8 second clips per call (ai.google.dev/gemini-api/docs/veo),
+     so the requested length is snapped to the nearest of those below. HeyGen’s /v3/video-agents has no
      formal duration field at all (confirmed via its OpenAPI schema) - "Duration: ~Ns" in the
      prompt is only a hint to its storyboard planner, not an enforced parameter. */
   const durInput = document.getElementById("vidDur" + num);
   const requestedDuration = Math.min(15, Math.max(1, Number(durInput?.value) || 15));
 
   /* Round 1 fix (routing TTS Script to HeyGen instead of the Visual Prompt) was confirmed
-     insufficient by real-world testing: HeyGen still produced no sound, and Grok produced
-     background music but never spoke the dialogue. Verified against each provider's actual
-     API docs (not guessed):
+     insufficient by real-world testing: HeyGen still produced no sound. Verified against each
+     provider's actual API docs (not guessed):
      - Veo 3.1 (ai.google.dev/gemini-api/docs/veo): natively generates dialogue + SFX +
        ambience in ONE call, but only if the prompt explicitly writes speech in quotes, e.g.
        `A character says: "..."` - plain visual description alone renders silent/ambient-only.
-     - Grok Imagine (docs.x.ai .../video/generation): the REST body is just
-       {model, prompt, duration} - there is no separate dialogue field. Grok DOES support
-       short embedded dialogue with lip-sync (per xAI's own partner-quote marketing), but only
-       if the spoken line is written into the prompt text itself. Our old code sent Grok only
-       seg.visualPrompt - literally never gave it any words - which fully explains "music but
-       no dialogue": Grok had nothing to say because we never sent it anything to say.
      - HeyGen Video Agent (developers.heygen.com/reference/create-video-agent-session): the
        body has no dedicated script field either - a single free-text `prompt` (1–10000 chars)
        that an LLM storyboard planner freely interprets, deciding on its own whether to include
@@ -2068,7 +2076,7 @@ window.genClip = async function (num, btn) {
        render silent B-roll instead, which matches what was seen.
 
      Round 2 fix (appending a bare `. Audio: ${seg.audioNote}` tag to the end of the prompt for
-     all three providers) shipped, but real-world testing (user-reported, every generation)
+     every provider) shipped, but real-world testing (user-reported, every generation)
      showed the sound-design cue itself - bells, ambient swells, music fades, etc. - was still
      being dropped even though dialogue now worked correctly. Root cause is the same pattern as
      round 1: a short, unlabeled, non-imperative tag buried at the very end of an already-long
@@ -2076,12 +2084,12 @@ window.genClip = async function (num, btn) {
      instructions right next to it ("must speak... verbatim, aloud" vs. a bare "Audio: X").
      ROUND 3 FIX: give the audio note the same treatment dialogue already gets - labeled,
      quoted, and explicitly imperative ("must be present", "do not omit"), not a passive tag.
-     buildAudioDirective() below is shared across all three providers so this only needs to be
+     buildAudioDirective() below is shared across both providers so this only needs to be
      fixed in one place. ROLLBACK: revert to a bare `Audio: ${seg.audioNote}` append by removing
      the buildAudioDirective() calls below and restoring the tag inline - no other code depends
      on this function. */
   /* ROUND 4 FIX: takes the whole segment now, not just the note string, and NEVER returns "" - 
-     the three call sites below used to skip this entirely (`seg.audioNote ? ... : ""`) whenever
+     the call sites below used to skip this entirely (`seg.audioNote ? ... : ""`) whenever
      a segment had no Audio Note, which meant a video generator got zero ambience guidance and
      could render a scene as acoustically dead silent. User-reported: a rain-soaked market scene
      and a forest scene both came back with no environmental sound at all. No real-world location
@@ -2098,7 +2106,7 @@ window.genClip = async function (num, btn) {
     return `Sound design - no Audio Note was specified for this segment, but no real-world location is ever acoustically silent. Include ambient environmental sound appropriate to this scene's actual setting${scene ? ` ("${scene}")` : ""}: wind, birdsong, or nature sounds for outdoor/forest settings, traffic and city hum for urban settings, crowd bustle for markets or crowds, quiet room tone for interiors. Layer this under any dialogue or music, do not render the scene as silent.`;
   }
 
-  /* User-reported bug (real production test, Coca-Cola advert): Veo/Grok were always told "a
+  /* User-reported bug (real production test, Coca-Cola advert): Veo was always told "a
      character on screen says X" regardless of segment Type, even for Voiceover + B-Roll shots
      that may show no person at all (a statue, a street, a product on its own), which is a
      mismatched instruction the video generator has to silently reconcile however it can. Also
@@ -2126,13 +2134,6 @@ window.genClip = async function (num, btn) {
       + (libChars.length ? `\nCharacter(s) (Character Library - keep exactly as described, do not invent a different appearance): ${libChars.map(c => `${c.displayName || "character"} - ${c.anchorPhrase || buildAnchorPhrase(c)}`).join("; ")}` : "")
       + `\nAudio Instruction: ${buildAudioDirective(seg)}`
       + `\nDuration: ~${requestedDuration} seconds`;
-  } else if (provider === "grok") {
-    if (!seg.t2iPrompt) { vidSetStatus(num, "err", "No visual prompt found for this segment."); return; }
-    let p = buildVisualDescription(seg);
-    const dd = dialogueDirective(seg);
-    if (dd) p += `. ${dd}`;
-    p += `. ${buildAudioDirective(seg)}`;
-    prompt = p;
   } else {
     // Veo 3.1 - natively supports dialogue/SFX/ambience in the same prompt (per Google's own
     // prompting guide), using quotes for speech, so pass TTS Script/Audio Note through too.
@@ -2186,22 +2187,15 @@ window.genClip = async function (num, btn) {
 
     const params = {
       aspectRatio,
-      // Grok’s base "grok-imagine-video" model doesn’t support 1080p/4k (that tier is 1.5-only,
-      // and only for image-to-video) - always send 720p for Grok regardless of the Resolution
-      // dropdown, rather than let a request with an unsupported resolution fail.
-      resolution: provider === "grok" ? "720p" : resolutionSel,
+      resolution: resolutionSel,
       durationSeconds: veoDuration,
-      duration: provider === "grok" ? requestedDuration : 8,
+      duration: 8,
       // HeyGen has no resolution field, only orientation (landscape/portrait) - derive it from
-      // the same aspect-ratio control so all three providers respect one shared setting.
+      // the same aspect-ratio control so both providers respect one shared setting.
       orientation: aspectRatio === "9:16" ? "portrait" : "landscape"
     };
 
-    /* Reference images used to be encoded ONLY when provider === "veo" - selecting Grok skipped
-       this whole block silently (no error shown), so Grok always generated from text alone and
-       invented its own visuals instead of using the attached image. Grok Imagine has its own
-       documented reference-to-video mode (docs.x.ai/.../video/reference-to-video), so it now
-       gets the same images too, just encoded in the shape Grok's API actually expects.
+    /* Reference images are sent to Veo only (HeyGen's Video Agent takes none).
 
        ROLE ASSIGNMENT: real-world testing showed the same reference image attached in all 3
        slots still produced a completely different person on screen. Root-caused two distinct
@@ -2209,15 +2203,12 @@ window.genClip = async function (num, btn) {
        - Veo (ai.google.dev/gemini-api/docs/video#reference-images): every reference image
          object requires a "referenceType": "asset" field - this relay was never sending it at
          all, an outright malformed request, not a prompt-wording problem.
-       - Neither provider has a per-image "this one is the main character" flag in the API
-         itself. Google's own reference-image examples tie images to roles purely through prose
-         in the prompt (describing "a woman... wearing X... and Y" so each asset maps to a
-         described element), while Grok's own docs use inline <IMAGE_1>/<IMAGE_2> tags for the
-         same purpose. So slot 1 is now explicitly called out in the prompt as the required
-         on-camera narrator - via Grok's documented <IMAGE_n> tags for Grok, and via plain
-         descriptive instruction for Veo (which has no numbered-tag convention) - and slots 2-3
-         are described as supporting participants, matching how each provider actually expects
-         multi-image intent to be communicated.
+       - Veo has no per-image "this one is the main character" flag in the API itself.
+         Google's own reference-image examples tie images to roles purely through prose in the
+         prompt (describing "a woman... wearing X... and Y" so each asset maps to a described
+         element). So slot 1 is now explicitly called out in the prompt as the required
+         on-camera narrator through plain descriptive instruction, and slots 2-3 are described
+         as supporting participants, matching how Veo expects multi-image intent.
 
        MULTI-CHARACTER FIX (real-world testing, user-reported): the wording above assumed slot 1
        always shows exactly ONE person ("The person shown... keep their exact face"). That's true
@@ -2236,44 +2227,27 @@ window.genClip = async function (num, btn) {
        so the model isn't just shown a face, it's told whose face it is and what's supposed to
        stay consistent about them. This is the direct multi-character fix: two named women can
        each get their own tagged slot instead of sharing one generic "the person(s)" instruction. */
-    function buildCharacterRoleNote(chars, providerName) {
+    function buildCharacterRoleNote(chars) {
       const lines = chars.map((c, i) => {
-        const tag = providerName === "grok" ? `<IMAGE_${i + 1}>` : `Reference image ${i + 1}`;
+        const tag = `Reference image ${i + 1}`;
         const anchor = c.anchorPhrase || buildAnchorPhrase(c);
         return `${tag} shows ${c.displayName || "a character"}${anchor ? ` - ${anchor}` : ""}. This exact person must appear in the scene, keeping their face and identity recognizable and distinct from any other character present.`;
       });
       return lines.join(" ") + (chars.length > 1 ? " All named characters above must appear together in this scene exactly as described, each one distinct from the others - do not merge, swap, or invent different people." : "");
     }
-    if (provider === "veo" || provider === "grok") {
+    if (provider === "veo") {
       if (refFiles.length) {
         vidSetStatus(num, "info", '<span class="spin"></span>Encoding reference image(s)…');
-        if (provider === "veo") {
-          const encoded = await Promise.all(refFiles.map(fileToBase64));
+        const encoded = await Promise.all(refFiles.map(fileToBase64));
+        {
           params.referenceImages = encoded.map(img => ({ image: img, referenceType: "asset" }));
           prompt = (libChars.length
-            ? buildCharacterRoleNote(libChars, "veo") + " "
+            ? buildCharacterRoleNote(libChars) + " "
             : (refFiles.length > 1
               ? "The first reference image shows the required on-camera character(s) for this scene - whether it shows one person or several, every one of them must keep their exact face and identity recognizable and distinct from the others, while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud. Any other reference images show additional supporting participants or objects that may also appear, but must not replace anyone already shown in the first reference image. "
               : "The reference image shows the required on-camera character(s) for this scene - whether it shows one person or several, every one of them must keep their exact face and identity recognizable and distinct from the others, while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud. "
             )
           ) + prompt;
-        } else {
-          const dataUris = await Promise.all(refFiles.map(fileToDataUri));
-          params.referenceImages = dataUris.map(url => ({ url }));
-          // Grok's reference-to-video mode caps duration at 10s whenever reference images are
-          // attached (confirmed in its docs) - clamp down rather than let the request fail.
-          if (params.duration > 10) {
-            params.duration = 10;
-            vidSetStatus(num, "info", '<span class="spin"></span>Reference image attached - Grok caps clips with a reference image at 10s, adjusting…');
-          }
-          let roleNote;
-          if (libChars.length) {
-            roleNote = buildCharacterRoleNote(libChars, "grok");
-          } else {
-            roleNote = "<IMAGE_1> shows the required on-camera character(s) for this scene - whether it shows one person or several, every one of them must keep their exact face and identity recognizable and distinct from the others, while they move naturally, act, and interact with their environment throughout the clip, speaking the dialogue below aloud.";
-            if (refFiles.length > 1) roleNote += ` <IMAGE_2>${refFiles.length > 2 ? " and <IMAGE_3>" : ""} show additional supporting participants or objects that may also appear in the shot, but must not replace anyone already shown in <IMAGE_1>.`;
-          }
-          prompt = roleNote + " " + prompt;
         }
         vidSetStatus(num, "info", '<span class="spin"></span>Submitting…');
       }
@@ -2356,7 +2330,7 @@ const startRes = await videoApi("video-start", { provider, apiKey, prompt, param
     const blob = await dlRes.blob();
     const blobUrl = URL.createObjectURL(blob);
     let narrationHtml = "";
-if (elevenAudioBlob && (provider === "veo" || provider === "grok")) {
+if (elevenAudioBlob && provider === "veo") {
 const narrationUrl = URL.createObjectURL(elevenAudioBlob);
 narrationHtml = `<div style="margin-top:6px"><a href="${narrationUrl}" download="segment-${num}-narration.mp3" style="color:var(--accent2)">🔊 Download narration audio (ElevenLabs) - mux onto the clip above in your editor</a></div>`;
 }
@@ -2364,7 +2338,7 @@ $("vidResult" + num).innerHTML = `
 <video controls src="${blobUrl}" style="max-width:100%;border-radius:8px"></video>
 <div style="margin-top:6px"><a href="${blobUrl}" download="segment-${num}-clip.mp4" style="color:var(--accent2)">⬇ Download this clip</a></div>
 ${narrationHtml}`;
-if (provider === "veo" || provider === "grok") {
+if (provider === "veo") {
 try {
 const frameBlob = await extractLastFrame(blobUrl);
 if (frameBlob) { chainFrames[String(Number(num) + 1)] = frameBlob; showChainOption(String(Number(num) + 1)); }

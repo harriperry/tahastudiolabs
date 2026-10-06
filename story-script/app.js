@@ -101,29 +101,18 @@ async function anthropicJSON(res) {
   return json;
 }
 
-/* ── Multi-provider AI call ───────────────────────────────────────────────
-   ScriptEngine supports Anthropic Claude and xAI Grok as interchangeable
-   text-generation providers. callAI() takes a system prompt + user message
-   and returns plain text, branching on whichever provider is active so the
-   four call sites (generate, addTwoScenes, regenScene, FBGen) don't each
-   need their own provider-switch logic. */
-const GROK_MODEL = "grok-4-fast";
-/* Both providers now go through the same "/api/ai-relay" same-origin relay function
-   (functions/api/ai-relay.js). Grok used to call https://api.x.ai/v1/chat/completions
-   directly from the browser here, which never actually worked: xAI's API has no CORS
-   headers permitting a direct browser fetch from a third-party origin, so the request
-   was blocked before any response came back, surfacing as a bare "Failed to fetch"
-   regardless of whether the key was valid or paid. Routing through the relay (the key
-   is forwarded for this one request only, never stored or logged server-side) fixes
-   that the same way it was already fixed for Anthropic below. */
+/* ── AI call ──────────────────────────────────────────────────────────────
+   ScriptEngine writes with Anthropic Claude. callAI() takes a system prompt + user
+   message and returns plain text, so the four call sites (generate, addTwoScenes,
+   regenScene, FBGen) share one path. Since Growth Department phase G1 (6 October 2026)
+   Anthropic is the only provider; see retireOldProvider() for saved settings. */
+/* Calls go through the same-origin relay (functions/api/ai-relay.js): the key is
+   forwarded for this one request only, never stored or logged server-side. */
 async function callAI({
-  provider,
-  anthropicKey,
-  grokKey
+  anthropicKey
 }, system, userText, maxTokens) {
-  const isGrok = provider === "grok";
-  const apiKey = isGrok ? grokKey : anthropicKey;
-  if (!apiKey) throw new Error(`Add your ${isGrok ? "Grok (xAI)" : "Anthropic"} API key in Settings first.`);
+  const apiKey = anthropicKey;
+  if (!apiKey) throw new Error("Add your Anthropic API key in Settings first.");
 
   const res = await fetch("/api/ai-relay", {
     method: "POST",
@@ -131,9 +120,9 @@ async function callAI({
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      provider: isGrok ? "grok" : "anthropic",
+      provider: "anthropic",
       apiKey,
-      model: isGrok ? GROK_MODEL : ANTHROPIC_MODEL,
+      model: ANTHROPIC_MODEL,
       max_tokens: maxTokens,
       system,
       messages: [{
@@ -148,8 +137,25 @@ async function callAI({
   } catch (e) {
     throw new Error(`Relay returned an unreadable response (HTTP ${res.status}).`);
   }
-  if (!res.ok || !json?.ok) throw new Error(json?.error || `${isGrok ? "Grok" : "Anthropic"} API error (HTTP ${res.status}).`);
+  if (!res.ok || !json?.ok) throw new Error(json?.error || `Anthropic API error (HTTP ${res.status}).`);
   return json.text || "";
+}
+/* Saved settings from before 6 October 2026 may name the retired xAI provider or hold its
+   key (older saves always wrote an empty key field). Those fields are dropped from this
+   browser's settings. notify is true only for someone who actually used it (provider set
+   to it, or a key saved), and the caller then shows a one-time notice. */
+const RETIRED_PROVIDER = "grok";
+const RETIRED_NOTICE_KEY = "provider_retired_notice_seen";
+function retireOldProvider(s) {
+  if (!s || typeof s !== "object") return { settings: s, changed: false, notify: false };
+  const keyField = RETIRED_PROVIDER + "Key";
+  const hadOld = "provider" in s || keyField in s;
+  if (!hadOld) return { settings: s, changed: false, notify: false };
+  const notify = s.provider === RETIRED_PROVIDER || !!String(s[keyField] || "").trim();
+  const clean = { ...s };
+  delete clean[keyField];
+  delete clean.provider;
+  return { settings: clean, changed: true, notify };
 }
 const buildSystemPrompt = (context, chars) => {
   const charBlock = chars?.length ? `\n## CHARACTER REGISTRY - USE CONSISTENTLY IN ALL SCENES\n${chars.map(c => `- ${c.name} (${c.role}): ${c.appearance}. Voice: ${c.voiceTone}. Accent: ${c.accent}. Personality: ${c.personality}.`).join("\n")}\n` : "";
@@ -1821,15 +1827,11 @@ const Settings = ({
   elApiKey,
   elVoiceId,
   anthropicKey,
-  grokKey,
-  provider,
   onSave
 }) => {
   const [key, setKey] = useState(elApiKey || "");
   const [voice, setVoice] = useState(elVoiceId || "");
   const [aKey, setAKey] = useState(anthropicKey || "");
-  const [gKey, setGKey] = useState(grokKey || "");
-  const [prov, setProv] = useState(provider || "anthropic");
   const [saved, setSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [customVoices, setCustomVoices] = useState([]);
@@ -1873,8 +1875,6 @@ const Settings = ({
           if (s.voiceId) setVoice(s.voiceId);
           if (s.customVoices) setCustomVoices(s.customVoices);
           if (s.anthropicKey) setAKey(s.anthropicKey);
-          if (s.grokKey) setGKey(s.grokKey);
-          if (s.provider) setProv(s.provider);
         }
       } catch {}
     })();
@@ -1896,9 +1896,7 @@ const Settings = ({
       key,
       voiceId: newId.trim(),
       customVoices: updated,
-      anthropicKey: aKey,
-      grokKey: gKey,
-      provider: prov
+      anthropicKey: aKey
     }));
   };
   const removeCustomVoice = async id => {
@@ -1909,9 +1907,7 @@ const Settings = ({
       key,
       voiceId: voice,
       customVoices: updated,
-      anthropicKey: aKey,
-      grokKey: gKey,
-      provider: prov
+      anthropicKey: aKey
     }));
   };
   const save = async () => {
@@ -1919,11 +1915,9 @@ const Settings = ({
       key: key.trim(),
       voiceId: voice,
       customVoices,
-      anthropicKey: aKey.trim(),
-      grokKey: gKey.trim(),
-      provider: prov
+      anthropicKey: aKey.trim()
     }));
-    onSave(key.trim(), voice, aKey.trim(), gKey.trim(), prov);
+    onSave(key.trim(), voice, aKey.trim());
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -1957,57 +1951,11 @@ const Settings = ({
     }
   }, "✅ Settings loaded from this browser"), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 14
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: {
-      color: "#9ca3af",
-      fontSize: 11,
-      fontWeight: 700,
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      display: "block",
-      marginBottom: 6
-    }
-  }, "AI Provider (used to generate scripts, regens, and Facebook posts)"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setProv("anthropic"),
-    style: {
-      flex: 1,
-      background: prov === "anthropic" ? "#1e3a5f" : "#111827",
-      border: `1px solid ${prov === "anthropic" ? "#3b82f6" : "#374151"}`,
-      borderRadius: 8,
-      color: prov === "anthropic" ? "#60a5fa" : "#9ca3af",
-      fontSize: 13,
-      fontWeight: 700,
-      padding: "8px 0",
-      cursor: "pointer"
-    }
-  }, "🔶 Anthropic Claude"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setProv("grok"),
-    style: {
-      flex: 1,
-      background: prov === "grok" ? "#1e3a5f" : "#111827",
-      border: `1px solid ${prov === "grok" ? "#3b82f6" : "#374151"}`,
-      borderRadius: 8,
-      color: prov === "grok" ? "#60a5fa" : "#9ca3af",
-      fontSize: 13,
-      fontWeight: 700,
-      padding: "8px 0",
-      cursor: "pointer"
-    }
-  }, "✖️ Grok (xAI)"))), /*#__PURE__*/React.createElement("div", {
-    style: {
       background: "#0a1020",
-      border: `1px solid ${prov === "anthropic" ? "#f59e0b44" : "#37415144"}`,
+      border: "1px solid #f59e0b44",
       borderRadius: 12,
       padding: 16,
-      marginBottom: 18,
-      opacity: prov === "anthropic" ? 1 : 0.6
+      marginBottom: 18
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2018,7 +1966,7 @@ const Settings = ({
       letterSpacing: 1,
       marginBottom: 4
     }
-  }, "🔑 Anthropic API Key ", prov === "anthropic" && "(active provider)"), /*#__PURE__*/React.createElement("div", {
+  }, "🔑 Anthropic API Key"), /*#__PURE__*/React.createElement("div", {
     style: {
       color: "#6b7280",
       fontSize: 11,
@@ -2038,52 +1986,6 @@ const Settings = ({
       width: "100%",
       background: "#0f172a",
       border: `1px solid ${aKey ? "#f59e0b66" : "#374151"}`,
-      borderRadius: 8,
-      color: "#e5e7eb",
-      fontSize: 13,
-      padding: "9px 12px",
-      outline: "none",
-      boxSizing: "border-box",
-      fontFamily: "inherit"
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "#0a1020",
-      border: `1px solid ${prov === "grok" ? "#a855f744" : "#37415144"}`,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 18,
-      opacity: prov === "grok" ? 1 : 0.6
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      color: "#c4b5fd",
-      fontWeight: 800,
-      fontSize: 12,
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      marginBottom: 4
-    }
-  }, "✖️ Grok (xAI) API Key ", prov === "grok" && "(active provider)"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      color: "#6b7280",
-      fontSize: 11,
-      marginBottom: 10,
-      lineHeight: 1.6
-    }
-  }, "Alternative to Anthropic - same features, different model. Stored only in this browser, never sent anywhere except xAI. Get one at ", /*#__PURE__*/React.createElement("strong", {
-    style: {
-      color: "#9ca3af"
-    }
-  }, "console.x.ai"), "."), /*#__PURE__*/React.createElement("input", {
-    type: "password",
-    value: gKey,
-    onChange: e => setGKey(e.target.value),
-    placeholder: "xai-...",
-    style: {
-      width: "100%",
-      background: "#0f172a",
-      border: `1px solid ${gKey ? "#a855f766" : "#374151"}`,
       borderRadius: 8,
       color: "#e5e7eb",
       fontSize: 13,
@@ -2806,8 +2708,7 @@ function App() {
   const [elApiKey, setElApiKey] = useState("");
   const [elVoiceId, setElVoiceId] = useState("21m00Tcm4TlvDq8ikWAM");
   const [anthropicKey, setAnthropicKey] = useState("");
-  const [grokKey, setGrokKey] = useState("");
-  const [provider, setProvider] = useState("anthropic");
+  const [retiredNotice, setRetiredNotice] = useState(false);
   const [trackers, setTrackers] = useState({});
   const [user, setUser] = useState(null);
   const [tier, setTier] = useState("free");
@@ -2839,12 +2740,15 @@ function App() {
       try {
         const r = await window.storage.get("el_settings");
         if (r?.value) {
-          const s = JSON.parse(r.value);
+          const { settings: s, changed, notify } = retireOldProvider(JSON.parse(r.value));
           setElApiKey(s.key || "");
           setElVoiceId(s.voiceId || "21m00Tcm4TlvDq8ikWAM");
           setAnthropicKey(s.anthropicKey || "");
-          setGrokKey(s.grokKey || "");
-          setProvider(s.provider || "anthropic");
+          if (changed) {
+            await window.storage.set("el_settings", JSON.stringify(s));
+            const seen = await window.storage.get(RETIRED_NOTICE_KEY);
+            if (notify && !seen?.value) setRetiredNotice(true);
+          }
         }
       } catch {}
       await refreshMe();
@@ -2855,17 +2759,19 @@ function App() {
     await window.storage.set("char_registry", JSON.stringify(u));
     setCharacters(u);
   };
-  const saveElSettings = async (k, v, ak, gk, prov) => {
+  const saveElSettings = async (k, v, ak) => {
     setElApiKey(k);
     setElVoiceId(v);
     setAnthropicKey(ak);
-    setGrokKey(gk);
-    setProvider(prov);
+  };
+  const dismissRetiredNotice = async () => {
+    setRetiredNotice(false);
+    try {
+      await window.storage.set(RETIRED_NOTICE_KEY, "1");
+    } catch {}
   };
   const aiConfig = {
-    provider,
-    anthropicKey,
-    grokKey
+    anthropicKey
   };
   const getTracker = async id => {
     if (trackers[id]) return trackers[id];
@@ -2997,7 +2903,7 @@ function App() {
      tree, TTS copy buttons, the Facebook post generator) so this new feature,
      and anything built on top of it later, can be proven safe before it ever
      touches a real API key or a real story. Deliberately does NOT call callAI,
-     buildSystemPrompt, or touch aiConfig/anthropicKey/grokKey at all. */
+     buildSystemPrompt, or touch aiConfig/anthropicKey at all. */
   const MOCK_IDEA = "A detective finds a photo that proves his partner lied about the night of the warehouse fire.";
   const MOCK_STORY_DATA = {
     title: "The Photograph",
@@ -3063,9 +2969,8 @@ function App() {
   };
   const generate = async () => {
     if (!idea.trim()) return;
-    const activeKey = provider === "grok" ? grokKey : anthropicKey;
-    if (!activeKey.trim()) {
-      setError(`Add your ${provider === "grok" ? "Grok (xAI)" : "Anthropic"} API key in Settings (⚙️) first.`);
+    if (!anthropicKey.trim()) {
+      setError("Add your Anthropic API key in Settings (⚙️) first.");
       return;
     }
     setLoading(true);
@@ -3248,7 +3153,38 @@ function App() {
       margin: "0 auto",
       padding: "20px 18px"
     }
-  }, view === "library" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, retiredNotice && /*#__PURE__*/React.createElement("div", {
+    role: "status",
+    style: {
+      background: "#1e3a5f",
+      border: "1px solid #3b82f6",
+      borderRadius: 10,
+      padding: "10px 14px",
+      marginBottom: 16,
+      color: "#dbeafe",
+      fontSize: 13,
+      lineHeight: 1.6,
+      display: "flex",
+      gap: 12,
+      alignItems: "flex-start"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "Grok has been retired from ScriptEngine. "), "Scripts are now written with Anthropic Claude. Your saved xAI key was removed from this browser. Add your Anthropic key in ", /*#__PURE__*/React.createElement("strong", null, "⚙️ Settings"), " to keep writing."), /*#__PURE__*/React.createElement("button", {
+    onClick: dismissRetiredNotice,
+    style: {
+      background: "#3b82f6",
+      border: "none",
+      borderRadius: 6,
+      color: "#fff",
+      fontSize: 12,
+      fontWeight: 700,
+      padding: "6px 12px",
+      cursor: "pointer"
+    }
+  }, "Got it")), view === "library" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       color: "#9ca3af",
       fontSize: 12,
@@ -3285,8 +3221,6 @@ function App() {
     elApiKey: elApiKey,
     elVoiceId: elVoiceId,
     anthropicKey: anthropicKey,
-    grokKey: grokKey,
-    provider: provider,
     onSave: saveElSettings
   }), view === "write" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -3391,7 +3325,7 @@ function App() {
       boxSizing: "border-box",
       fontFamily: "inherit"
     }
-  }))), !(provider === "grok" ? grokKey : anthropicKey).trim() && /*#__PURE__*/React.createElement("div", {
+  }))), !anthropicKey.trim() && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 11,
       padding: "8px 12px",
@@ -3401,7 +3335,7 @@ function App() {
       color: "#fcd34d",
       fontSize: 12
     }
-  }, "🔑 Add your ", provider === "grok" ? "Grok (xAI)" : "Anthropic", " API key in ", /*#__PURE__*/React.createElement("strong", null, "⚙️ Settings"), " before generating."), /*#__PURE__*/React.createElement("div", {
+  }, "🔑 Add your Anthropic API key in ", /*#__PURE__*/React.createElement("strong", null, "⚙️ Settings"), " before generating."), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",

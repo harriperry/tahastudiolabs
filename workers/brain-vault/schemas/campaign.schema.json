@@ -2,12 +2,16 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tahastudiolabs.com/api/vault/schemas/campaign",
   "title": "TAHA Growth Department campaign",
-  "description": "Written by ScriptForge's Campaign Generator: the concept plus nine outputs. Saved to the Vault; status in_production or delivered.",
+  "description": "Written by ScriptForge's Campaign Generator: the concept plus nine outputs, and from V2 phase G1 an optional Visual Pack (campaign-2). Saved to the Vault; status in_production or delivered. campaign-1 documents (no visuals) stay valid.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "schemaVersion": {
-      "const": "campaign-1"
+      "enum": [
+        "campaign-1",
+        "campaign-2"
+      ],
+      "description": "campaign-1: V1 campaigns. campaign-2: the same document plus the optional visuals array (V2 phase G1)."
     },
     "clientId": {
       "type": "string",
@@ -384,6 +388,199 @@
         "text",
         "ctaType"
       ]
+    },
+    "visuals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^v_[a-z0-9_]{2,40}$",
+            "description": "For example v_social_instagram or v_ad_2."
+          },
+          "output_key": {
+            "type": "string",
+            "pattern": "^[A-Za-z]+(\\.[a-z0-9_]+)?$",
+            "description": "The output the image belongs to, for example socialCopy.instagram, adVariations.2, shortVideo.cover, landingPage.hero."
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "instagram_feed",
+              "instagram_feed_3x4",
+              "instagram_story",
+              "tiktok_cover",
+              "facebook_feed",
+              "facebook_square",
+              "linkedin_square",
+              "linkedin_portrait",
+              "linkedin_link",
+              "google_business",
+              "offer_graphic",
+              "email_header",
+              "landing_hero",
+              "open_graph"
+            ],
+            "description": "A key of assets/growth/platforms.json, where every size and clear zone lives."
+          },
+          "placement": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "ratio": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)?:[0-9]+$"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 4000
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 4000
+          },
+          "subject": {
+            "type": "string",
+            "enum": [
+              "product",
+              "place",
+              "team",
+              "people",
+              "mood",
+              "offer_background"
+            ],
+            "description": "What the picture shows. product, place and team always use a real client photo."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "client_photo",
+              "ai_image"
+            ]
+          },
+          "photo_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^f_[a-z0-9]{4,32}$",
+            "description": "The client's uploaded picture to use. null with source client_photo means Photo needed from client."
+          },
+          "cast": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Who appears, cast from the Business Brain's target audience. Empty when nobody appears."
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "description": "In English. For ai_image the image prompt; for client_photo only the crop, light correction and background extension, or what photo to ask the client for."
+          },
+          "avoid": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "overlay": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "headline": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "sub": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "cta": {
+                "type": "string",
+                "maxLength": 60
+              }
+            },
+            "required": [
+              "headline",
+              "sub",
+              "cta"
+            ],
+            "description": "Text laid over the finished image in the campaign language. Never part of the image prompt."
+          },
+          "overlay_alt": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "headline": {
+                "type": "string",
+                "maxLength": 120
+              },
+              "sub": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "cta": {
+                "type": "string",
+                "maxLength": 60
+              }
+            },
+            "required": [
+              "headline",
+              "sub",
+              "cta"
+            ],
+            "description": "Only for Swedish and English campaigns: the English overlay next to the Swedish one in overlay."
+          },
+          "clear_zone": {
+            "type": "string",
+            "maxLength": 400
+          },
+          "alt_text": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "sv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 400
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 400
+              }
+            },
+            "required": [
+              "sv",
+              "en"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "output_key",
+          "platform",
+          "placement",
+          "ratio",
+          "width",
+          "height",
+          "source",
+          "photo_ref",
+          "prompt",
+          "avoid",
+          "overlay",
+          "clear_zone",
+          "alt_text"
+        ]
+      },
+      "maxItems": 40,
+      "description": "V2 phase G1 Visual Pack: one brief per output that needs an image. Optional; campaign-1 documents have none."
+    },
+    "visualsMadeAt": {
+      "type": "string",
+      "format": "date-time"
     },
     "status": {
       "type": "string",

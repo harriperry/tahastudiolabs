@@ -8,8 +8,8 @@ SCOPE CHANGE from elevenlabs-voices.js: that relay only lists voices; this one a
 generates spoken audio from a segment's TTS Script text using the chosen Voice ID, so the
 narration can be (a) fed into HeyGen's audio-driven avatar mode for real voice consistency
 across segments (see startHeyGenAudio in video-start.js), or (b) downloaded alongside a
-Veo/Grok clip for the customer to mux in their own editor, since neither of those providers
-accepts external audio as input.
+Veo clip for the customer to mux in their own editor, since Veo does not accept external
+audio as input.
 
 API confirmed via elevenlabs.io/docs/api-reference/text-to-speech (not guessed):
 POST https://api.elevenlabs.io/v1/text-to-speech/{voice_id}, auth via "xi-api-key" header,
