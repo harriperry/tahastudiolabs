@@ -221,3 +221,12 @@ input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--ree
 .res-form select { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; border: 1px solid var(--hairline); border-radius: 10px; background: #fff; color: inherit; min-height: 48px; }
 .res-form input[inputmode="numeric"] { max-width: 220px; }
 .res-form .actions { flex-wrap: wrap; }
+
+/* V2 Part E: video clips */
+.vid-list { display: flex; flex-direction: column; gap: 8px; }
+.vid-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px solid var(--hairline); border-radius: 10px; padding: 10px 12px; }
+.vid-name { font-weight: 600; flex: 1 1 160px; overflow-wrap: anywhere; }
+.vid-meta { color: var(--muted); font-size: 13px; }
+.vid-job { display: flex; flex-direction: column; gap: 6px; }
+.vid-job.paused { flex-direction: row; align-items: center; gap: 10px; flex-wrap: wrap; }
+.vid-job progress { width: 100%; height: 12px; accent-color: var(--reel-gold); }

@@ -31,6 +31,8 @@
   /* V2 Part D: "How did it go?" */
   var RES = { niche: "other", fields: [], postChannels: [], items: [] };
   var RF = { cp: "", values: {}, busy: false, msg: null, bad: {} };
+  /* V2 Part E: video clips */
+  var VID = { loaded: false, videos: [], pending: [], limits: { maxBytes: 200 * 1024 * 1024, maxSeconds: 60, maxCount: 10, partBytes: 5 * 1024 * 1024 }, jobs: [], msg: null };
   var CV = { cp: "", data: null, loading: false, error: false, answers: {}, busy: false, msg: null };
   var app = document.getElementById("app");
 
@@ -683,11 +685,200 @@
 
     return [
       h("div", { class: "head" }, h("h1", { text: t("uploads.title") }), h("p", { class: "lead", text: t("uploads.lead") })),
-      pics, story, postsCard, faq,
+      pics, videosCard(), story, postsCard, faq,
       h("div", { class: "actions" },
         h("button", { type: "button", class: "btn secondary", text: t("back"), onClick: function () { save(); go("profile"); } }),
         h("button", { type: "button", class: "btn", text: t("uploads.next"), onClick: function () { save(); go("review"); } }))
     ];
+  }
+
+  /* ---------- video clips (V2 Part E) ---------- */
+  function loadVideos() {
+    return api("/portal/videos").then(function (r) {
+      if (r.ok && r.data) {
+        VID.videos = r.data.videos || [];
+        VID.pending = r.data.pending || [];
+        if (r.data.limits) VID.limits = r.data.limits;
+        VID.loaded = true;
+      }
+    });
+  }
+  function mb(n) { return (Math.round(n / 1024 / 1024 * 10) / 10) + " MB"; }
+  function vidKey(f) { return "tv_vid_" + f.name + "_" + f.size + "_" + (f.lastModified || 0); }
+  function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+  function stored(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  /* The clip's length, read by the browser. null when the browser cannot tell (the Vault checks again). */
+  function measure(file) {
+    return new Promise(function (resolve) {
+      var url = URL.createObjectURL(file);
+      var v = document.createElement("video");
+      var done = false;
+      function end(x) { if (done) return; done = true; URL.revokeObjectURL(url); resolve(x); }
+      v.preload = "metadata";
+      v.muted = true;
+      v.onloadedmetadata = function () { end(isFinite(v.duration) ? v.duration : null); };
+      v.onerror = function () { end(null); };
+      setTimeout(function () { end(null); }, 8000);
+      v.src = url;
+    });
+  }
+  function setJob(job) {
+    var el = document.getElementById("vp_" + job.key);
+    var tx = document.getElementById("vt_" + job.key);
+    if (el && tx) {
+      el.value = job.size ? Math.min(100, Math.round(job.sent / job.size * 100)) : 0;
+      tx.textContent = job.text;
+    }
+    /* Not on the uploads screen: the upload carries on quietly and shows when she comes back. */
+  }
+  /* One part, with XMLHttpRequest for a smooth progress bar. Resolves { status }. */
+  function sendPart(id, n, blob, onProgress) {
+    return new Promise(function (resolve) {
+      var x = new XMLHttpRequest();
+      x.open("PUT", API + "/portal/videos/" + id + "/part?n=" + n);
+      x.withCredentials = true;
+      x.setRequestHeader("Content-Type", "application/octet-stream");
+      x.upload.onprogress = function (e) { if (e.lengthComputable) onProgress(e.loaded); };
+      x.onload = function () { var d = {}; try { d = JSON.parse(x.responseText); } catch (e) {} resolve({ status: x.status, data: d }); };
+      x.onerror = function () { resolve({ status: 0 }); };
+      x.ontimeout = function () { resolve({ status: 0 }); };
+      x.timeout = 120000;
+      x.send(blob);
+    });
+  }
+  function wait(sec, job) {
+    return new Promise(function (resolve) {
+      var left = sec;
+      job.text = t("uploads.vid.retrying", { s: left });
+      setJob(job);
+      var tick = setInterval(function () {
+        left--;
+        if (left <= 0 || navigator.onLine && left > 0 && job.online) { clearInterval(tick); job.online = false; resolve(); return; }
+        job.text = t("uploads.vid.retrying", { s: left });
+        setJob(job);
+      }, 1000);
+      window.addEventListener("online", function on() { window.removeEventListener("online", on); job.online = true; }, { once: true });
+    });
+  }
+  function failJob(job, text) {
+    job.state = "err";
+    job.text = text;
+    render();
+  }
+  function uploadVideo(file) {
+    var L0 = VID.limits;
+    var ext = (/\.([a-z0-9]{1,5})$/i.exec(file.name) || [])[1];
+    ext = ext ? ext.toLowerCase() : "";
+    var job = { key: "j" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: file.name, size: file.size, sent: 0, state: "run", text: t("uploads.vid.checking", { name: file.name }) };
+    VID.jobs.push(job);
+    render();
+    if (ext !== "mp4" && ext !== "mov") return Promise.resolve(failJob(job, t("uploads.vid.type")));
+    if (file.size > L0.maxBytes) return Promise.resolve(failJob(job, t("uploads.vid.size", { name: file.name })));
+    var id = null, partsDone = [], partBytes = L0.partBytes;
+    return measure(file).then(function (secs) {
+      if (secs != null && secs > L0.maxSeconds + 0.5) throw { msg: t("uploads.vid.long", { name: file.name, s: Math.round(secs) }) };
+      /* Continue an upload this browser started, or one the Vault still holds for this file. */
+      var k = vidKey(file);
+      var prev = stored(k) || ((VID.pending.filter(function (p) { return p.name === file.name && p.size === file.size; })[0] || {}).id);
+      var go = prev ? api("/portal/videos/" + prev).then(function (r) { return r.ok ? r : null; }) : Promise.resolve(null);
+      return go.then(function (r) {
+        if (r) { id = prev; partsDone = r.data.partsDone || []; partBytes = r.data.partBytes; return; }
+        return api("/portal/videos/start", { method: "POST", json: { name: file.name, size: file.size, duration: secs } }).then(function (r2) {
+          if (!r2.ok) throw { msg: r2.status === 409 ? t("uploads.vid.count") : r2.status === 413 && r2.data && r2.data.error === "long" ? t("uploads.vid.long", { name: file.name, s: L0.maxSeconds + "+" }) : r2.status === 413 ? t("uploads.vid.size", { name: file.name }) : r2.status === 415 ? t("uploads.vid.type") : both(r2.data && r2.data.message) || t("uploads.vid.failed", { name: file.name }) };
+          id = r2.data.id;
+          partBytes = r2.data.partBytes;
+          store(k, id);
+        });
+      }).then(function () {
+        var total = Math.max(1, Math.ceil(file.size / partBytes));
+        var doneBytes = 0;
+        partsDone.forEach(function (n) { doneBytes += Math.min(partBytes, file.size - (n - 1) * partBytes); });
+        job.sent = doneBytes;
+        job.text = t("uploads.vid.uploading", { name: file.name });
+        setJob(job);
+        var n = 0, tries = 0;
+        function next() {
+          n++;
+          if (n > total) return Promise.resolve();
+          if (partsDone.indexOf(n) > -1) return next();
+          var from = (n - 1) * partBytes;
+          var blob = file.slice(from, Math.min(file.size, from + partBytes));
+          return sendPart(id, n, blob, function (loaded) { job.sent = doneBytes + loaded; setJob(job); }).then(function (r) {
+            if (r.status === 200) { doneBytes += blob.size; job.sent = doneBytes; tries = 0; job.text = t("uploads.vid.uploading", { name: file.name }); setJob(job); return next(); }
+            if (r.status === 0 || r.status >= 500 || r.status === 429) {
+              tries++;
+              if (tries > 30) throw { msg: t("uploads.vid.failed", { name: file.name }) };
+              n--;
+              job.sent = doneBytes;
+              return wait(Math.min(30, 2 * tries), job).then(next);
+            }
+            throw { msg: (r.data && r.data.message && both(r.data.message)) || t("uploads.vid.failed", { name: file.name }) };
+          });
+        }
+        return next();
+      }).then(function finish() {
+        job.text = t("uploads.vid.finishing", { name: file.name });
+        setJob(job);
+        return api("/portal/videos/" + id + "/complete", { method: "POST", json: {} }).then(function (r) {
+          if (r.ok) return r;
+          if (r.status === 0) return new Promise(function (res) { setTimeout(res, 3000); }).then(finish);
+          if (r.status === 413 && r.data && r.data.error === "long") throw { msg: t("uploads.vid.long", { name: file.name, s: r.data.seconds || L0.maxSeconds + "+" }), drop: true };
+          throw { msg: both(r.data && r.data.message) || t("uploads.vid.failed", { name: file.name }) };
+        });
+      }).then(function (r) {
+        store(vidKey(file), null);
+        job.state = "ok";
+        job.sent = file.size;
+        job.text = t("uploads.vid.done", { name: file.name });
+        VID.videos.push(r.data.video);
+        VID.pending = VID.pending.filter(function (p) { return p.id !== id; });
+        render();
+      });
+    }).catch(function (e) {
+      if (e && e.drop) store(vidKey(file), null);
+      failJob(job, e && e.msg ? e.msg : t("uploads.vid.failed", { name: file.name }));
+      loadVideos().then(render);
+    });
+  }
+  function videosCard() {
+    if (!VID.loaded) { loadVideos().then(render); }
+    var L0 = VID.limits;
+    var running = VID.jobs.filter(function (j) { return j.state === "run"; }).length;
+    var count = VID.videos.length + VID.pending.length + running;
+    var list = VID.videos.map(function (v) {
+      return h("div", { class: "vid-row" },
+        h("span", { class: "vid-name", text: v.name }),
+        h("span", { class: "vid-meta", text: mb(v.size) + (v.duration != null ? " · " + t("uploads.vid.seconds", { s: Math.round(v.duration) }) : "") }),
+        h("button", { type: "button", class: "btn link rm", text: t("uploads.vid.remove"), "aria-label": t("uploads.vid.remove") + " " + v.name, onClick: function () {
+          api("/files/" + v.id, { method: "DELETE" }).then(function (r) {
+            if (r.ok) VID.videos = VID.videos.filter(function (x) { return x.id !== v.id; });
+            render();
+          });
+        } }));
+    });
+    var jobs = VID.jobs.map(function (j) {
+      return h("div", { class: "vid-job " + j.state },
+        j.state === "run" ? h("progress", { id: "vp_" + j.key, max: "100", value: String(j.size ? Math.round(j.sent / j.size * 100) : 0) }) : null,
+        h("div", { id: "vt_" + j.key, class: "msg" + (j.state === "err" ? " err" : j.state === "ok" ? " ok" : ""), role: "status", "aria-live": "polite", text: j.text }));
+    });
+    var activeIds = VID.jobs.filter(function (j) { return j.state === "run"; }).map(function (j) { return j.name; });
+    var paused = VID.pending.filter(function (p) { return activeIds.indexOf(p.name) < 0; }).map(function (p) {
+      return h("div", { class: "vid-job paused" },
+        h("div", { class: "msg", text: t("uploads.vid.paused", { name: p.name, pct: p.size ? Math.round(p.bytesDone / p.size * 100) : 0 }) }),
+        h("button", { type: "button", class: "btn link rm", text: t("uploads.vid.cancel"), onClick: function () {
+          api("/portal/videos/" + p.id, { method: "DELETE" }).then(function () { loadVideos().then(render); });
+        } }));
+    });
+    return h("section", { class: "card" }, h("h2", { text: t("uploads.vid.title") }),
+      h("div", { class: "hint", text: t("uploads.vid.hint") }),
+      list.length ? h("div", { class: "vid-list" }, list) : null,
+      jobs, paused,
+      count < L0.maxCount ? fileUploadButton("up_vid", t("uploads.vid.add"), "video/mp4,video/quicktime,.mp4,.mov", true, function (files) {
+        var room = L0.maxCount - count;
+        files.slice(0, room).reduce(function (p, f) { return p.then(function () { return uploadVideo(f); }); }, Promise.resolve());
+      }) : h("div", { class: "msg", text: t("uploads.vid.count") }),
+      h("div", { class: "hint", text: t("uploads.vid.rule") }),
+      running ? h("div", { class: "hint", text: t("uploads.vid.keepOpen") }) : null);
   }
 
   /* ---------- review ---------- */

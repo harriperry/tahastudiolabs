@@ -434,7 +434,7 @@
         refresh();
       }
     };
-    brainLoading = Promise.all([import("/assets/growth-brain.js?v=p5"), import("/assets/growth-campaign.js?v=d")]).then(function (mods) {
+    brainLoading = Promise.all([import("/assets/growth-brain.js?v=e"), import("/assets/growth-campaign.js?v=e")]).then(function (mods) {
       brain = mods[0].createBrain(ctx);
       camps = mods[1].createCampaigns(ctx);
       if (ui) renderDetail();
@@ -876,6 +876,19 @@
       })));
     } else picBox.appendChild(h("div", { class: "gc-meta", text: "No pictures uploaded" }));
     pane.appendChild(picBox);
+
+    /* V2 Part E: the client's video clips. Download and edit them in your own tools. */
+    var vids = d.files.filter(function (f) { return f.section === "videos"; });
+    var vidBox = h("div", { class: "gc-box", id: "gcVideos" }, h("div", { class: "gc-bh" }, "Video clips · " + vids.length + (vids.length === 1 ? " clip" : " clips"), h("span", { text: "Click to download. Never sent to an AI provider." })));
+    if (vids.length) {
+      vidBox.appendChild(h("div", { class: "gc-files" }, vids.map(function (f) {
+        var meta = [(Math.round(f.size / 1024 / 1024 * 10) / 10) + " MB"];
+        if (f.duration != null) meta.push(Math.round(f.duration) + " s");
+        if (f.createdAt) meta.push(when(f.createdAt));
+        return h("div", null, h("a", { href: f.url, download: f.name || "", text: f.name || f.id }), " ", h("span", { class: "gc-meta", text: meta.join(" · ") }));
+      })));
+    } else vidBox.appendChild(h("div", { class: "gc-meta", text: "No video clips uploaded" }));
+    pane.appendChild(vidBox);
 
     var fs = u.founderStory || {};
     var fsFiles = d.files.filter(function (f) { return f.section === "founderStory"; });

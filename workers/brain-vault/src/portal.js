@@ -27,7 +27,7 @@ const M = {
   invalid: { sv: "Något i formuläret har fel format.", en: "Something in the form has the wrong format." },
   missing: { sv: "Fyll i de obligatoriska fälten innan du skickar.", en: "Fill in the required fields before you submit." },
   section: { sv: "Okänd uppladdningsdel.", en: "Unknown upload section." },
-  video: { sv: "Videofiler kan inte laddas upp. Ladda upp bilder i stället.", en: "Video files can't be uploaded. Upload pictures instead." },
+  video: { sv: "Videoklipp laddar du upp under Videoklipp längre ner.", en: "Add video clips in the Videos section further down." },
   type: { sv: "Den filtypen stöds inte här.", en: "That file type isn't supported here." },
   size: { sv: "Filen är för stor.", en: "The file is too large." },
   count: { sv: "Du har nått maxantalet filer för den här delen.", en: "You have reached the maximum number of files for this section." },
@@ -81,7 +81,7 @@ async function latestConsent(env, clientId) {
     .first();
 }
 
-async function consentOk(env, cfg, clientId) {
+export async function consentOk(env, cfg, clientId) {
   const c = await latestConsent(env, clientId);
   return c && c.version === cfg.consentVersion ? c : null;
 }
@@ -114,10 +114,10 @@ async function history(env, clientId) {
 }
 
 async function listFiles(env, clientId) {
-  const r = await env.DB.prepare("SELECT id, section, mime, size, original_name, created_at FROM files WHERE client_id = ? ORDER BY created_at ASC")
+  const r = await env.DB.prepare("SELECT id, section, mime, size, original_name, duration_s, created_at FROM files WHERE client_id = ? ORDER BY created_at ASC")
     .bind(clientId)
     .all();
-  return (r.results || []).map((f) => ({ id: f.id, section: f.section, mime: f.mime, size: f.size, name: f.original_name, createdAt: f.created_at }));
+  return (r.results || []).map((f) => ({ id: f.id, section: f.section, mime: f.mime, size: f.size, name: f.original_name, duration: f.duration_s == null ? null : f.duration_s, createdAt: f.created_at }));
 }
 
 /* Every file id the intake refers to must belong to this client. */

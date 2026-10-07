@@ -17,7 +17,7 @@
       ai_image flag, and are listed on the card and in the Visual Pack strip.
    Images are made in Harry's own tools. Nothing is rendered on the server. */
 import { validate } from "./growth-validate.js?v=p5";
-import { stripDashes } from "./growth-brain.js?v=p5";
+import { stripDashes } from "./growth-brain.js?v=e";
 
 export const PLATFORMS_URL = "/assets/growth/platforms.json?v=g1";
 export const VISUALS_PROMPT_URL = "/assets/growth/visuals.prompt.json?v=g2a";

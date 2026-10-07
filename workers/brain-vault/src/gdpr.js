@@ -38,6 +38,7 @@ const CLIENT_TABLES = [
   ["campaigns", "client_id"],
   ["plans", "client_id"],
   ["results", "client_id"],
+  ["upload_parts", "client_id"],
   ["deliveries", "client_id"],
   ["brand_kits", "client_id"],
   ["photo_requests", "client_id"],
@@ -99,7 +100,7 @@ export async function exportClient(env, cfg, clientId) {
     statusHistory: await all(env, "SELECT status, changed_at AS changedAt, changed_by AS changedBy FROM status_history WHERE client_id = ? ORDER BY id ASC", clientId),
     intakeDraft: (await all(env, "SELECT data, answer_language AS answerLanguage, updated_at AS updatedAt FROM intake_drafts WHERE client_id = ?", clientId)).map((r) => Object.assign(r, { data: JSON.parse(r.data) }))[0] || null,
     intakes: parse(await all(env, "SELECT version, submitted_at AS submittedAt, data FROM intakes WHERE client_id = ? ORDER BY version ASC", clientId)),
-    files: (await all(env, "SELECT id, section, mime, size, original_name AS name, created_at AS createdAt FROM files WHERE client_id = ? ORDER BY created_at ASC", clientId)).map((f) =>
+    files: (await all(env, "SELECT id, section, mime, size, original_name AS name, duration_s AS duration, created_at AS createdAt FROM files WHERE client_id = ? ORDER BY created_at ASC", clientId)).map((f) =>
       Object.assign(f, { url: cfg.siteOrigin + cfg.basePath + "/files/" + f.id })
     ),
     brains: parse(await all(env, "SELECT version, built_from_intake_version AS builtFromIntakeVersion, created_at AS createdAt, data FROM brains WHERE client_id = ? ORDER BY version ASC", clientId)),

@@ -60,6 +60,7 @@ import reviewerHtml from "./public/reviewer.html";
 import reviewerJs from "./public/reviewer.js";
 import { getPlan, getRhythm, lastResults, putPlan, rhythmReminder } from "./rhythm.js";
 import { adminResults, portalResults, putAdminResults, putPortalResults } from "./results.js";
+import { abortVideo, completeVideo, listVideos, staleUploadSweep, startVideo, videoPart, videoState } from "./videos.js";
 import { SCHEMAS } from "./schemas.js";
 import { json, lang, normEmail, readJson, validEmail, withCookies } from "./util.js";
 
@@ -200,7 +201,7 @@ async function handle(request, env, ctx) {
 
   if (method === "GET" && path === "/health") {
     const db = await env.DB.prepare("SELECT 1 AS ok").first();
-    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "d" });
+    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "e" });
   }
 
   if (method === "GET" && path === "/portal/meta") {
@@ -264,14 +265,15 @@ async function handle(request, env, ctx) {
   }
 
   /* ---------- client portal ---------- */
-  const clientPaths = ["/portal/state", "/consent", "/intake", "/uploads", "/intake/submit", "/status", "/me/language", "/portal/photo-requests", "/portal/pages", "/portal/leads", "/portal/leads.csv", "/portal/campaigns", "/portal/results"];
+  const clientPaths = ["/portal/state", "/consent", "/intake", "/uploads", "/intake/submit", "/status", "/me/language", "/portal/photo-requests", "/portal/pages", "/portal/leads", "/portal/leads.csv", "/portal/campaigns", "/portal/results", "/portal/videos", "/portal/videos/start"];
   const fileMatch = path.match(/^\/files\/(f_[a-z0-9]{4,32})$/);
   const leadMatch = path.match(/^\/portal\/leads\/(ld_[a-z0-9]{4,32})$/);
   const reportMatch = path.match(/^\/portal\/report\/(cp_[a-z0-9_]{2,40})$/);
   const campMatch = path.match(/^\/portal\/(campaign|review)\/(cp_[a-z0-9_]{2,40})$/);
   const dlMatch = path.match(/^\/dl\/(d_[a-z0-9]{4,32})$/);
   const resMatch = path.match(/^\/portal\/results\/(cp_[a-z0-9_]{2,40})$/);
-  if (clientPaths.includes(path) || fileMatch || leadMatch || reportMatch || campMatch || dlMatch || resMatch) {
+  const vidMatch = path.match(/^\/portal\/videos\/(f_[a-z0-9]{4,32})(?:\/(part|complete))?$/);
+  if (clientPaths.includes(path) || fileMatch || leadMatch || reportMatch || campMatch || dlMatch || resMatch || vidMatch) {
     if (!auth) return json({ error: "not_signed_in", message: MSG.notSignedIn }, 401);
     if (fileMatch && method === "GET") return respond(await getFile(env, auth, fileMatch[1]));
     if (dlMatch && method === "GET") return respond(await download(env, auth, dlMatch[1], url));
@@ -300,6 +302,13 @@ async function handle(request, env, ctx) {
     /* V2 Part D */
     if (path === "/portal/results" && method === "GET") return portalResults(env, cfg, auth, url);
     if (resMatch && method === "PUT") return putPortalResults(request, env, cfg, ctx, auth, resMatch[1]);
+    /* V2 Part E */
+    if (path === "/portal/videos" && method === "GET") return listVideos(env, cfg, auth);
+    if (path === "/portal/videos/start" && method === "POST") return startVideo(request, env, cfg, auth);
+    if (vidMatch && !vidMatch[2] && method === "GET") return videoState(env, cfg, auth, vidMatch[1]);
+    if (vidMatch && !vidMatch[2] && method === "DELETE") return abortVideo(env, cfg, auth, vidMatch[1]);
+    if (vidMatch && vidMatch[2] === "part" && method === "PUT") return videoPart(request, env, cfg, auth, vidMatch[1], url);
+    if (vidMatch && vidMatch[2] === "complete" && method === "POST") return completeVideo(env, cfg, auth, vidMatch[1]);
   }
 
   /* ---------- language reviewer (V2 Part H) ---------- */
@@ -436,6 +445,8 @@ export default {
     ctx.waitUntil(retentionSweep(env, getConfig(env)).catch(() => console.error("retention sweep failed")));
     /* V2 phase G2b: raw events after 90 days, old salts, old enquiries, ended pages. */
     ctx.waitUntil(g2bSweep(env).catch(() => console.error("g2b sweep failed")));
+    /* V2 Part E: unfinished uploads older than two days. */
+    ctx.waitUntil(staleUploadSweep(env).catch(() => console.error("upload sweep failed")));
     /* V2 Part C: from the 20th, once a month, tell Harry who is due. */
     ctx.waitUntil(rhythmReminder(env, getConfig(env), event.scheduledTime || Date.now()).catch((e) => console.error("rhythm reminder failed: " + e.message)));
   }

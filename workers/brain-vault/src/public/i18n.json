@@ -44,7 +44,7 @@
         },
         {
           "h": "Vad vi samlar in",
-          "b": "Din företagsprofil, bilder, kundomdömen, grundarens berättelse, vanliga frågor och tidigare inlägg."
+          "b": "Din företagsprofil, bilder, korta videoklipp, kundomdömen, grundarens berättelse, vanliga frågor och tidigare inlägg."
         },
         {
           "h": "Varför",
@@ -53,6 +53,10 @@
         {
           "h": "AI-tjänster",
           "b": "Materialet skickas till externa AI-leverantörer, till exempel Anthropic och Google, för att skapa innehåll. De kan behandla det utanför EU, till exempel i USA, enligt sina egna dataskyddsvillkor."
+        },
+        {
+          "h": "Videoklipp",
+          "b": "Videoklipp du laddar upp (högst 60 sekunder) lagras inom EU och används bara av TAHA Studio Labs för att redigera ditt innehåll. De skickas aldrig till AI-tjänster. Syns andra personer i ett klipp intygar du att de har gått med på det."
         },
         {
           "h": "Språkgranskning",
@@ -185,6 +189,28 @@
       }
     },
     "uploads": {
+      "vid": {
+        "title": "Videoklipp",
+        "hint": "Korta klipp från din verksamhet, din personal eller dina produkter, inspelade med mobilen. Vi redigerar dem till ditt innehåll. Klippen skickas aldrig till AI-tjänster.",
+        "rule": "MP4 eller MOV, högst 60 sekunder och 200 MB per klipp, upp till 10 klipp.",
+        "add": "Lägg till videoklipp",
+        "checking": "Kontrollerar {name}...",
+        "uploading": "Laddar upp {name}",
+        "retrying": "Anslutningen bröts. Försöker igen om {s} sekunder...",
+        "finishing": "Gör klart {name}...",
+        "done": "{name} är uppladdat.",
+        "paused": "Avbruten uppladdning: {name} ({pct} %). Välj samma fil igen för att fortsätta där den slutade.",
+        "continue": "Fortsätt",
+        "cancel": "Avbryt",
+        "remove": "Ta bort",
+        "type": "Bara MP4- eller MOV-filer (som mobilen spelar in).",
+        "size": "{name} är för stort. Högst 200 MB per klipp.",
+        "long": "{name} är för långt ({s} sekunder). Högst 60 sekunder per klipp.",
+        "count": "Du har redan 10 videoklipp. Ta bort ett för att lägga till ett nytt.",
+        "failed": "{name} kunde inte laddas upp. Försök igen.",
+        "seconds": "{s} s",
+        "keepOpen": "Låt sidan vara öppen tills uppladdningen är klar. Bryts anslutningen fortsätter den av sig själv."
+      },
       "title": "Visa oss ditt företag",
       "lead": "Bilder, din berättelse och det du redan har publicerat. Allt är valfritt men gör innehållet mycket bättre.",
       "pics": "Bilder",
@@ -215,7 +241,7 @@
       "addQ": "Lägg till fråga",
       "faqUp": "Ladda upp fil (.txt, .pdf, .docx, .csv, max 5 MB)",
       "next": "Granska och skicka",
-      "noVideo": "Videofiler kan inte laddas upp. Ladda upp bilder i stället.",
+      "noVideo": "Videoklipp laddar du upp under Videoklipp längre ner.",
       "tooBig": "{name} är större än {mb} MB och laddades inte upp.",
       "wrongType": "{name} har en filtyp som inte stöds här.",
       "maxReached": "Du har nått maxantalet för den här delen.",
@@ -562,7 +588,7 @@
         },
         {
           "h": "What we collect",
-          "b": "Your business profile, pictures, customer reviews, founder story, FAQs and previous posts."
+          "b": "Your business profile, pictures, short video clips, customer reviews, founder story, FAQs and previous posts."
         },
         {
           "h": "Why",
@@ -571,6 +597,10 @@
         {
           "h": "AI services",
           "b": "Your material is sent to third-party AI providers, for example Anthropic and Google, to create content. They may process it outside the EU, for example in the USA, under their own data protection terms."
+        },
+        {
+          "h": "Video clips",
+          "b": "Video clips you upload (60 seconds at most) are stored in the EU and used only by TAHA Studio Labs to edit your content. They are never sent to AI services. If other people appear in a clip, you confirm that they have agreed to it."
         },
         {
           "h": "Language review",
@@ -703,6 +733,28 @@
       }
     },
     "uploads": {
+      "vid": {
+        "title": "Video clips",
+        "hint": "Short clips of your place, your staff or your products, filmed on your phone. We edit them into your content. The clips are never sent to AI services.",
+        "rule": "MP4 or MOV, 60 seconds and 200 MB per clip at most, up to 10 clips.",
+        "add": "Add video clips",
+        "checking": "Checking {name}...",
+        "uploading": "Uploading {name}",
+        "retrying": "The connection dropped. Trying again in {s} seconds...",
+        "finishing": "Finishing {name}...",
+        "done": "{name} is uploaded.",
+        "paused": "Unfinished upload: {name} ({pct} %). Choose the same file again to continue where it stopped.",
+        "continue": "Continue",
+        "cancel": "Cancel",
+        "remove": "Remove",
+        "type": "Only MP4 or MOV files (what your phone records).",
+        "size": "{name} is too large. 200 MB per clip at most.",
+        "long": "{name} is too long ({s} seconds). 60 seconds per clip at most.",
+        "count": "You already have 10 video clips. Remove one to add another.",
+        "failed": "{name} could not be uploaded. Please try again.",
+        "seconds": "{s} s",
+        "keepOpen": "Keep this page open until the upload is done. If the connection drops, it carries on by itself."
+      },
       "title": "Show us your business",
       "lead": "Pictures, your story and what you have already posted. All optional, but it makes the content far better.",
       "pics": "Pictures",
@@ -733,7 +785,7 @@
       "addQ": "Add question",
       "faqUp": "Upload file (.txt, .pdf, .docx, .csv, max 5 MB)",
       "next": "Review and submit",
-      "noVideo": "Video files can't be uploaded. Upload pictures instead.",
+      "noVideo": "Add video clips in the Videos section further down.",
       "tooBig": "{name} is larger than {mb} MB and was not uploaded.",
       "wrongType": "{name} has a file type that isn't supported here.",
       "maxReached": "You have reached the maximum for this section.",

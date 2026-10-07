@@ -448,6 +448,8 @@ export function createBrain(ctx) {
         founderStory: intake.uploads && intake.uploads.founderStory ? intake.uploads.founderStory.text : "",
         previousPosts: ((intake.uploads && intake.uploads.previousPosts) || []).filter((x) => x.type !== "image"),
         previousPostScreenshots: files.filter((f) => f.section === "previousPosts").map((f) => f.name),
+        /* V2 Part E: the client's video clips, by file name only. The clips themselves are never sent. */
+        clientVideoNames: files.filter((f) => f.section === "videos").map((f) => f.name),
         faqs: intake.uploads && intake.uploads.faqs ? intake.uploads.faqs.rows : [],
         extractedDocuments: extracted
       };

@@ -230,6 +230,18 @@ ol li,ul li{margin:4px 0}
 </table></div>
 <p>The gate: <code>POST .../review</code>, <code>POST /admin/page/.../publish</code> and Mark delivered answer 409 <code>lang_pending</code> while required Swedish texts are not approved, unless the body has <code>langOverride</code> (a reason, logged). Files: <code>src/team.js</code>, <code>src/lang.js</code>, <code>src/public/reviewer.html</code>, <code>src/public/reviewer.js</code>, <code>../../assets/growth-langfields.js</code> (shared by the Worker and ScriptForge), <code>../../assets/growth-lang.js</code>, <code>test/lang.test.mjs</code> (68 checks). Tables (migration 8): <code>team_members</code>, <code>team_access</code>, <code>member_tokens</code>, <code>member_sessions</code>, <code>lang_items</code>, <code>lang_versions</code>, <code>lang_notes</code>, <code>lang_log</code>, and <code>clients.lang_review</code>. <code>CONSENT_VERSION</code> is now <code>c-4</code>.</p>
 
+<h2>2o. Endpoints added in V2 Part E (client videos)</h2>
+<div class="tw"><table>
+<tr><th>Endpoint</th><th>Who</th><th>What it does</th></tr>
+<tr><td><code>GET /portal/videos</code></td><td>Client</td><td>Her clips, her unfinished uploads (parts done, bytes done) and the limits.</td></tr>
+<tr><td><code>POST /portal/videos/start</code></td><td>Client (current consent)</td><td><code>{ name, size, duration }</code>: mp4 or mov, 200 MB, 60 s (as measured by the phone), 10 clips counting unfinished ones.</td></tr>
+<tr><td><code>GET /portal/videos/:id</code></td><td>Client</td><td>The parts already received, to continue.</td></tr>
+<tr><td><code>PUT /portal/videos/:id/part?n=</code></td><td>Client</td><td>One part of exactly 5 MB (the last one smaller). The first part must start like an MP4 or MOV.</td></tr>
+<tr><td><code>POST /portal/videos/:id/complete</code></td><td>Client</td><td>Joins the parts the Vault recorded, checks the size, reads the length from the header (<code>src/mp4.js</code>), refuses over 60.5 s, and stores the clip as a file in section <code>videos</code>.</td></tr>
+<tr><td><code>DELETE /portal/videos/:id</code></td><td>Client</td><td>Abandons an unfinished upload. A finished clip is removed with <code>DELETE /files/:id</code>.</td></tr>
+</table></div>
+<p>Files: <code>src/videos.js</code>, <code>src/mp4.js</code> (length from the moov/mvhd boxes by range reads), <code>test/videos.test.mjs</code> (41 checks). Migration 11: the <code>files</code> table is rebuilt with the section <code>videos</code> and <code>duration_s</code>, and <code>upload_parts</code> records the parts of an unfinished upload. The daily job aborts uploads older than 48 hours (clients' and Harry's). <code>CONSENT_VERSION</code> is now <code>c-5</code>.</p>
+
 <h2>2n. Endpoints added in V2 Part D (results)</h2>
 <div class="tw"><table>
 <tr><th>Endpoint</th><th>Who</th><th>What it does</th></tr>

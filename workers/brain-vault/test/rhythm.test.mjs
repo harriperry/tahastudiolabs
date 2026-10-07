@@ -19,7 +19,18 @@ async function call(path, { method = "GET", body, raw, headers = {}, cookie, ori
   if (body !== undefined) h["Content-Type"] = "application/json";
   if (cookie) h.Cookie = cookie;
   if (origin && method !== "GET") h.Origin = origin;
-  const r = await fetch(abs || BASE + path, { method, headers: h, body: raw !== undefined ? raw : body === undefined ? undefined : JSON.stringify(body), redirect: "manual" });
+  /* Retried only when the connection itself drops: the local server can restart for a moment
+     right after the test reads or writes its database directly. App errors are never retried. */
+  let r;
+  for (let i = 0; ; i++) {
+    try {
+      r = await fetch(abs || BASE + path, { method, headers: h, body: raw !== undefined ? raw : body === undefined ? undefined : JSON.stringify(body), redirect: "manual" });
+      break;
+    } catch (e) {
+      if (i >= 8) throw e;
+      await sleep(1000);
+    }
+  }
   const text = await r.text();
   let data = null;
   try { data = JSON.parse(text); } catch (e) {}

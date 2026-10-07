@@ -515,5 +515,39 @@ export const MIGRATIONS = [
         PRIMARY KEY (client_id, campaign_id)
       )`
     ]
+  },
+  {
+    id: 11,
+    name: "part-e-videos",
+    statements: [
+      /* Part E: the files table gains the section "videos" and a clip's length in seconds (read
+         from its header when the upload ends). SQLite cannot change a CHECK rule in place, so the
+         table is rebuilt in this one transaction: new table, every row copied, old one dropped.
+         Nothing references files, and it has no indexes. */
+      `CREATE TABLE files_e (
+        id TEXT PRIMARY KEY,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        section TEXT NOT NULL CHECK (section IN ('pictures','founderStory','previousPosts','faqs','reviews','videos')),
+        mime TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        r2_key TEXT NOT NULL,
+        original_name TEXT,
+        created_at TEXT NOT NULL,
+        duration_s REAL
+      )`,
+      `INSERT INTO files_e (id, client_id, section, mime, size, r2_key, original_name, created_at) SELECT id, client_id, section, mime, size, r2_key, original_name, created_at FROM files`,
+      `DROP TABLE files`,
+      `ALTER TABLE files_e RENAME TO files`,
+      /* The parts of an upload that have arrived, so a client can continue after a dropped
+         connection or a reload (R2 does not list them). Removed when the upload ends. */
+      `CREATE TABLE IF NOT EXISTS upload_parts (
+        upload_id TEXT NOT NULL,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        n INTEGER NOT NULL,
+        etag TEXT NOT NULL,
+        bytes INTEGER NOT NULL,
+        PRIMARY KEY (upload_id, n)
+      )`
+    ]
   }
 ];

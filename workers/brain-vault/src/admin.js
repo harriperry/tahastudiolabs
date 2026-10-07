@@ -135,7 +135,7 @@ export async function getIntakeAdmin(env, clientId) {
   if (!client) return json({ error: "not_found", message: M.notFound }, 404);
   const last = await env.DB.prepare("SELECT version, data, submitted_at FROM intakes WHERE client_id = ? ORDER BY version DESC LIMIT 1").bind(clientId).first();
   const draft = last ? null : await env.DB.prepare("SELECT data, updated_at FROM intake_drafts WHERE client_id = ?").bind(clientId).first();
-  const files = await env.DB.prepare("SELECT id, section, mime, size, original_name FROM files WHERE client_id = ? ORDER BY created_at ASC").bind(clientId).all();
+  const files = await env.DB.prepare("SELECT id, section, mime, size, original_name, duration_s, created_at FROM files WHERE client_id = ? ORDER BY created_at ASC").bind(clientId).all();
   const consent = await env.DB.prepare("SELECT version, language, accepted_at FROM consents WHERE client_id = ? ORDER BY id DESC LIMIT 1").bind(clientId).first();
   const versions = await env.DB.prepare("SELECT version, submitted_at FROM intakes WHERE client_id = ? ORDER BY version DESC").bind(clientId).all();
   return json({
@@ -146,6 +146,6 @@ export async function getIntakeAdmin(env, clientId) {
     version: last ? last.version : 0,
     submittedAt: last ? last.submitted_at : null,
     intake: last ? JSON.parse(last.data) : draft ? JSON.parse(draft.data) : null,
-    files: (files.results || []).map((f) => ({ id: f.id, section: f.section, mime: f.mime, size: f.size, name: f.original_name, url: "/api/vault/files/" + f.id }))
+    files: (files.results || []).map((f) => ({ id: f.id, section: f.section, mime: f.mime, size: f.size, name: f.original_name, duration: f.duration_s == null ? null : f.duration_s, createdAt: f.created_at, url: "/api/vault/files/" + f.id }))
   });
 }

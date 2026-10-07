@@ -21,7 +21,7 @@
    campaign into a campaign-2 document. Add visuals does the same for campaigns made before
    Part G. Send to ScriptForge targets HeyGen or Veo 3.1. */
 import { validate } from "./growth-validate.js?v=p5";
-import { callModel, extractJson, fillTemplate, fitToSchema, stripDashes } from "./growth-brain.js?v=p5";
+import { callModel, extractJson, fillTemplate, fitToSchema, stripDashes } from "./growth-brain.js?v=e";
 import {
   PLATFORMS_URL,
   VISUALS_PROMPT_URL,
@@ -38,7 +38,7 @@ import {
   photoList,
   sizeLabel,
   withVisuals
-} from "./growth-visuals.js?v=g2a";
+} from "./growth-visuals.js?v=e";
 import { createLandingUi } from "./growth-landing.js?v=h";
 import { createReviewUi } from "./growth-review.js?v=h";
 import { createLangUi } from "./growth-lang.js?v=h";
