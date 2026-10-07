@@ -78,16 +78,21 @@ async function fullClient(tag) {
   return { id, email, cookie, fileId };
 }
 
-/* Every row anywhere in the database that mentions the client id or the email. */
+/* Every row anywhere in the database that mentions the client id or the email. Three database
+   calls in all (tables, their columns, one count per table), so the scan stays fast as tables
+   are added; every column of every table is still searched. */
+function sqlAll(command) {
+  const out = execFileSync(process.env.WRANGLER || "wrangler", ["d1", "execute", "brain-vault-db", "--local", "--persist-to", process.env.PERSIST || ".wrangler/state", "--json", "--command", command], { encoding: "utf8", cwd: process.env.WORKER_DIR || process.cwd(), maxBuffer: 64 * 1024 * 1024 });
+  return JSON.parse(out).map((x) => x.results);
+}
 function scan(id, email) {
   const tables = sql("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'").map((t) => t.name);
-  const hits = [];
-  for (const t of tables) {
-    const cols = sql("PRAGMA table_info(" + t + ")").map((c) => c.name);
-    const cond = cols.map((c) => "(CAST(" + c + " AS TEXT) LIKE '%" + id + "%' OR LOWER(CAST(" + c + " AS TEXT)) LIKE '%" + email.toLowerCase() + "%')").join(" OR ");
-    const n = sql("SELECT COUNT(*) AS n FROM " + t + " WHERE " + cond)[0].n;
-    if (n) hits.push(t + ":" + n);
-  }
+  const colsPer = sqlAll(tables.map((t) => "PRAGMA table_info(" + t + ")").join("; "));
+  const parts = tables.map((t, i) => {
+    const cond = colsPer[i].map((c) => "(CAST(" + c.name + " AS TEXT) LIKE '%" + id + "%' OR LOWER(CAST(" + c.name + " AS TEXT)) LIKE '%" + email.toLowerCase() + "%')").join(" OR ");
+    return "SELECT '" + t + "' AS t, COUNT(*) AS n FROM " + t + " WHERE " + cond;
+  });
+  const hits = sqlAll(parts.join("; ")).map((rows) => rows[0]).filter((r) => r && r.n).map((r) => r.t + ":" + r.n);
   return { tables, hits };
 }
 

@@ -230,6 +230,16 @@ ol li,ul li{margin:4px 0}
 </table></div>
 <p>The gate: <code>POST .../review</code>, <code>POST /admin/page/.../publish</code> and Mark delivered answer 409 <code>lang_pending</code> while required Swedish texts are not approved, unless the body has <code>langOverride</code> (a reason, logged). Files: <code>src/team.js</code>, <code>src/lang.js</code>, <code>src/public/reviewer.html</code>, <code>src/public/reviewer.js</code>, <code>../../assets/growth-langfields.js</code> (shared by the Worker and ScriptForge), <code>../../assets/growth-lang.js</code>, <code>test/lang.test.mjs</code> (68 checks). Tables (migration 8): <code>team_members</code>, <code>team_access</code>, <code>member_tokens</code>, <code>member_sessions</code>, <code>lang_items</code>, <code>lang_versions</code>, <code>lang_notes</code>, <code>lang_log</code>, and <code>clients.lang_review</code>. <code>CONSENT_VERSION</code> is now <code>c-4</code>.</p>
 
+<h2>2n. Endpoints added in V2 Part D (results)</h2>
+<div class="tw"><table>
+<tr><th>Endpoint</th><th>Who</th><th>What it does</th></tr>
+<tr><td><code>GET /portal/results</code></td><td>Client</td><td>Her delivered campaigns, her questions (by business type), her answers, and which to ask now (from the 25th of the campaign month for two months; not once answered, skipped or filled in by Harry).</td></tr>
+<tr><td><code>PUT /portal/results/:campaignId</code></td><td>Client</td><td><code>{ values }</code> (all optional, whole numbers from 0, best post from a list, what customers said up to 1000 characters) or <code>{ skip: true }</code>. First answer emails Harry, company and month only.</td></tr>
+<tr><td><code>GET /admin/results/:clientId</code></td><td>Admin</td><td>Every campaign: her answers, Harry's corrections, the note, the effective values and the main number for the chart.</td></tr>
+<tr><td><code>PUT /admin/results/:clientId/:campaignId</code></td><td>Admin</td><td><code>{ values, note }</code>: Harry's corrections, stored apart from hers.</td></tr>
+</table></div>
+<p>The business type is <code>plan.niche</code> on <code>GET, PUT /admin/plan/:clientId</code> (restaurant, salon, other), stored on <code>clients.niche</code>. The questions live in <code>../../assets/growth-resultfields.js</code>, shared by the Worker and the panel; the portal wording is in <code>src/public/i18n.json</code> ("results"). Files: <code>src/results.js</code>, <code>../../assets/growth-results.js</code> (Results box and chart), <code>test/results.test.mjs</code> (41 checks). Migration 10: <code>clients.niche</code> and the <code>results</code> table. Interpretation: the spec's "at most five fields" is read as five questions plus the free text of what customers said.</p>
+
 <h2>2m. Endpoints added in V2 Part C (monthly rhythm, admin only)</h2>
 <div class="tw"><table>
 <tr><th>Endpoint</th><th>Who</th><th>What it does</th></tr>

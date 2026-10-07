@@ -59,6 +59,7 @@ import { acceptAll, decideItem, getLang, getNotes, postNote, putSetting, reviewD
 import reviewerHtml from "./public/reviewer.html";
 import reviewerJs from "./public/reviewer.js";
 import { getPlan, getRhythm, lastResults, putPlan, rhythmReminder } from "./rhythm.js";
+import { adminResults, portalResults, putAdminResults, putPortalResults } from "./results.js";
 import { SCHEMAS } from "./schemas.js";
 import { json, lang, normEmail, readJson, validEmail, withCookies } from "./util.js";
 
@@ -199,7 +200,7 @@ async function handle(request, env, ctx) {
 
   if (method === "GET" && path === "/health") {
     const db = await env.DB.prepare("SELECT 1 AS ok").first();
-    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "c" });
+    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "d" });
   }
 
   if (method === "GET" && path === "/portal/meta") {
@@ -263,13 +264,14 @@ async function handle(request, env, ctx) {
   }
 
   /* ---------- client portal ---------- */
-  const clientPaths = ["/portal/state", "/consent", "/intake", "/uploads", "/intake/submit", "/status", "/me/language", "/portal/photo-requests", "/portal/pages", "/portal/leads", "/portal/leads.csv", "/portal/campaigns"];
+  const clientPaths = ["/portal/state", "/consent", "/intake", "/uploads", "/intake/submit", "/status", "/me/language", "/portal/photo-requests", "/portal/pages", "/portal/leads", "/portal/leads.csv", "/portal/campaigns", "/portal/results"];
   const fileMatch = path.match(/^\/files\/(f_[a-z0-9]{4,32})$/);
   const leadMatch = path.match(/^\/portal\/leads\/(ld_[a-z0-9]{4,32})$/);
   const reportMatch = path.match(/^\/portal\/report\/(cp_[a-z0-9_]{2,40})$/);
   const campMatch = path.match(/^\/portal\/(campaign|review)\/(cp_[a-z0-9_]{2,40})$/);
   const dlMatch = path.match(/^\/dl\/(d_[a-z0-9]{4,32})$/);
-  if (clientPaths.includes(path) || fileMatch || leadMatch || reportMatch || campMatch || dlMatch) {
+  const resMatch = path.match(/^\/portal\/results\/(cp_[a-z0-9_]{2,40})$/);
+  if (clientPaths.includes(path) || fileMatch || leadMatch || reportMatch || campMatch || dlMatch || resMatch) {
     if (!auth) return json({ error: "not_signed_in", message: MSG.notSignedIn }, 401);
     if (fileMatch && method === "GET") return respond(await getFile(env, auth, fileMatch[1]));
     if (dlMatch && method === "GET") return respond(await download(env, auth, dlMatch[1], url));
@@ -295,6 +297,9 @@ async function handle(request, env, ctx) {
     if (path === "/portal/campaigns" && method === "GET") return portalCampaigns(env, auth);
     if (campMatch && campMatch[1] === "campaign" && method === "GET") return portalCampaign(env, cfg, auth, campMatch[2]);
     if (campMatch && campMatch[1] === "review" && method === "POST") return postReview(request, env, cfg, ctx, auth, campMatch[2]);
+    /* V2 Part D */
+    if (path === "/portal/results" && method === "GET") return portalResults(env, cfg, auth, url);
+    if (resMatch && method === "PUT") return putPortalResults(request, env, cfg, ctx, auth, resMatch[1]);
   }
 
   /* ---------- language reviewer (V2 Part H) ---------- */
@@ -341,6 +346,10 @@ async function handle(request, env, ctx) {
     if (pl && method === "GET" && !pl[2]) return respond(await getPlan(env, cfg, pl[1], url));
     if (pl && method === "PUT" && !pl[2]) return respond(await putPlan(request, env, cfg, pl[1]));
     if (pl && method === "GET" && pl[2]) return respond(await lastResults(env, cfg, pl[1], url));
+    /* V2 Part D */
+    const rs = path.match(/^\/admin\/results\/(cl_[a-z0-9]{4,32})(?:\/(cp_[a-z0-9_]{2,40}))?$/);
+    if (rs && method === "GET" && !rs[2]) return respond(await adminResults(env, rs[1]));
+    if (rs && method === "PUT" && rs[2]) return respond(await putAdminResults(request, env, rs[1], rs[2]));
     /* V2 Part H */
     if (path === "/admin/team" && method === "GET") return respond(await listTeam(env));
     if (path === "/admin/team/invite" && method === "POST") return respond(await inviteMember(request, env, cfg, ctx));

@@ -68,7 +68,9 @@ export function validatePlan(p) {
   if (!PLAN_GOALS.includes(p.goal)) errors.push("goal must be one of " + PLAN_GOALS.join(", "));
   if (typeof p.active !== "boolean") errors.push("active must be true or false");
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(p.startMonth || ""))) errors.push("startMonth must be YYYY-MM");
-  return errors.length ? { errors } : { plan: { perMonth, readyDay, channels, goal: p.goal, active: p.active, startMonth: p.startMonth } };
+  /* V2 Part D: the business type, optional (stored on the client). */
+  if (p.niche !== undefined && !["restaurant", "salon", "other"].includes(p.niche)) errors.push("niche must be restaurant, salon or other");
+  return errors.length ? { errors } : { plan: { perMonth, readyDay, channels, goal: p.goal, active: p.active, startMonth: p.startMonth, niche: p.niche } };
 }
 
 const CH = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google_business: "Google Business", email: "Email", qr: "QR code", share: "shared link", direct: "direct" };
@@ -90,6 +92,8 @@ export function resultsText(list) {
     if (ch.length) bits.push("change against before: " + ch.join(", "));
     if (r.roi.newCustomers != null) bits.push("new customers: " + r.roi.newCustomers);
     if (r.roi.costPerNewCustomer != null) bits.push("cost per new customer: " + r.roi.costPerNewCustomer);
+    /* V2 Part D: what the client reported (with Harry's corrections) and Harry's note. */
+    if (r.reported) bits.push(r.reported);
     return "- " + bits.join("; ") + ".";
   }).join("\n");
 }

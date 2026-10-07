@@ -492,5 +492,28 @@ export const MIGRATIONS = [
         at TEXT NOT NULL
       )`
     ]
+  },
+  {
+    id: 10,
+    name: "part-d-results",
+    statements: [
+      /* Part D: the client's business type picks her results questions (restaurant, salon, other). */
+      `ALTER TABLE clients ADD COLUMN niche TEXT NOT NULL DEFAULT 'other'`,
+      /* One row per campaign: what the client reported (client_data) and Harry's corrections
+         and note (harry_data, note), kept apart so her own answers are never overwritten. */
+      `CREATE TABLE IF NOT EXISTS results (
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        campaign_id TEXT NOT NULL,
+        month TEXT NOT NULL,
+        client_data TEXT,
+        client_at TEXT,
+        skipped INTEGER NOT NULL DEFAULT 0,
+        harry_data TEXT,
+        note TEXT,
+        harry_at TEXT,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (client_id, campaign_id)
+      )`
+    ]
   }
 ];

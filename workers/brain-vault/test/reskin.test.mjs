@@ -57,7 +57,7 @@ ok(!/\b(display:\s*none|visibility:\s*hidden)\b/i.test(theme), "the theme hides 
 
 /* 5. House rules on everything the reskin touched. */
 const touched = { "scriptforge/index.html": page, "assets/app.js": app, "assets/longform.js": longform, "assets/scriptforge-theme.css": theme, "assets/growth.css": read("assets/growth.css") };
-for (const [f, s] of Object.entries(touched)) ok(!s.includes("—"), f + " has no em-dash");
+for (const [f, s] of Object.entries(touched)) ok(!s.includes("\u2014"), f + " has no em-dash");
 const emoji = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2B00}-\u{2BFF}\u{2709}]/u;
 const uiText = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/<!--[\s\S]*?-->/g, "").replace(/\.replace\(\/[^\n]*?\/,/g, "");
 ok(!emoji.test(uiText(page)), "no emoji in the page's own text");

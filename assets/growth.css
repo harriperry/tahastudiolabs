@@ -248,3 +248,11 @@
 .gc-cgrid .gc-check input{margin-top:2px}
 .gc-plan summary{justify-content:flex-start;align-items:baseline}
 .gc-plan .gc-plan-next{margin-left:auto}
+/* V2 Part D: Results box and the month by month chart */
+.rs-chart-wrap{display:flex;flex-direction:column;gap:6px;overflow-x:auto}
+.rs-chart{max-width:100%;height:auto}
+.rs-chart .rs-axis{stroke:var(--border);stroke-width:1}
+.rs-chart .rs-bar{fill:var(--gold-text,#F0B94A);opacity:.55}
+.rs-chart .rs-bar.last{fill:#E3A21A;opacity:1}
+.rs-chart .rs-val{font:600 11px var(--mono,monospace);fill:var(--text)}
+.rs-chart .rs-lbl{font:11px var(--mono,monospace);fill:var(--muted)}

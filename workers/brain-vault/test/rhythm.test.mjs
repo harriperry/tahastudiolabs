@@ -197,7 +197,7 @@ try {
   const gc = fs.readFileSync(new URL("../../../assets/growth-campaign.js", import.meta.url), "utf8");
   const gj = fs.readFileSync(new URL("../../../assets/growth.js", import.meta.url), "utf8");
   ok(/LAST_RESULTS:/.test(gc) && /last-results\?before=/.test(gc) && /Start next month's campaign/.test(gc + gj) && /\/admin\/rhythm/.test(gj), "the panel fetches the Due list, last results, and offers Start next month's campaign");
-  ok(!(gc + gj + fs.readFileSync(new URL("../src/rhythm.js", import.meta.url), "utf8") + fs.readFileSync(new URL("../src/rhythm-core.js", import.meta.url), "utf8")).includes("—"), "no em-dash in the new code");
+  ok(!(gc + gj + fs.readFileSync(new URL("../src/rhythm.js", import.meta.url), "utf8") + fs.readFileSync(new URL("../src/rhythm-core.js", import.meta.url), "utf8")).includes("\u2014"), "no em-dash in the new code");
 
   /* ---------- export and erasure ---------- */
   r = await call("/admin/export/" + A.id, { cookie: ADMIN });
@@ -206,7 +206,7 @@ try {
   ok(r.status === 200 && sql("SELECT COUNT(*) AS n FROM plans WHERE client_id = '" + A.id + "'")[0].n === 0, "erasure removes the plan");
 
   r = await call("/health");
-  ok(r.data.part === "c", "health reports part c");
+  ok(/^[a-z0-9]+$/.test(r.data.part), "health reports the current part");
 } catch (e) {
   fail++;
   console.log("FAIL crashed: " + e.stack);

@@ -30,7 +30,7 @@ const M = {
 };
 
 const all = async (env, sql, ...args) => (await env.DB.prepare(sql).bind(...args).all()).results || [];
-const clean = (v, max) => (typeof v === "string" ? v.replace(/\s*—\s*/g, ", ").trim().slice(0, max) : "");
+const clean = (v, max) => (typeof v === "string" ? v.replace(/\s*\u2014\s*/g, ", ").trim().slice(0, max) : "");
 
 export function requestOut(r) {
   return {

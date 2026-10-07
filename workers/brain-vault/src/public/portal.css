@@ -216,3 +216,8 @@ input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--ree
 .rv-item input[type=text] { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--hairline); border-radius: 8px; }
 .chip { display: inline-block; background: #E8E4DC; border-radius: 4px; padding: 1px 6px; margin: 2px 4px 2px 0; font: 12px var(--mono); }
 .over { color: var(--clay); font-weight: 700; }
+
+/* V2 Part D: How did it go? */
+.res-form select { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; border: 1px solid var(--hairline); border-radius: 10px; background: #fff; color: inherit; min-height: 48px; }
+.res-form input[inputmode="numeric"] { max-width: 220px; }
+.res-form .actions { flex-wrap: wrap; }

@@ -393,6 +393,37 @@
         "other": "Annat"
       }
     },
+    "results": {
+      "kicker": "HUR GICK DET?",
+      "cardTitle": "Hur gick {name}?",
+      "cardLead": "Berätta med några siffror. Det tar två minuter och gör nästa månads kampanj bättre.",
+      "open": "Berätta hur det gick",
+      "title": "Hur gick {name}?",
+      "lead": "Alla svar är frivilliga. Skriv det du vet, uppskatta gärna. Ditt svar hjälper oss att behålla det som fungerade och ändra det som inte gjorde det.",
+      "fields": {
+        "orders": "Beställningar eller gäster den här månaden",
+        "bookings": "Bokningar den här månaden",
+        "customers": "Kunder eller försäljningar den här månaden",
+        "newCustomers": "Nya kunder",
+        "newClients": "Nya kunder",
+        "redemptions": "Hur många använde erbjudandet",
+        "referrals": "Rekommendationer (kunder som kom via en vän)",
+        "bestPost": "Vilket inlägg gick bäst?",
+        "said": "Vad sa kunderna?"
+      },
+      "saidHint": "Skriv inga namn på kunder.",
+      "pick": "Välj",
+      "notSure": "Vet inte",
+      "posts": { "instagram": "Instagram", "facebook": "Facebook", "tiktok": "TikTok", "linkedin": "LinkedIn", "google_business": "Google Business", "email": "E-post", "landing_page": "Kampanjsidan", "other": "Något annat" },
+      "send": "Skicka",
+      "update": "Spara ändringar",
+      "skip": "Hoppa över den här gången",
+      "thanks": "Tack! Vi använder dina siffror i nästa kampanj.",
+      "skipped": "Okej, vi frågar inte igen för den här kampanjen.",
+      "answered": "Du har svarat. Du kan ändra dina siffror här.",
+      "badNumber": "Skriv bara hela tal, till exempel 120.",
+      "back": "Tillbaka"
+    },
     "camp": {
       "kicker": "DINA KAMPANJER",
       "waiting": "Väntar på ditt godkännande",
@@ -879,6 +910,37 @@
         "direct": "Direct or unknown",
         "other": "Other"
       }
+    },
+    "results": {
+      "kicker": "HOW DID IT GO?",
+      "cardTitle": "How did {name} go?",
+      "cardLead": "Tell us with a few numbers. It takes two minutes and makes next month's campaign better.",
+      "open": "Tell us how it went",
+      "title": "How did {name} go?",
+      "lead": "Every answer is optional. Write what you know, a good guess is fine. Your answers help us keep what worked and change what did not.",
+      "fields": {
+        "orders": "Orders or covers this month",
+        "bookings": "Bookings this month",
+        "customers": "Customers or sales this month",
+        "newCustomers": "New customers",
+        "newClients": "New clients",
+        "redemptions": "How many used the offer",
+        "referrals": "Referrals (customers who came through a friend)",
+        "bestPost": "Which post did best?",
+        "said": "What did customers say?"
+      },
+      "saidHint": "Please do not write customers' names.",
+      "pick": "Choose",
+      "notSure": "Not sure",
+      "posts": { "instagram": "Instagram", "facebook": "Facebook", "tiktok": "TikTok", "linkedin": "LinkedIn", "google_business": "Google Business", "email": "Email", "landing_page": "The campaign page", "other": "Something else" },
+      "send": "Send",
+      "update": "Save changes",
+      "skip": "Skip this time",
+      "thanks": "Thank you! We will use your numbers in the next campaign.",
+      "skipped": "All right, we will not ask again for this campaign.",
+      "answered": "You have answered. You can change your numbers here.",
+      "badNumber": "Use whole numbers only, for example 120.",
+      "back": "Back"
     },
     "camp": {
       "kicker": "YOUR CAMPAIGNS",

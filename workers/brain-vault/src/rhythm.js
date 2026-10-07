@@ -18,6 +18,8 @@
    that has fewer campaigns than perMonth. A client who has left, has no Business Brain yet, or
    whose plan is paused is skipped. */
 import { composeRhythmReminder, sendMail } from "./mail.js";
+import { reportedFor } from "./results.js";
+import { reportedText } from "../../../assets/growth-resultfields.js";
 import { json, nowIso, readJson } from "./util.js";
 import { readBaselines, readCosts, computeRoi } from "./roi.js";
 import { DUE_WINDOW_DAYS, REMINDER_DAY, PLAN_CHANNELS, PLAN_GOALS, defaultPlan, nextDue, resultsText, stockholmDate, validatePlan } from "./rhythm-core.js";
@@ -39,7 +41,7 @@ function planOut(row, client, todayMonth) {
 }
 
 async function client(env, clientId) {
-  return env.DB.prepare("SELECT id, name, created_at, left_at FROM clients WHERE id = ?").bind(clientId).first();
+  return env.DB.prepare("SELECT id, name, created_at, left_at, niche FROM clients WHERE id = ?").bind(clientId).first();
 }
 
 /* Development only: the tests move the clock with ?today=YYYY-MM-DD. */
@@ -54,7 +56,7 @@ export async function getPlan(env, cfg, clientId, url) {
   if (!c) return json({ error: "not_found", message: M.notFound }, 404);
   const today = todayFrom(url, cfg);
   const row = await env.DB.prepare("SELECT * FROM plans WHERE client_id = ?").bind(clientId).first();
-  return json({ plan: planOut(row, c, today.month), channels: PLAN_CHANNELS, goals: PLAN_GOALS });
+  return json({ plan: Object.assign(planOut(row, c, today.month), { niche: c.niche || "other" }), channels: PLAN_CHANNELS, goals: PLAN_GOALS });
 }
 
 export async function putPlan(request, env, cfg, clientId) {
@@ -69,8 +71,9 @@ export async function putPlan(request, env, cfg, clientId) {
     "INSERT INTO plans (client_id, per_month, ready_day, channels, goal, active, start_month, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) " +
       "ON CONFLICT(client_id) DO UPDATE SET per_month = excluded.per_month, ready_day = excluded.ready_day, channels = excluded.channels, goal = excluded.goal, active = excluded.active, start_month = excluded.start_month, updated_at = excluded.updated_at"
   ).bind(clientId, p.perMonth, p.readyDay, JSON.stringify(p.channels), p.goal, p.active ? 1 : 0, p.startMonth, t, t).run();
+  if (p.niche) await env.DB.prepare("UPDATE clients SET niche = ? WHERE id = ?").bind(p.niche, clientId).run();
   const row = await env.DB.prepare("SELECT * FROM plans WHERE client_id = ?").bind(clientId).first();
-  return json({ ok: true, plan: planOut(row, c, todayFrom(null, cfg).month) });
+  return json({ ok: true, plan: Object.assign(planOut(row, c, todayFrom(null, cfg).month), { niche: p.niche || c.niche || "other" }) });
 }
 
 /* ---------- the overview, shared by the panel and the reminder ---------- */
@@ -134,6 +137,7 @@ export async function lastResults(env, cfg, clientId, url) {
   const rows = ((await env.DB.prepare("SELECT campaign_id, month, data FROM campaigns WHERE client_id = ? ORDER BY month DESC, created_at DESC").bind(clientId).all()).results || [])
     .filter((r) => !before || r.month < before)
     .slice(0, 3);
+  const rep = await reportedFor(env, clientId);
   const out = [];
   for (const r of rows) {
     let d = {};
@@ -146,7 +150,9 @@ export async function lastResults(env, cfg, clientId, url) {
     const costs = await readCosts(env, clientId, r.campaign_id);
     const roi = computeRoi({ stats, leads, baselines, costs, links });
     const offer = d.offer && d.offer.terms ? String(d.offer.terms).slice(0, 160) : "";
-    out.push({ campaignId: r.campaign_id, name: d.name || r.campaign_id, month: r.month, goal: d.goal || "", offer, hasPage: !!page, roi });
+    const got = rep.map[r.campaign_id];
+    const reported = got ? reportedText(rep.niche, got.values, got.note) : "";
+    out.push({ campaignId: r.campaign_id, name: d.name || r.campaign_id, month: r.month, goal: d.goal || "", offer, hasPage: !!page, roi, reported });
   }
   return json({ results: out, text: resultsText(out) });
 }

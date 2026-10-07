@@ -126,7 +126,7 @@ try {
   r = await call("/admin/campaign/" + id, { method: "POST", cookie: ADMIN, body: { campaign: broken } });
   ok(r.status === 400 && r.data.details.some((x) => /platform/.test(x)), "a brief with an unknown platform is refused");
   const dashed = JSON.parse(JSON.stringify(withPack));
-  dashed.visuals[0].overlay.headline = "A little — extra";
+  dashed.visuals[0].overlay.headline = "A little \u2014 extra";
   r = await call("/admin/campaign/" + id, { method: "POST", cookie: ADMIN, body: { campaign: dashed } });
   ok(r.status === 200 && r.data.campaign.visuals[0].overlay.headline === "A little, extra", "em-dashes in briefs are replaced on save");
   await call("/admin/campaign/" + id, { method: "POST", cookie: ADMIN, body: { campaign: withPack } });

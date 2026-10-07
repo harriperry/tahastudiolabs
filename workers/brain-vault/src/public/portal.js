@@ -28,6 +28,9 @@
   var REPORT = { cp: "", data: null, loading: false, error: false };
   var confirmDel = "";
   var CAMPS = [];
+  /* V2 Part D: "How did it go?" */
+  var RES = { niche: "other", fields: [], postChannels: [], items: [] };
+  var RF = { cp: "", values: {}, busy: false, msg: null, bad: {} };
   var CV = { cp: "", data: null, loading: false, error: false, answers: {}, busy: false, msg: null };
   var app = document.getElementById("app");
 
@@ -234,7 +237,7 @@
     app.textContent = "";
     var view = currentView();
     shell(view);
-    var fn = { signin: viewSignin, admin: viewAdmin, consent: viewConsent, profile: viewProfile, uploads: viewUploads, review: viewReview, status: viewStatus, photos: viewPhotos, enquiries: viewEnquiries, report: viewReport, campaign: viewCampaign, content: viewContent }[view];
+    var fn = { signin: viewSignin, admin: viewAdmin, consent: viewConsent, profile: viewProfile, uploads: viewUploads, review: viewReview, status: viewStatus, photos: viewPhotos, enquiries: viewEnquiries, report: viewReport, campaign: viewCampaign, content: viewContent, results: viewResults }[view];
     add(app, fn());
     if (active && document.getElementById(active)) document.getElementById(active).focus({ preventScroll: true });
     window.scrollTo(0, y);
@@ -256,6 +259,7 @@
     if (/^report-cp_[a-z0-9_]{2,40}$/.test(hsh)) return "report";
     if (/^campaign-cp_[a-z0-9_]{2,40}$/.test(hsh)) return "campaign";
     if (hsh === "content" || /^content-cp_[a-z0-9_]{2,40}$/.test(hsh)) return "content";
+    if (/^results-cp_[a-z0-9_]{2,40}$/.test(hsh)) return "results";
     return S.latestIntakeVersion > 0 ? "status" : "profile";
   }
   window.addEventListener("hashchange", function () {
@@ -790,6 +794,7 @@
         h("h1", { text: submitted ? t("status.titleDone") : t("status.titleOpen") }),
         h("p", { class: "lead", text: t("status.lead") })),
       h("div", { class: "now" }, h("div", { class: "kicker", text: t("status.nowLabel") }), h("h2", { text: now.t }), h("p", { text: now.b })),
+      resultsCards(),
       campCards(),
       photoCard(),
       pageCards(),
@@ -1011,6 +1016,94 @@
       h("div", { class: "actions no-print" }, h("button", { type: "button", class: "btn", text: t("report.print"), onClick: function () { window.print(); } }),
         h("button", { type: "button", class: "btn secondary", text: t("report.back"), onClick: function () { go("status"); } }))
     ];
+  }
+
+  /* ---------- How did it go? (V2 Part D) ---------- */
+  function loadResults() {
+    return api("/portal/results").then(function (r) {
+      if (r.ok && r.data) RES = r.data;
+    });
+  }
+  function resultItem(cp) {
+    return RES.items.filter(function (i) { return i.campaignId === cp; })[0] || null;
+  }
+  function resultsCards() {
+    return RES.items.filter(function (i) { return i.ask; }).slice(0, 2).map(function (i) {
+      return h("div", { class: "card camp-card todo res-card" },
+        h("div", { class: "kicker", text: t("results.kicker") }),
+        h("h2", { text: t("results.cardTitle", { name: i.name }) }),
+        h("p", { text: t("results.cardLead") }),
+        h("button", { type: "button", class: "btn", text: t("results.open"), onClick: function () { go("results-" + i.campaignId); } }));
+    });
+  }
+  function fieldLabel(f) {
+    if (f.key === "newCustomers" && RES.niche === "salon") return t("results.fields.newClients");
+    return t("results.fields." + f.key);
+  }
+  function viewResults() {
+    var cp = location.hash.replace("#results-", "");
+    var item = resultItem(cp);
+    var back = h("button", { type: "button", class: "btn secondary", text: t("results.back"), onClick: function () { go("status"); } });
+    if (!item) return [h("div", { class: "card" }, h("p", { text: t("networkError") })), h("div", { class: "actions" }, back)];
+    if (RF.cp !== cp) RF = { cp: cp, values: Object.assign({}, item.values), busy: false, msg: null, bad: {} };
+    var form = h("form", { class: "card res-form", novalidate: true, onSubmit: function (ev) { ev.preventDefault(); sendResults(item, false); } });
+    RES.fields.forEach(function (f) {
+      var id = "res_" + f.key;
+      var v = RF.values[f.key];
+      var input;
+      if (f.type === "int") {
+        input = h("input", { type: "text", id: id, inputmode: "numeric", pattern: "[0-9]*", autocomplete: "off", value: v == null ? "" : String(v), onInput: function (e) { RF.values[f.key] = e.target.value.trim(); } });
+        if (RF.bad[f.key]) input.classList.add("invalid");
+      } else if (f.type === "post") {
+        var chans = item.channels.concat(["landing_page", "other"]).filter(function (c, i, a) { return a.indexOf(c) === i; });
+        input = h("select", { id: id, onChange: function (e) { RF.values[f.key] = e.target.value; } },
+          h("option", { value: "", text: t("results.notSure") }),
+          chans.map(function (c) { var o = h("option", { value: c, text: t("results.posts." + c) }); if (v === c) o.selected = true; return o; }));
+      } else {
+        input = h("textarea", { id: id, rows: 3, maxlength: 1000, onInput: function (e) { RF.values[f.key] = e.target.value; } });
+        input.value = v || "";
+      }
+      add(form, h("div", { class: "field" }, h("label", { for: id }, fieldLabel(f) + " ", h("span", { class: "req", text: t("optional") })), input,
+        f.key === "said" ? h("div", { class: "hint", text: t("results.saidHint") }) : null,
+        RF.bad[f.key] ? h("div", { class: "msg err", text: t("results.badNumber") }) : null));
+    });
+    add(form, h("div", { class: "msg" + (RF.msg ? (RF.msg.err ? " err" : " ok") : ""), role: "status", "aria-live": "polite", text: RF.msg ? RF.msg.text : "" }));
+    add(form, h("div", { class: "actions" },
+      h("button", { type: "submit", class: "btn", disabled: RF.busy, text: item.answered ? t("results.update") : t("results.send") }),
+      !item.answered && !item.skipped ? h("button", { type: "button", class: "btn secondary", disabled: RF.busy, text: t("results.skip"), onClick: function () { sendResults(item, true); } }) : null));
+    return [
+      h("div", { class: "head" }, h("div", { class: "kicker", text: t("results.kicker") }), h("h1", { text: t("results.title", { name: item.name }) }),
+        h("p", { class: "lead", text: item.answered ? t("results.answered") : t("results.lead") })),
+      form,
+      h("div", { class: "actions" }, back)
+    ];
+  }
+  function sendResults(item, skip) {
+    var values = {};
+    RF.bad = {};
+    if (!skip) {
+      RES.fields.forEach(function (f) {
+        var v = RF.values[f.key];
+        if (v === undefined || v === null || v === "") return;
+        if (f.type === "int") {
+          if (!/^\d+$/.test(String(v))) { RF.bad[f.key] = true; return; }
+          values[f.key] = parseInt(v, 10);
+        } else values[f.key] = v;
+      });
+      if (Object.keys(RF.bad).length) { RF.msg = { err: true, text: t("results.badNumber") }; render(); return; }
+    }
+    RF.busy = true;
+    render();
+    api("/portal/results/" + item.campaignId, { method: "PUT", json: skip ? { skip: true } : { values: values } }).then(function (r) {
+      RF.busy = false;
+      if (r.ok) {
+        RF.msg = { err: false, text: skip ? t("results.skipped") : t("results.thanks") };
+        loadResults().then(render);
+      } else {
+        RF.msg = { err: true, text: both(r.data && r.data.message) || t("networkError") };
+        render();
+      }
+    });
   }
 
   /* ---------- review and Your content (V2 Parts A and B) ---------- */
@@ -1272,7 +1365,7 @@
       render();
       return;
     }
-    return loadState().then(loadPhotos).then(loadPages).then(loadCamps).then(function () {
+    return loadState().then(loadPhotos).then(loadPages).then(loadCamps).then(loadResults).then(function () {
       var stored = null;
       try { stored = localStorage.getItem("tv_lang"); } catch (e) {}
       if (S.client.language && !stored) setLang(S.client.language, false);

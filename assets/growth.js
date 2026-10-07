@@ -434,7 +434,7 @@
         refresh();
       }
     };
-    brainLoading = Promise.all([import("/assets/growth-brain.js?v=p5"), import("/assets/growth-campaign.js?v=c")]).then(function (mods) {
+    brainLoading = Promise.all([import("/assets/growth-brain.js?v=p5"), import("/assets/growth-campaign.js?v=d")]).then(function (mods) {
       brain = mods[0].createBrain(ctx);
       camps = mods[1].createCampaigns(ctx);
       if (ui) renderDetail();

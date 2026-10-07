@@ -37,6 +37,7 @@ const CLIENT_TABLES = [
   ["brains", "client_id"],
   ["campaigns", "client_id"],
   ["plans", "client_id"],
+  ["results", "client_id"],
   ["deliveries", "client_id"],
   ["brand_kits", "client_id"],
   ["photo_requests", "client_id"],
@@ -124,6 +125,9 @@ export async function exportClient(env, cfg, clientId) {
     },
     /* V2 Part C */
     monthlyPlan: (await all(env, "SELECT per_month AS perMonth, ready_day AS readyDay, channels, goal, active, start_month AS startMonth, updated_at AS updatedAt FROM plans WHERE client_id = ?", clientId)).map((r) => Object.assign(r, { channels: JSON.parse(r.channels), active: !!r.active }))[0] || null,
+    /* V2 Part D */
+    businessType: c.niche || "other",
+    reportedResults: (await all(env, "SELECT campaign_id AS campaignId, month, client_data AS clientData, client_at AS reportedAt, skipped, harry_data AS harryData, note, harry_at AS correctedAt FROM results WHERE client_id = ? ORDER BY month", clientId)).map((r) => Object.assign(r, { clientData: r.clientData ? JSON.parse(r.clientData) : null, harryData: r.harryData ? JSON.parse(r.harryData) : null, skipped: !!r.skipped })),
     pageEventsKept: ((await all(env, "SELECT COUNT(*) AS n FROM events WHERE client_id = ?", clientId))[0] || { n: 0 }).n,
     results: await Promise.all((await all(env, "SELECT DISTINCT campaign_id FROM campaigns WHERE client_id = ?", clientId)).map(async (r) => ({
       campaignId: r.campaign_id,

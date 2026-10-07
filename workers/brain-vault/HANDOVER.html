@@ -29,7 +29,20 @@ li{margin:0 0 6px}
 <body>
 <main>
 <h1>TAHA Studio Labs Growth Department</h1>
-<p class="sub">V1 handover, 5 October 2026, built in six phases. V2 phases G1, G2a and G2b added 6 October 2026 (below). G2b, Parts A and B and Part H are live. The ScriptForge reskin went live the same evening. Part C (monthly rhythm) went live the same night.</p>
+<p class="sub">V1 handover, 5 October 2026, built in six phases. V2 phases G1, G2a and G2b added 6 October 2026 (below). G2b, Parts A and B and Part H are live. The ScriptForge reskin went live the same evening. Part C (monthly rhythm) went live the same night. Part D (results) is on the branch <code>growth-d</code>, not live yet.</p>
+
+<h2>V2 Part D: results that feed the next campaign</h2>
+<div class="card">
+<ul>
+<li><b>Business type</b> per client in the Monthly plan box: Restaurant or cafe, Salon or barber, or Other. It picks her results questions. New clients start as Other; set Chef Sandy to Restaurant or cafe.</li>
+<li><b>"How did it go?"</b> in the client portal, from the 25th of the campaign month for two months, for delivered campaigns: orders or covers (restaurant), bookings (salon) or customers (other), then new customers, offer redemptions, referrals, best performing post, and a free text of what customers said. Every answer is optional, she can skip, and she can change her numbers later. Number keyboard on phones, Swedish and English. It is not asked once she answered or skipped, or once you filled the numbers in yourself.</li>
+<li>You get one email when she reports (company and month only, no numbers).</li>
+<li><b>Results box</b> on every saved campaign in the panel: her answers, a field per question to fill or correct (your value wins, hers is kept and shown), your note, and a small chart of the main number month by month.</li>
+<li><b>Into the next campaign</b>: the numbers (with your corrections), what customers said and your note join <code>{{LAST_RESULTS}}</code> for the last three campaigns, with the rule to keep what worked. The Business Brain is not changed automatically.</li>
+<li>GDPR: the business type and every answer (hers and your corrections) are in the client's export and erased with the client. The free text asks clients not to write customers' names. No consent change: the client is reporting her own business numbers.</li>
+</ul>
+</div>
+<div class="card"><p><b>To go live (needs your approval):</b> merge <code>growth-d</code> into <code>main</code> and push it to <code>growth-phase-1</code>. No Cloudflare change. Migration 10 runs on the first request.</p></div>
 
 <h2>V2 Part C: the monthly rhythm</h2>
 <div class="card">

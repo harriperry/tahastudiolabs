@@ -334,3 +334,18 @@ export function composeRhythmReminder(cfg, { items, link }) {
     '<p><a href="' + escapeHtml(link) + '">' + escapeHtml(link) + "</a></p></body></html>";
   return { subject, text, html };
 }
+
+/* V2 Part D: the client reported her results. Company and month only, no numbers. */
+export function composeResultsNotice(cfg, { company, month, link }) {
+  const mon = (loc) => new Date(month + "-15T12:00:00Z").toLocaleDateString(loc, { month: "long", year: "numeric", timeZone: "UTC" });
+  const subject = "Resultat / Results: " + company + " (" + mon("en-GB") + ")";
+  const text =
+    company + " har rapporterat resultat för " + mon("sv-SE") + ".\n" +
+    company + " has reported results for " + mon("en-GB") + ".\n\n" + link + "\n";
+  const html =
+    '<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#111;max-width:560px;margin:0 auto;padding:24px">' +
+    "<p><b>" + escapeHtml(company) + "</b> har rapporterat resultat för " + escapeHtml(mon("sv-SE")) + ".</p>" +
+    "<p><b>" + escapeHtml(company) + "</b> has reported results for " + escapeHtml(mon("en-GB")) + ".</p>" +
+    '<p><a href="' + escapeHtml(link) + '">' + escapeHtml(link) + "</a></p></body></html>";
+  return { subject, text, html };
+}

@@ -42,6 +42,8 @@ import {
 import { createLandingUi } from "./growth-landing.js?v=h";
 import { createReviewUi } from "./growth-review.js?v=h";
 import { createLangUi } from "./growth-lang.js?v=h";
+import { createResultsUi } from "./growth-results.js?v=d";
+import { NICHES } from "./growth-resultfields.js?v=d";
 
 const VAULT = "/api/vault";
 const PROMPT_URL = "/assets/growth/campaign.prompt.json?v=c";
@@ -296,6 +298,7 @@ export function createCampaigns(ctx) {
   const lp = createLandingUi(ctx);
   const rv = createReviewUi(ctx);
   const lg = createLangUi(ctx);
+  const rs = createResultsUi(ctx);
 
   function entry(id) {
     if (!cache[id]) {
@@ -1008,7 +1011,7 @@ export function createCampaigns(ctx) {
     box.appendChild(h("summary", { class: "gc-bh" }, "Monthly plan", h("span", { class: "gc-plan-next", text: summary })));
     if (!p) return box;
 
-    const f = { perMonth: p.perMonth, readyDay: p.readyDay, channels: p.channels.slice(), goal: p.goal, active: p.active, startMonth: p.startMonth };
+    const f = { perMonth: p.perMonth, readyDay: p.readyDay, channels: p.channels.slice(), goal: p.goal, active: p.active, startMonth: p.startMonth, niche: p.niche || "other" };
     const grid = h("div", { class: "gc-cgrid" });
     const num = (id, from, to, val) => {
       const sel = h("select", { id }, Array.from({ length: to - from + 1 }, (_, i) => from + i).map((n) => h("option", { value: String(n), selected: n === val }, String(n))));
@@ -1030,6 +1033,10 @@ export function createCampaigns(ctx) {
     grid.appendChild(h("div", { class: "gc-ed" }, lab("gcpDay", "Ready by this day of the month before"), day));
     grid.appendChild(h("div", { class: "gc-ed" }, lab("gcpGoal", "Default goal"), goal));
     grid.appendChild(h("div", { class: "gc-ed" }, lab("gcpStart", "First month in the rhythm"), start));
+    /* V2 Part D: the business type picks the client's results questions. */
+    const niche = h("select", { id: "gcpNiche" }, NICHES.map((n) => h("option", { value: n[0], selected: f.niche === n[0] }, n[1])));
+    niche.addEventListener("change", () => { f.niche = niche.value; });
+    grid.appendChild(h("div", { class: "gc-ed" }, lab("gcpNiche", "Business type (picks the results questions)"), niche));
     const chBox = h("fieldset", { class: "gc-ed wide gc-channels" }, h("legend", { text: "Default channels" }));
     CHANNELS.forEach((ch) => {
       const cb = h("input", { type: "checkbox", id: "gcpCh-" + ch[0], checked: f.channels.includes(ch[0]) });
@@ -1050,7 +1057,7 @@ export function createCampaigns(ctx) {
       save.disabled = true;
       api("/admin/plan/" + encodeURIComponent(c.id), { method: "PUT", body: { plan: f } }).then((r) => {
         save.disabled = false;
-        if (r.ok && r.d) { e.plan = r.d.plan; e.planMsg = { cls: "ok", text: "Plan saved." }; ctx.refreshRhythm().then(() => ctx.rerender(c.id)); }
+        if (r.ok && r.d) { e.plan = r.d.plan; e.planMsg = { cls: "ok", text: "Plan saved." }; rs.reload(c.id); ctx.refreshRhythm().then(() => ctx.rerender(c.id)); }
         else { e.planMsg = { cls: "err", text: (r.d && r.d.errors && r.d.errors.join("; ")) || "Could not save the plan." }; ctx.rerender(c.id); }
       });
     } } }, "Save plan");
@@ -1265,6 +1272,8 @@ export function createCampaigns(ctx) {
         deliveries: vis.loadDeliveries(c.id, savedCampaignId).list,
         reloadDeliveries: () => vis.loadDeliveries(c.id, savedCampaignId, true)
       });
+      /* V2 Part D: what the campaign brought in, for the next campaign's prompt. */
+      rs.renderBox(pane, { client: c, campaignId: savedCampaignId });
     }
 
     const list = h("div", { class: "gc-cards one" });
