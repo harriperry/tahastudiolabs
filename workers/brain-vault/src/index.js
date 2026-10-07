@@ -201,7 +201,7 @@ async function handle(request, env, ctx) {
 
   if (method === "GET" && path === "/health") {
     const db = await env.DB.prepare("SELECT 1 AS ok").first();
-    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "m1" });
+    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "l2" });
   }
 
   if (method === "GET" && path === "/portal/meta") {

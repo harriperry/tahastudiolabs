@@ -16,6 +16,7 @@
    (human language review) changes: it will return the approved Swedish text instead. */
 import qrcode from "./vendor/qrcode-generator-1.4.4.mjs";
 import { currencyLabel, currencyList, formatMoney } from "./growth-markets.js?v=m1";
+import { localeOf, pageLanguage } from "./growth-languages.js?v=l2";
 
 export const TEMPLATE_URL = "/assets/growth/landing.template.html?v=g2b";
 export const NOTICE_VERSION = "n-1";
@@ -42,7 +43,7 @@ export function campaignText(doc, opts = {}) {
   const lp = doc.landingPage || {};
   const of = doc.offer || {};
   return {
-    language: doc.language === "en" ? "en" : "sv",
+    language: pageLanguage(doc.language),
     name: doc.name || "",
     headline: pick("landingPage.headline", lp.headline || ""),
     subheadline: pick("landingPage.subheadline", lp.subheadline || ""),
@@ -84,6 +85,30 @@ export const L = {
     privacy: "Privacy and cookies", by: "Page by TAHA Studio Labs", endedTitle: "This offer has ended",
     endedBody: "Thank you for your interest! This offer ran until {date}. Get in touch and we will tell you what we have on right now.",
     org: "Org. no.", photoAlt: "Photo from {company}"
+  },
+  /* Markets step 2: French and Spanish pages. Nigerian and Cameroonian Pidgin pages use the
+     English words (pageLanguage in assets/growth-languages.js). */
+  fr: {
+    offer: "L'offre", ends: "Valable jusqu'au {date}", reasons: "Pourquoi nos clients nous choisissent", gallery: "Chez nous",
+    reviews: "Ce que disent nos clients", visit: "Comment en profiter", hours: "Horaires", address: "Adresse", contact: "Contact",
+    call: "Appelez-nous", whatsapp: "Écrire sur WhatsApp", booking: "Réserver", order: "Commander", directions: "Itinéraire", form: "Envoyer une demande",
+    formTitle: "Envoyer une demande", name: "Nom", phone: "Téléphone", email: "E-mail", message: "Message (facultatif)",
+    oneOf: "Indiquez un numéro de téléphone ou une adresse e-mail pour que nous puissions vous répondre.", offers: "Oui, je souhaite recevoir les offres de {company}.",
+    send: "Envoyer", purpose: "{company} utilise vos coordonnées pour répondre à votre demande.", sent: "Merci ! Votre demande a bien été envoyée. Nous vous répondrons bientôt.",
+    privacy: "Confidentialité et cookies", by: "Page réalisée par TAHA Studio Labs", endedTitle: "Cette offre est terminée",
+    endedBody: "Merci de votre intérêt ! Cette offre était valable jusqu'au {date}. Contactez-nous et nous vous dirons ce que nous proposons en ce moment.",
+    org: "N° d'entreprise", photoAlt: "Photo de {company}"
+  },
+  es: {
+    offer: "La oferta", ends: "Válida hasta el {date}", reasons: "Por qué nos eligen nuestros clientes", gallery: "Así somos",
+    reviews: "Lo que dicen nuestros clientes", visit: "Cómo conseguirlo", hours: "Horario", address: "Dirección", contact: "Contacto",
+    call: "Llámanos", whatsapp: "Escríbenos por WhatsApp", booking: "Reservar", order: "Pedir ahora", directions: "Cómo llegar", form: "Enviar una consulta",
+    formTitle: "Enviar una consulta", name: "Nombre", phone: "Teléfono", email: "Correo electrónico", message: "Mensaje (opcional)",
+    oneOf: "Escribe un teléfono o un correo electrónico para que podamos responderte.", offers: "Sí, quiero recibir ofertas de {company}.",
+    send: "Enviar", purpose: "{company} usa tus datos para responder a tu consulta.", sent: "¡Gracias! Tu consulta se ha enviado. Te responderemos pronto.",
+    privacy: "Privacidad y cookies", by: "Página creada por TAHA Studio Labs", endedTitle: "Esta oferta ha terminado",
+    endedBody: "¡Gracias por tu interés! Esta oferta fue válida hasta el {date}. Escríbenos y te contamos lo que tenemos ahora mismo.",
+    org: "N.º de empresa", photoAlt: "Foto de {company}"
   }
 };
 const fill = (s, v) => String(s).replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m));
@@ -92,7 +117,7 @@ export function formatDate(iso, lang) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || "")) return "";
   const d = new Date(iso + "T12:00:00Z");
   try {
-    return d.toLocaleDateString(lang === "en" ? "en-GB" : "sv-SE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+    return d.toLocaleDateString(localeOf(lang), { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
   } catch (e) {
     return iso;
   }
@@ -188,11 +213,18 @@ export function linkUrl(link, page, campaignId) {
   return page.url + "?" + q.toString();
 }
 
+const OFFER_CODE = {
+  sv: "Ange koden {code} när du beställer.",
+  en: "Use the code {code} when you order.",
+  fr: "Indiquez le code {code} lors de votre commande.",
+  es: "Usa el código {code} al hacer tu pedido."
+};
+
 /* The copy of one output with its tracked link (and offer code) added at the end. */
 export function textWithLink(text, outputKey, url, offerCode, lang) {
   const t = campaignTextFor(text, outputKey);
   if (!t) return "";
-  const code = offerCode ? (lang === "en" ? "Use the code " + offerCode + " when you order." : "Ange koden " + offerCode + " när du beställer.") : "";
+  const code = offerCode ? fill(OFFER_CODE[lang] || OFFER_CODE.en, { code: offerCode }) : "";
   return noDash(t.trim() + "\n\n" + (code ? code + "\n" : "") + url);
 }
 function campaignTextFor(text, key) {
@@ -216,6 +248,26 @@ export function privacyNotice(m) {
   const co = m.company;
   const contact = [m.settings.email, m.settings.phone].filter(Boolean).join(", ") || co;
   const end = m.offerEndText;
+  if (m.lang === "fr") {
+    return [
+      "Responsable du traitement : " + co + (m.settings.orgNumber ? " (n° " + m.settings.orgNumber + ")" : "") + ". Contact : " + contact + ".",
+      "Sous-traitant : TAHA Studio Labs, Örebro, Suède, gère cette page pour le compte de " + co + ". Contact : " + m.tahaEmail + ".",
+      m.formOn ? "Si vous envoyez une demande, nous conservons votre nom, votre numéro de téléphone ou votre adresse e-mail et votre message afin que " + co + " puisse vous répondre. La base légale est l'intérêt légitime de " + co + " à répondre à votre demande. " + co + " ne vous enverra des offres que si vous cochez la case, sur la base de votre consentement, que vous pouvez retirer à tout moment." : null,
+      m.formOn ? "Les demandes sont conservées dans l'UE chez Cloudflare et supprimées 90 jours après la fin de l'offre" + (end ? " (" + end + ")" : "") + "." : null,
+      "Les visites sont comptées sans cookies. Votre adresse IP n'est pas conservée ; une valeur aléatoire qui change chaque jour sert uniquement à compter les visiteurs uniques. Les données de visite sont supprimées après 90 jours.",
+      "Vous avez le droit de savoir quelles informations nous détenons sur vous, de les faire corriger ou supprimer et de vous y opposer. Contactez " + co + ". Vous pouvez aussi déposer une plainte auprès de l'autorité suédoise de protection des données (IMY), imy.se."
+    ].filter(Boolean);
+  }
+  if (m.lang === "es") {
+    return [
+      "Responsable del tratamiento: " + co + (m.settings.orgNumber ? " (n.º " + m.settings.orgNumber + ")" : "") + ". Contacto: " + contact + ".",
+      "Encargado del tratamiento: TAHA Studio Labs, Örebro, Suecia, gestiona esta página por cuenta de " + co + ". Contacto: " + m.tahaEmail + ".",
+      m.formOn ? "Si envías una consulta, guardamos tu nombre, tu teléfono o tu correo electrónico y tu mensaje para que " + co + " pueda responderte. La base legal es el interés legítimo de " + co + " en responder a tu consulta. " + co + " solo te enviará ofertas si marcas la casilla, con tu consentimiento como base, y puedes retirarlo cuando quieras." : null,
+      m.formOn ? "Las consultas se guardan en la UE con Cloudflare y se borran 90 días después de que termine la oferta" + (end ? " (" + end + ")" : "") + "." : null,
+      "Las visitas se cuentan sin cookies. Tu dirección IP no se guarda; un valor aleatorio que cambia cada día se usa solo para contar visitantes únicos. Los datos de visitas se borran a los 90 días.",
+      "Tienes derecho a saber qué datos tenemos sobre ti, a que se corrijan o se borren y a oponerte. Contacta con " + co + ". También puedes reclamar ante la autoridad sueca de protección de datos (IMY), imy.se."
+    ].filter(Boolean);
+  }
   if (m.lang === "en") {
     return [
       "Controller: " + co + (m.settings.orgNumber ? " (org. no. " + m.settings.orgNumber + ")" : "") + ". Contact: " + contact + ".",
@@ -582,7 +634,7 @@ export function createLandingUi(ctx) {
     const body = {
       clientSlug: f.clientSlug.trim().toLowerCase(),
       slug: f.slug.trim().toLowerCase(),
-      language: doc.language === "en" ? "en" : "sv",
+      language: pageLanguage(doc.language),
       offerEnd: f.offerEnd,
       formOn: f.formOn,
       noticeApproved: f.formOn && f.noticeApproved,
@@ -648,10 +700,12 @@ export function createLandingUi(ctx) {
     const fileUrl = (id) => VAULT + "/files/" + encodeURIComponent(id);
     const heroD = attached("v_lp_hero");
     const heroB = brief("v_lp_hero");
-    const lang = info.doc.language === "en" ? "en" : "sv";
+    const lang = pageLanguage(info.doc.language);
+    /* Alt text is written in Swedish and English; other page languages use the English one. */
+    const altOf = (b) => (b && b.alt_text ? b.alt_text[lang] || b.alt_text.en || "" : "");
     let hero = null;
-    if (heroD) hero = { url: heroD.url, alt: heroB && heroB.alt_text ? heroB.alt_text[lang] : "" };
-    else if (heroB && heroB.photo_ref) hero = { url: fileUrl(heroB.photo_ref), alt: heroB.alt_text ? heroB.alt_text[lang] : "" };
+    if (heroD) hero = { url: heroD.url, alt: altOf(heroB) };
+    else if (heroB && heroB.photo_ref) hero = { url: fileUrl(heroB.photo_ref), alt: altOf(heroB) };
     else if (f.settings.gallery[0]) hero = { url: fileUrl(f.settings.gallery[0]), alt: "" };
     const ogD = attached("v_lp_og");
     const notes = {};

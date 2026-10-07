@@ -131,7 +131,7 @@ try {
   ok(r.status === 401, "only Harry can change a market");
 
   r = await call("/health");
-  ok(r.data && r.data.part === "m1", "health reports Markets step 1");
+  ok(r.data && ["m1", "l2"].includes(r.data.part), "health reports Markets step 1 or later");
 } catch (e) {
   fail++;
   console.log("FAIL crashed: " + (e && e.stack || e));

@@ -589,7 +589,7 @@
       tagInput("use", "use"), tagInput("avoid", "avoid"), hintBlock("brandWords"));
 
     var langOpts = h("div", { class: "field" }, h("div", { class: "hint", text: t("profile.fields.campaignLanguage.hint") }),
-      ["sv", "en", "both"].map(function (k) {
+      ["sv", "en", "both", "fr", "es", "pcm", "wes"].map(function (k) {
         var on = draft.campaignLanguage === k;
         return h("label", { class: "radio" + (on ? " on" : "") + (showMissing && !draft.campaignLanguage ? " invalid" : "") },
           h("input", { type: "radio", name: "campaignLanguage", value: k, checked: on, onChange: function () { draft.campaignLanguage = k; markDirty(true); render(); } }),

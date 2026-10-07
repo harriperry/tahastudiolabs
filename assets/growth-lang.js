@@ -1,18 +1,20 @@
-/* ScriptForge Growth Clients panel: Swedish language review (TAHA Growth Department V2, Part H).
+/* ScriptForge Growth Clients panel: language review (TAHA Growth Department V2, Part H; Spanish
+   added in Markets step 2).
    Loaded by growth-campaign.js, admin only.
 
    Team: invite a language reviewer, tick the clients they work on, record the signed
    confidentiality and data processing agreement (the invite only works after that), resend
    the invite, deactivate.
-   Language review box on each saved campaign: Send to language review (all Swedish fields,
-   with a note and a due date), Always review Swedish for the client, every item with machine
+   Language review box on each saved campaign: Send to language review (all reviewed fields,
+   with a note and a due date), Always review for the client, every item with machine
    and reviewed text side by side, changes highlighted word by word, and Accept, Edit and
    approve, Send back or Keep machine text. Accept all once everything is Done. Language
    notes saved here go into the next Campaign Generator prompt as {{LANGUAGE_NOTES}}.
    Production (the landing page, Send to ScriptForge, client review, delivery) uses the
    approved text: approved() gives the map, and applyApproved() in growth-langfields.js puts
    it in place. */
-import { applyApproved, wordDiff } from "./growth-langfields.js?v=h";
+import { applyApproved, wordDiff } from "./growth-langfields.js?v=l2";
+import { LANGUAGES, REVIEW_LANGUAGES } from "./growth-languages.js?v=l2";
 
 const STATE = {
   waiting: ["In review", "warn"],
@@ -85,7 +87,7 @@ export function createLangUi(ctx) {
     return a ? applyApproved(doc, a) : doc;
   }
 
-  /* Send to ScriptForge waits while the Swedish video script is not approved. */
+  /* Send to ScriptForge waits while the reviewed video script is not approved. */
   function videoBlocked(clientId, campaignId) {
     const s = entry(clientId, campaignId);
     if (!s.data || !s.data.gate.required) return false;
@@ -93,7 +95,7 @@ export function createLangUi(ctx) {
     return !it || !(it.state === "approved" || it.state === "kept");
   }
 
-  /* A badge for an output card: how its Swedish texts stand. */
+  /* A badge for an output card: how its reviewed texts stand. */
   function cardBadge(clientId, campaignId, cardKey) {
     const s = entry(clientId, campaignId);
     if (!s.data || !s.data.items.length) return null;
@@ -101,7 +103,7 @@ export function createLangUi(ctx) {
     if (!items.length) return null;
     const ok = items.filter((i) => i.state === "approved" || i.state === "kept").length;
     const bad = items.filter((i) => i.state === "outdated" || i.state === "flagged").length;
-    const text = "Swedish: " + (ok === items.length ? "Approved" : ok + " of " + items.length + " approved" + (bad ? ", " + bad + " need you" : ""));
+    const text = (s.data.reviewLanguageName || "Review") + ": " + (ok === items.length ? "Approved" : ok + " of " + items.length + " approved" + (bad ? ", " + bad + " need you" : ""));
     return h("span", { class: "gc-badge " + (ok === items.length ? "ok" : bad ? "err" : "warn"), text });
   }
 
@@ -227,18 +229,18 @@ export function createLangUi(ctx) {
     const s = load(client.id, campaignId);
     if (!s.data) return;
     const d = s.data;
-    if (!d.swedish && !d.items.length) return;
+    if (!d.reviewLanguage && !d.items.length) return;
     const box = h("div", { class: "gc-box lg-box" });
     const g = d.gate;
     const okN = d.items.filter((i) => i.state === "approved" || i.state === "kept").length;
     const doneN = d.items.filter((i) => ["done", "approved", "kept"].includes(i.state)).length;
     const headText = !d.items.length ? "Not sent yet" : g.pending === 0 ? "Language review complete (" + okN + " of " + d.items.length + ")" : "Language review done (" + doneN + " of " + d.items.length + "), " + okN + " approved";
-    box.appendChild(h("div", { class: "gc-bh" }, "Language review (Swedish)", h("span", { class: "gc-badge " + (g.pending === 0 && d.items.length ? "ok" : "warn"), text: headText })));
+    box.appendChild(h("div", { class: "gc-bh" }, "Language review (" + (d.reviewLanguageName || "Swedish") + ")", h("span", { class: "gc-badge " + (g.pending === 0 && d.items.length ? "ok" : "warn"), text: headText })));
     box.appendChild(h("div", { class: "gc-meta", text: (d.reviewer ? "Reviewer: " + d.reviewer.name + "." : "No reviewer assigned to this client: add one under Team.") + (g.required && g.pending ? " Until every text is approved, the landing page, client review, delivery and Send to ScriptForge wait (or ask you for a reason)." : "") }));
     const always = h("input", { type: "checkbox", id: "lg-always-" + client.id });
     always.checked = d.alwaysReview;
     always.addEventListener("change", () => setAlways(info, always.checked));
-    box.appendChild(h("label", { for: "lg-always-" + client.id, class: "lp-tick" }, always, h("span", { text: "Always review Swedish for this client (Swedish campaigns with a Visual Pack are sent automatically when saved)" })));
+    box.appendChild(h("label", { for: "lg-always-" + client.id, class: "lp-tick" }, always, h("span", { text: "Always send this client's Swedish and Spanish campaigns to language review (those with a Visual Pack are sent automatically when saved)" })));
     /* Send */
     const noteF = inputRow("lg-note-" + campaignId, "Note to the reviewer (optional)", "");
     const dueF = inputRow("lg-due-" + campaignId, "Due date (optional)", "", { type: "date" });
@@ -290,7 +292,7 @@ export function createLangUi(ctx) {
 
   function renderTeam(pane, clients) {
     loadTeam();
-    pane.appendChild(h("div", { class: "gc-title" }, h("div", null, h("h3", { text: "Team" }), h("div", { class: "gc-sub", text: "Swedish language reviewers. They sign in at /grow/review/ and see only the texts you send, for the clients you tick." }))));
+    pane.appendChild(h("div", { class: "gc-title" }, h("div", null, h("h3", { text: "Team" }), h("div", { class: "gc-sub", text: "Language reviewers (Swedish and Spanish). They sign in at /grow/review/ and see only the texts you send in their languages, for the clients you tick. English, French and the two Pidgins need no reviewer: you approve them yourself." }))));
     if (team.msg) pane.appendChild(h("div", { class: "gc-msg " + team.msg.cls, role: "status", text: team.msg.text }));
     const clientTicks = (prefix, chosen) => {
       const box = h("div", { class: "lg-ticks" });
@@ -305,30 +307,50 @@ export function createLangUi(ctx) {
       });
       return { box, value: () => inputs.filter((x) => x.checked).map((x) => x.dataset.client) };
     };
+    /* Markets step 2: the languages a reviewer checks. */
+    const langTicks = (prefix, chosen) => {
+      const box = h("div", { class: "lg-ticks" });
+      const inputs = [];
+      REVIEW_LANGUAGES.forEach((code) => {
+        const id = prefix + code;
+        const el = h("input", { type: "checkbox", id });
+        el.checked = chosen.includes(code);
+        el.dataset.lang = code;
+        inputs.push(el);
+        box.appendChild(h("label", { for: id, class: "lp-tick" }, el, h("span", { text: LANGUAGES[code].name })));
+      });
+      return { box, value: () => inputs.filter((x) => x.checked).map((x) => x.dataset.lang) };
+    };
     /* Invite */
     const inv = h("div", { class: "gc-box" }, h("div", { class: "gc-bh" }, "Invite a reviewer"));
     const n = inputRow("tm-new-name", "Name", "");
     const e = inputRow("tm-new-email", "Email", "", { type: "email" });
     const a = inputRow("tm-new-agree", "Agreement signed on (the invite goes out only with this date)", "", { type: "date" });
     const ticks = clientTicks("tm-new-c-", []);
+    const lt = langTicks("tm-new-l-", ["sv"]);
     inv.appendChild(h("div", { class: "lp-grid" }, n.row, e.row, a.row));
+    inv.appendChild(h("div", { class: "gc-label", text: "Languages they review" }));
+    inv.appendChild(lt.box);
     inv.appendChild(h("div", { class: "gc-label", text: "Clients they work on" }));
     inv.appendChild(ticks.box);
     inv.appendChild(h("div", { class: "gc-meta", text: "Before the first sign-in they sign a confidentiality and data processing agreement with TAHA Studio Labs (an underbiträdesavtal if they invoice through their own company)." }));
-    inv.appendChild(h("button", { type: "button", class: "gc-brain-btn", on: { click: () => teamCall("/admin/team/invite", "POST", { name: n.el.value, email: e.el.value, agreementAt: a.el.value || null, languages: ["sv"], clients: ticks.value() }, (d) => d.invited ? "Invited. They have an email with a sign-in link." : "Saved. Add the agreement date to send the invite.") } }, "Save and invite"));
+    inv.appendChild(h("button", { type: "button", class: "gc-brain-btn", on: { click: () => teamCall("/admin/team/invite", "POST", { name: n.el.value, email: e.el.value, agreementAt: a.el.value || null, languages: lt.value(), clients: ticks.value() }, (d) => d.invited ? "Invited. They have an email with a sign-in link." : "Saved. Add the agreement date to send the invite.") } }, "Save and invite"));
     pane.appendChild(inv);
     if (!team.loaded) { pane.appendChild(h("div", { class: "gc-meta" }, h("span", { class: "spin" }), "Loading...")); return; }
     team.members.forEach((m) => {
       const box = h("div", { class: "gc-box" });
-      box.appendChild(h("div", { class: "gc-bh" }, m.name + " · " + m.email, h("span", { class: "gc-badge " + (m.active ? (m.agreementAt ? "ok" : "warn") : "err"), text: !m.active ? "Deactivated" : m.agreementAt ? "Active · agreement " + m.agreementAt : "Waiting for the agreement" })));
+      box.appendChild(h("div", { class: "gc-bh" }, m.name + " · " + m.email + " · " + (m.languages || []).map((x) => (LANGUAGES[x] ? LANGUAGES[x].name : x)).join(", "), h("span", { class: "gc-badge " + (m.active ? (m.agreementAt ? "ok" : "warn") : "err"), text: !m.active ? "Deactivated" : m.agreementAt ? "Active · agreement " + m.agreementAt : "Waiting for the agreement" })));
       box.appendChild(h("div", { class: "gc-meta", text: "Last sign-in: " + (m.lastLoginAt ? when(m.lastLoginAt) : "never") }));
       const ag = inputRow("tm-ag-" + m.id, "Agreement signed on", m.agreementAt || "", { type: "date" });
       const tk = clientTicks("tm-c-" + m.id + "-", m.clients);
+      const ml = langTicks("tm-l-" + m.id + "-", m.languages || ["sv"]);
       box.appendChild(ag.row);
+      box.appendChild(h("div", { class: "gc-label", text: "Languages they review" }));
+      box.appendChild(ml.box);
       box.appendChild(h("div", { class: "gc-label", text: "Clients" }));
       box.appendChild(tk.box);
       const tools = h("div", { class: "gc-brain-tools" });
-      tools.appendChild(h("button", { type: "button", class: "btn-copy", on: { click: () => teamCall("/admin/team/" + m.id, "PATCH", { agreementAt: ag.el.value || null, clients: tk.value() }, () => "Saved.") } }, "Save"));
+      tools.appendChild(h("button", { type: "button", class: "btn-copy", on: { click: () => teamCall("/admin/team/" + m.id, "PATCH", { agreementAt: ag.el.value || null, clients: tk.value(), languages: ml.value() }, () => "Saved.") } }, "Save"));
       if (m.active && m.agreementAt) tools.appendChild(h("button", { type: "button", class: "gc-link", on: { click: () => teamCall("/admin/team/" + m.id, "PATCH", { resend: true }, () => "Invite sent again.") } }, "Resend invite"));
       tools.appendChild(h("button", { type: "button", class: "gc-link", on: { click: () => teamCall("/admin/team/" + m.id, "PATCH", { active: !m.active }, () => (m.active ? "Deactivated. Their sessions have ended." : "Active again.")) } }, m.active ? "Deactivate" : "Activate"));
       box.appendChild(tools);

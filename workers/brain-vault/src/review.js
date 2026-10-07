@@ -58,7 +58,7 @@ export async function sendForReview(env, cfg, ctx, clientId, campaignId, request
   const row = await env.DB.prepare("SELECT data FROM campaigns WHERE client_id = ? AND campaign_id = ?").bind(clientId, campaignId).first();
   if (!row) return json({ error: "not_found", message: M.notFound }, 404);
   const machineDoc = JSON.parse(row.data);
-  /* V2 Part H: the client only sees approved Swedish text. */
+  /* V2 Part H: the client only sees approved, reviewed text. */
   const b = request ? (await readJson(request, 2048)) || {} : {};
   const lg = await checkLangGate(env, clientId, campaignId, machineDoc, b.langOverride);
   if (lg) return lg;

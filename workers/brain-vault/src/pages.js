@@ -26,6 +26,7 @@ import { magicOk } from "./files.js";
 import { escapeHtml, json, newId, nowIso, randomToken, readJson } from "./util.js";
 import { recordEvent } from "./track.js";
 import { checkLangGate } from "./lang.js";
+import { PAGE_LANGUAGES } from "../../../assets/growth-languages.js";
 
 const MB = 1024 * 1024;
 export const SLUG = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
@@ -200,7 +201,7 @@ export async function putPageAdmin(request, env, cfg, clientId, campaignId) {
   const slug = str(b.slug, 40).toLowerCase();
   if (!SLUG.test(clientSlug) || !SLUG.test(slug) || RESERVED.has(clientSlug)) return json({ error: "slug", message: M.slug }, 400);
   const offerEnd = /^\d{4}-\d{2}-\d{2}$/.test(String(b.offerEnd || "")) ? b.offerEnd : null;
-  const language = b.language === "en" ? "en" : "sv";
+  const language = PAGE_LANGUAGES.includes(b.language) ? b.language : "sv";
   const formOn = b.formOn ? 1 : 0;
   const noticeVersion = formOn && b.noticeApproved ? str(b.noticeVersion, 20) || "n-1" : null;
   const settings = cleanSettings(b.settings);
@@ -352,17 +353,22 @@ function htmlResponse(body, status, extra = {}) {
 
 const GONE = {
   sv: { t: "Sidan finns inte längre", b: "Den här kampanjsidan har tagits bort." },
-  en: { t: "This page is no longer available", b: "This campaign page has been taken down." }
+  en: { t: "This page is no longer available", b: "This campaign page has been taken down." },
+  fr: { t: "Cette page n'est plus disponible", b: "Cette page de campagne a été retirée." },
+  es: { t: "Esta página ya no está disponible", b: "Esta página de campaña se ha retirado." }
 };
 const MISSING = {
   sv: { t: "Sidan hittades inte", b: "Kontrollera adressen och försök igen." },
-  en: { t: "Page not found", b: "Check the address and try again." }
+  en: { t: "Page not found", b: "Check the address and try again." },
+  fr: { t: "Page introuvable", b: "Vérifiez l'adresse et réessayez." },
+  es: { t: "Página no encontrada", b: "Comprueba la dirección y vuelve a intentarlo." }
 };
 
 export function plainPage(l, copy, status) {
-  const c = copy[l === "en" ? "en" : "sv"];
+  const lg = copy[l] ? l : "sv";
+  const c = copy[lg];
   return htmlResponse(
-    '<!doctype html><html lang="' + (l === "en" ? "en" : "sv") + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' + escapeHtml(c.t) + "</title>" +
+    '<!doctype html><html lang="' + lg + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' + escapeHtml(c.t) + "</title>" +
     "<style>body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;margin:0;display:grid;place-items:center;min-height:100vh;background:#f6f4ef;color:#1d1d1b}main{max-width:420px;padding:32px;text-align:center}h1{font-size:22px;margin:0 0 8px}p{margin:0;color:#555}</style></head>" +
     "<body><main><h1>" + escapeHtml(c.t) + "</h1><p>" + escapeHtml(c.b) + "</p></main></body></html>",
     status,

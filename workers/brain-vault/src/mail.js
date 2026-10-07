@@ -99,8 +99,8 @@ const COPY = {
   reviewer: {
     subject: { sv: "Inbjudan: språkgranskning för TAHA Studio Labs", en: "Invitation: language review for TAHA Studio Labs" },
     intro: {
-      sv: "Hej {name}! Du är inbjuden att granska svenska texter för TAHA Studio Labs. Klicka på knappen för att logga in. Länken gäller i {min} minuter.",
-      en: "Hi {name}! You are invited to review Swedish texts for TAHA Studio Labs. Click the button to sign in. The link is valid for {min} minutes."
+      sv: "Hej {name}! Du är inbjuden att språkgranska texter för TAHA Studio Labs. Klicka på knappen för att logga in. Länken gäller i {min} minuter.",
+      en: "Hi {name}! You are invited to review texts in your language for TAHA Studio Labs. Click the button to sign in. The link is valid for {min} minutes."
     },
     button: { sv: "Logga in", en: "Sign in" },
     note: {
@@ -111,8 +111,8 @@ const COPY = {
   langQueue: {
     subject: { sv: "Texter väntar på din granskning", en: "Texts are waiting for your review" },
     intro: {
-      sv: "Hej {name}! {count} svenska texter väntar på din granskning.",
-      en: "Hi {name}! {count} Swedish texts are waiting for your review."
+      sv: "Hej {name}! {count} texter väntar på din granskning.",
+      en: "Hi {name}! {count} texts are waiting for your review."
     },
     button: { sv: "Öppna granskningen", en: "Open the review" },
     note: {
@@ -293,14 +293,14 @@ export function composeDecisionNotice(cfg, { company, round, approved, link }) {
 }
 
 /* V2 Part H: reviewer invite and queue notices (no content), and Harry's notice. */
-export function composeReviewerInvite(cfg, { link, name }) {
-  return composeEmail("reviewer", cfg, { link, name, language: "sv", signinUrl: cfg.siteOrigin + "/grow/review/" });
+export function composeReviewerInvite(cfg, { link, name, language }) {
+  return composeEmail("reviewer", cfg, { link, name, language: language === "en" ? "en" : "sv", signinUrl: cfg.siteOrigin + "/grow/review/" });
 }
-export function composeReviewerLogin(cfg, { link, name }) {
-  return composeEmail("login", cfg, { link, name, language: "sv", signinUrl: cfg.siteOrigin + "/grow/review/" });
+export function composeReviewerLogin(cfg, { link, name, language }) {
+  return composeEmail("login", cfg, { link, name, language: language === "en" ? "en" : "sv", signinUrl: cfg.siteOrigin + "/grow/review/" });
 }
-export function composeLangQueue(cfg, { name, count, link }) {
-  return composeEmail("langQueue", cfg, { link, name, language: "sv", signinUrl: link, extra: { count } });
+export function composeLangQueue(cfg, { name, count, link, language }) {
+  return composeEmail("langQueue", cfg, { link, name, language: language === "en" ? "en" : "sv", signinUrl: link, extra: { count } });
 }
 export function composeLangNotice(cfg, { company, done, total, flagged, link }) {
   const subject = "Språkgranskning / Language review: " + company + " (" + done + " av/of " + total + ")";

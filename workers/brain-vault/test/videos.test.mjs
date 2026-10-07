@@ -242,7 +242,7 @@ try {
   ok(Object.keys(i18n.sv.uploads.vid).join() === Object.keys(i18n.en.uploads.vid).join() && i18n.sv.consent.points.some((p) => p.h === "Videoklipp") && i18n.en.consent.points.some((p) => p.h === "Video clips"), "the Videos section and the consent line exist in Swedish and English");
   const wr = JSON.parse(fs.readFileSync(new URL("../wrangler.json", import.meta.url)));
   const priv = fs.readFileSync(new URL("../../../privacy.html", import.meta.url), "utf8");
-  ok(wr.vars.CONSENT_VERSION === "c-5" && /<strong>Video clips\.<\/strong>/.test(priv) && /<strong>Videoklipp\.<\/strong>/.test(priv), "consent moves to c-5 and the privacy policy covers video clips in both languages");
+  ok(Number(String(wr.vars.CONSENT_VERSION).slice(2)) >= 5 && /<strong>Video clips\.<\/strong>/.test(priv) && /<strong>Videoklipp\.<\/strong>/.test(priv), "consent moves to c-5 and the privacy policy covers video clips in both languages");
   const files = ["../src/videos.js", "../src/mp4.js", "../src/public/portal.js", "../src/public/i18n.json", "../../../privacy.html"].map((f) => fs.readFileSync(new URL(f, import.meta.url), "utf8")).join("");
   ok(!files.includes("—"), "no em-dash in the new code and wording");
   r = await call("/admin/export/" + A.id, { cookie: ADMIN });

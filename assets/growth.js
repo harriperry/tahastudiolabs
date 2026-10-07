@@ -36,7 +36,8 @@
     deepseek: { key: "apiKeyDeepseek", model: "modelDeepseek" }
   };
 
-  var LANGS = { sv: "Swedish", en: "English", both: "Swedish and English" };
+  /* Campaign languages (Markets step 2, same names as assets/growth-languages.js). */
+  var LANGS = { sv: "Swedish", en: "English", both: "Swedish and English", fr: "French", es: "Spanish", pcm: "Nigerian Pidgin", wes: "Cameroonian Pidgin" };
 
   var S = {
     admin: false,
@@ -435,7 +436,7 @@
         refresh();
       }
     };
-    brainLoading = Promise.all([import("/assets/growth-brain.js?v=e"), import("/assets/growth-campaign.js?v=m1")]).then(function (mods) {
+    brainLoading = Promise.all([import("/assets/growth-brain.js?v=l2"), import("/assets/growth-campaign.js?v=l2")]).then(function (mods) {
       brain = mods[0].createBrain(ctx);
       camps = mods[1].createCampaigns(ctx);
       if (ui) renderDetail();

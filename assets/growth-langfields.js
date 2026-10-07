@@ -1,10 +1,12 @@
-/* TAHA Growth Department V2, Part H: the Swedish text fields of a campaign.
+/* TAHA Growth Department V2, Part H: the text fields of a campaign that a language reviewer
+   checks (Swedish, and since Markets step 2 Spanish).
    Shared by the Brain Vault (Worker) and ScriptForge (browser), so both agree on what a
    "language item" is and how approved text replaces the machine text.
 
    A field path is a dotted path into the campaign document. Arrays are addressed by index
    (hook.0, adVariations.2.headline), except socialCopy (by channel: socialCopy.instagram.text)
    and visuals (by id: visuals.v_offer.overlay.headline). */
+import { reviewLanguage } from "./growth-languages.js";
 
 const CH = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google_business: "Google Business", email: "Email" };
 /* Where a platform allows less than the campaign schema, the platform wins. */
@@ -60,7 +62,8 @@ export function langFields(doc) {
     add("visuals." + v.id + ".overlay.headline", "visuals", "Image text: headline (" + where + ")", "overlay", 120);
     add("visuals." + v.id + ".overlay.sub", "visuals", "Image text: subline (" + where + ")", "overlay", 160);
     add("visuals." + v.id + ".overlay.cta", "visuals", "Image text: button (" + where + ")", "overlay", 60);
-    add("visuals." + v.id + ".alt_text.sv", "visuals", "Alt text, Swedish (" + where + ")", "alt", 300);
+    /* Alt text is written in Swedish and English; only a Swedish review checks the Swedish one. */
+    if (reviewLanguage(doc.language) === "sv") add("visuals." + v.id + ".alt_text.sv", "visuals", "Alt text, Swedish (" + where + ")", "alt", 300);
   });
   return out;
 }
@@ -93,7 +96,7 @@ export function setPath(doc, path, value) {
   return true;
 }
 
-/* A copy of the campaign with every approved Swedish text in place of the machine text.
+/* A copy of the campaign with every approved text in place of the machine text.
    approved: {fieldPath: text}. Paths that no longer exist are ignored. */
 export function applyApproved(doc, approved) {
   const copy = JSON.parse(JSON.stringify(doc));

@@ -60,7 +60,7 @@
         },
         {
           "h": "Språkgranskning",
-          "b": "Svenska kampanjtexter kan granskas av en namngiven svensk språkspecialist som arbetar för TAHA Studio Labs. Hen ser bara texterna som ska granskas och dina varumärkesord, har tystnadsplikt, och varje visning och ändring loggas."
+          "b": "Kampanjtexter på svenska eller spanska kan granskas av en namngiven språkspecialist för det språket som arbetar för TAHA Studio Labs. Hen ser bara texterna som ska granskas och dina varumärkesord, har tystnadsplikt, och varje visning och ändring loggas."
         },
         {
           "h": "Lagring",
@@ -185,7 +185,11 @@
       "langs": {
         "sv": "Svenska",
         "en": "English",
-        "both": "Båda"
+        "both": "Båda (svenska och engelska)",
+        "fr": "Français (franska)",
+        "es": "Español (spanska)",
+        "pcm": "Nigeriansk pidgin",
+        "wes": "Kamerunsk pidgin"
       }
     },
     "uploads": {
@@ -506,7 +510,7 @@
     },
     "rev": {
       "title": "Språkgranskning",
-      "lead": "Svenska texter som väntar på dig. Maskinens text till vänster, din version till höger.",
+      "lead": "Texter som väntar på dig. Maskinens text till vänster, din version till höger.",
       "signin": "Logga in med din e-postadress så skickar vi en inloggningslänk.",
       "notMember": "Den här sidan är för TAHA:s språkgranskare.",
       "queue": "Att granska",
@@ -604,7 +608,7 @@
         },
         {
           "h": "Language review",
-          "b": "Swedish campaign texts may be checked by a named Swedish language specialist working for TAHA Studio Labs. They see only the texts to check and your brand words, are bound by confidentiality, and every view and edit is logged."
+          "b": "Campaign texts in Swedish or Spanish may be checked by a named language specialist for that language, working for TAHA Studio Labs. They see only the texts to check and your brand words, are bound by confidentiality, and every view and edit is logged."
         },
         {
           "h": "Storage",
@@ -727,9 +731,13 @@
         "direct": "Direct"
       },
       "langs": {
-        "sv": "Svenska",
+        "sv": "Svenska (Swedish)",
         "en": "English",
-        "both": "Both"
+        "both": "Both (Swedish and English)",
+        "fr": "Français (French)",
+        "es": "Español (Spanish)",
+        "pcm": "Nigerian Pidgin",
+        "wes": "Cameroonian Pidgin"
       }
     },
     "uploads": {
@@ -1050,7 +1058,7 @@
     },
     "rev": {
       "title": "Language review",
-      "lead": "Swedish texts waiting for you. The machine text on the left, your version on the right.",
+      "lead": "Texts waiting for you. The machine text on the left, your version on the right.",
       "signin": "Sign in with your email address and we will send you a login link.",
       "notMember": "This page is for TAHA's language reviewers.",
       "queue": "To review",

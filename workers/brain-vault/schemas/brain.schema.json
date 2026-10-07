@@ -32,7 +32,11 @@
         "type": "string",
         "enum": [
           "sv",
-          "en"
+          "en",
+          "fr",
+          "es",
+          "pcm",
+          "wes"
         ]
       },
       "maxItems": 2,

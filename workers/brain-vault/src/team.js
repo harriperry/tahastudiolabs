@@ -1,9 +1,10 @@
-/* V2 Part H: the TAHA team (Swedish language reviewers).
+/* V2 Part H: the TAHA team (language reviewers: Swedish, and since Markets step 2 Spanish).
 
    Admin:
    GET    /admin/team                     members, the clients each one works on
    POST   /admin/team/invite              {name, email, languages, agreementAt, clients:[]}
-   PATCH  /admin/team/:memberId           {clients, agreementAt, active, resend}
+                                          languages: the ones they review (REVIEW_LANGUAGES)
+   PATCH  /admin/team/:memberId           {clients, languages, agreementAt, active, resend}
    Team members sign in with a magic link like clients and Harry, but their links and sessions
    live in their own tables, and every reviewer endpoint checks that the item belongs to a
    client the member is assigned to. The invite only works once the confidentiality and data
@@ -11,6 +12,14 @@
 import { composeReviewerInvite, composeReviewerLogin, sendMail } from "./mail.js";
 import { getCookie, json, newId, normEmail, nowIso, nowMs, randomToken, readJson, sha256hex, validEmail } from "./util.js";
 import { SESSION_COOKIE } from "./config.js";
+import { REVIEW_LANGUAGES } from "../../../assets/growth-languages.js";
+
+/* The languages a member reviews, as stored ("sv,es"). Unknown codes are dropped. */
+export function cleanLanguages(list) {
+  const out = (Array.isArray(list) ? list : []).filter((l, i, a) => REVIEW_LANGUAGES.includes(l) && a.indexOf(l) === i);
+  return out.length ? out.join(",") : null;
+}
+const reviewsSwedish = (m) => String(m.languages || "sv").split(",").includes("sv");
 
 const M = {
   badRequest: { sv: "Ogiltig förfrågan.", en: "Bad request." },
@@ -59,7 +68,9 @@ export async function sendMemberLink(env, cfg, member, invite) {
   await env.DB.prepare("INSERT INTO member_tokens (token_hash, member_id, created_at, expires_at) VALUES (?, ?, ?, ?)")
     .bind(await sha256hex(token), member.id, t, t + cfg.tokenTtlMinutes * 60 * 1000).run();
   const link = cfg.siteOrigin + cfg.basePath + "/auth/verify#t=" + token;
-  const mail = invite ? composeReviewerInvite(cfg, { link, name: member.name }) : composeReviewerLogin(cfg, { link, name: member.name });
+  /* Swedish reviewers get the email Swedish first; the others English first. */
+  const language = reviewsSwedish(member) ? "sv" : "en";
+  const mail = invite ? composeReviewerInvite(cfg, { link, name: member.name, language }) : composeReviewerLogin(cfg, { link, name: member.name, language });
   await sendMail(cfg, env, { to: member.email, ...mail });
 }
 
@@ -75,7 +86,7 @@ export async function inviteMember(request, env, cfg, ctx) {
     (await env.DB.prepare("SELECT 1 FROM team_members WHERE email = ?").bind(email).first());
   if (clash) return json({ error: "taken", message: M.taken }, 409);
   const agreementAt = /^\d{4}-\d{2}-\d{2}/.test(String(b.agreementAt || "")) ? String(b.agreementAt).slice(0, 10) : null;
-  const langs = (Array.isArray(b.languages) ? b.languages : ["sv"]).filter((l) => l === "sv" || l === "en").join(",") || "sv";
+  const langs = cleanLanguages(Array.isArray(b.languages) ? b.languages : ["sv"]) || "sv";
   const id = newId("tm", 12);
   await env.DB.prepare("INSERT INTO team_members (id, name, email, role, languages, agreement_at, active, created_at) VALUES (?, ?, ?, 'reviewer', ?, ?, 1, ?)")
     .bind(id, name, email, langs, agreementAt, nowIso()).run();
@@ -109,6 +120,11 @@ export async function patchMember(request, env, cfg, ctx, memberId) {
     ]);
   }
   if (Array.isArray(b.clients)) await setAccess(env, memberId, b.clients);
+  if (Array.isArray(b.languages)) {
+    const langs = cleanLanguages(b.languages);
+    if (!langs) return json({ error: "bad_request", message: M.badRequest }, 400);
+    await env.DB.prepare("UPDATE team_members SET languages = ? WHERE id = ?").bind(langs, memberId).run();
+  }
   const now = await env.DB.prepare("SELECT * FROM team_members WHERE id = ?").bind(memberId).first();
   let invited = false;
   if (b.resend) {

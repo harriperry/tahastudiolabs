@@ -22,9 +22,10 @@
    No em-dashes: every text the model returns passes through stripDashes before Harry sees it,
    and the Vault strips them again on save. */
 import { validate } from "./growth-validate.js?v=p5";
+import { brainLanguages } from "./growth-languages.js?v=l2";
 
 const VAULT = "/api/vault";
-const PROMPT_URL = "/assets/growth/brain.prompt.json?v=p5";
+const PROMPT_URL = "/assets/growth/brain.prompt.json?v=l2";
 const PDFJS = "/assets/vendor/pdfjs-4.10.38.min.js";
 const PDFJS_WORKER = "/assets/vendor/pdfjs-4.10.38.worker.min.js";
 const JSZIP = "/assets/vendor/jszip-3.10.1.min.js";
@@ -126,9 +127,7 @@ export function normalizeBrain(raw, ctx) {
 }
 
 export function languagesFor(campaignLanguage) {
-  if (campaignLanguage === "sv") return ["sv"];
-  if (campaignLanguage === "both") return ["sv", "en"];
-  return ["en"];
+  return brainLanguages(campaignLanguage);
 }
 
 /* The part of brain.schema.json the model writes (server-owned keys removed). */

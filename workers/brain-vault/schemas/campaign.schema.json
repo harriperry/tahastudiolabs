@@ -47,9 +47,13 @@
     "language": {
       "type": "string",
       "enum": [
-        "sv",
         "en",
-        "both"
+        "sv",
+        "both",
+        "fr",
+        "es",
+        "pcm",
+        "wes"
       ]
     },
     "channels": {

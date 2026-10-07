@@ -230,6 +230,17 @@ ol li,ul li{margin:4px 0}
 </table></div>
 <p>The gate: <code>POST .../review</code>, <code>POST /admin/page/.../publish</code> and Mark delivered answer 409 <code>lang_pending</code> while required Swedish texts are not approved, unless the body has <code>langOverride</code> (a reason, logged). Files: <code>src/team.js</code>, <code>src/lang.js</code>, <code>src/public/reviewer.html</code>, <code>src/public/reviewer.js</code>, <code>../../assets/growth-langfields.js</code> (shared by the Worker and ScriptForge), <code>../../assets/growth-lang.js</code>, <code>test/lang.test.mjs</code> (68 checks). Tables (migration 8): <code>team_members</code>, <code>team_access</code>, <code>member_tokens</code>, <code>member_sessions</code>, <code>lang_items</code>, <code>lang_versions</code>, <code>lang_notes</code>, <code>lang_log</code>, and <code>clients.lang_review</code>. <code>CONSENT_VERSION</code> is now <code>c-4</code>.</p>
 
+<h2>2q. Markets step 2 (campaign languages)</h2>
+<div class="tw"><table>
+<tr><th>Endpoint</th><th>Who</th><th>What changed</th></tr>
+<tr><td><code>PUT /intake</code>, <code>POST /admin/brain</code>, <code>POST /admin/campaign</code></td><td>Client, Admin</td><td>The schemas accept <code>fr</code>, <code>es</code>, <code>pcm</code> and <code>wes</code> next to <code>en</code>, <code>sv</code> and <code>both</code>.</td></tr>
+<tr><td><code>GET /admin/lang/:clientId/:campaignId</code></td><td>Admin</td><td>Adds <code>reviewLanguage</code> (sv, es or null) and <code>reviewLanguageName</code>; items carry <code>language</code>. <code>/send</code> answers 400 <code>english</code> for any language without review.</td></tr>
+<tr><td><code>POST /admin/team/invite</code>, <code>PATCH /admin/team/:memberId</code></td><td>Admin</td><td><code>languages</code>: any of <code>sv</code>, <code>es</code>; PATCH can change them (400 when none is valid).</td></tr>
+<tr><td><code>GET /review/queue</code>, <code>/review/item/*</code></td><td>Reviewer</td><td>Only items in the member's languages.</td></tr>
+<tr><td><code>PUT /admin/page/:clientId/:campaignId</code></td><td>Admin</td><td><code>language</code>: <code>sv</code>, <code>en</code>, <code>fr</code> or <code>es</code> (the page's own words).</td></tr>
+</table></div>
+<p>Files: <code>../../assets/growth-languages.js</code> (shared: the list, who reviews, page language, brain languages), the <code>languageRules</code> in <code>../../assets/growth/*.prompt.json</code>, <code>src/lang.js</code>, <code>src/team.js</code>, <code>src/pages.js</code>, <code>src/track.js</code>, <code>src/public/reviewer.js</code>, <code>../../assets/growth-landing.js</code> (French and Spanish page words and notices), <code>../../assets/growth-lang.js</code> (Team languages), <code>test/languages.test.mjs</code> (40 checks). No migration (lang_items.language already existed). <code>CONSENT_VERSION</code> is now <code>c-6</code>. Health reports <code>part: "l2"</code>.</p>
+
 <h2>2p. Endpoints added in Markets step 1 (hub and spoke)</h2>
 <div class="tw"><table>
 <tr><th>Endpoint</th><th>Who</th><th>What it does</th></tr>

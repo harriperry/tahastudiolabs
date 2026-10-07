@@ -17,10 +17,10 @@
       ai_image flag, and are listed on the card and in the Visual Pack strip.
    Images are made in Harry's own tools. Nothing is rendered on the server. */
 import { validate } from "./growth-validate.js?v=p5";
-import { stripDashes } from "./growth-brain.js?v=e";
+import { stripDashes } from "./growth-brain.js?v=l2";
 
 export const PLATFORMS_URL = "/assets/growth/platforms.json?v=g1";
-export const VISUALS_PROMPT_URL = "/assets/growth/visuals.prompt.json?v=g2a";
+export const VISUALS_PROMPT_URL = "/assets/growth/visuals.prompt.json?v=l2";
 
 /* Fields ScriptForge sets from platforms.json; the model never writes them. */
 const SET_BY_SCRIPTFORGE = ["output_key", "platform", "placement", "ratio", "width", "height", "clear_zone"];

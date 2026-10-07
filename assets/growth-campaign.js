@@ -21,7 +21,7 @@
    campaign into a campaign-2 document. Add visuals does the same for campaigns made before
    Part G. Send to ScriptForge targets HeyGen or Veo 3.1. */
 import { validate } from "./growth-validate.js?v=p5";
-import { callModel, extractJson, fillTemplate, fitToSchema, stripDashes } from "./growth-brain.js?v=e";
+import { callModel, extractJson, fillTemplate, fitToSchema, stripDashes } from "./growth-brain.js?v=l2";
 import {
   PLATFORMS_URL,
   VISUALS_PROMPT_URL,
@@ -38,15 +38,16 @@ import {
   photoList,
   sizeLabel,
   withVisuals
-} from "./growth-visuals.js?v=e";
-import { createLandingUi } from "./growth-landing.js?v=m1";
+} from "./growth-visuals.js?v=l2";
+import { createLandingUi } from "./growth-landing.js?v=l2";
 import { createReviewUi } from "./growth-review.js?v=h";
-import { createLangUi } from "./growth-lang.js?v=h";
+import { createLangUi } from "./growth-lang.js?v=l2";
 import { createResultsUi } from "./growth-results.js?v=d";
 import { NICHES } from "./growth-resultfields.js?v=d";
+import { campaignLanguageFromBrain, campaignLanguageList } from "./growth-languages.js?v=l2";
 
 const VAULT = "/api/vault";
-const PROMPT_URL = "/assets/growth/campaign.prompt.json?v=c";
+const PROMPT_URL = "/assets/growth/campaign.prompt.json?v=l2";
 const DRAFT_PREFIX = "taha-growth-campaign-draft:";
 const SET_BY_SCRIPTFORGE = ["schemaVersion", "clientId", "campaignId", "brainVersion", "name", "month", "goal", "language", "channels", "status"];
 
@@ -60,7 +61,9 @@ export const CHANNELS = [
 ];
 const CHANNEL_LABEL = Object.fromEntries(CHANNELS);
 const GOALS = [["awareness", "Awareness"], ["bookings", "Bookings"], ["sales", "Sales"], ["launch", "Launch"]];
-const LANGS = [["en", "English"], ["sv", "Svenska"], ["both", "Swedish and English"]];
+/* Markets step 2: the campaign languages (assets/growth-languages.js). Swedish and Spanish go
+   to a human reviewer; Harry approves the others himself. */
+const LANGS = campaignLanguageList().map((l) => [l.code, l.name + (l.review ? " (reviewed)" : "")]);
 const LANG_LABEL = Object.fromEntries(LANGS);
 const NO_HASHTAGS = ["google_business", "email"];
 
@@ -96,9 +99,7 @@ export function defaultName(month, company, lang) {
 }
 
 export function languageFromBrain(brain) {
-  const l = (brain && brain.languages) || [];
-  if (l.includes("sv") && l.includes("en")) return "both";
-  return l.includes("sv") ? "sv" : "en";
+  return campaignLanguageFromBrain(brain && brain.languages);
 }
 
 export function campaignIdFor(month, language, taken) {
@@ -225,7 +226,7 @@ export function campaignHtml(doc, company) {
     ).join("")));
   }
   const meta = [monthLabel(doc.month, "en"), "Goal: " + doc.goal, "Language: " + (LANG_LABEL[doc.language] || doc.language), "Channels: " + (doc.channels || []).map((x) => CHANNEL_LABEL[x] || x).join(", "), "Brain v" + doc.brainVersion].join(" · ");
-  return "<!doctype html><html lang=\"" + (doc.language === "sv" ? "sv" : "en") + "\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + esc(doc.name) + "</title>" +
+  return "<!doctype html><html lang=\"" + (doc.language === "both" ? "sv" : doc.language || "en") + "\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + esc(doc.name) + "</title>" +
     "<style>body{font-family:Arial,Helvetica,sans-serif;max-width:860px;margin:0 auto;padding:32px 16px;color:#14161C;background:#F6F1E7;line-height:1.55}h1{font-size:28px;margin:0 0 6px}.meta{color:#5E6470;font-size:14px;margin-bottom:24px}section{background:#fff;border:1px solid #DDD5C6;border-radius:10px;padding:18px 22px;margin:0 0 16px}h2{font-size:15px;text-transform:uppercase;letter-spacing:1px;color:#8A5D08;margin:0 0 10px}h3{font-size:17px;margin:14px 0 6px}h4{margin:12px 0 4px}pre{white-space:pre-wrap;font-family:inherit;background:#F6F1E7;padding:12px;border-radius:8px}.foot{color:#5E6470;font-size:12px}</style></head><body>" +
     "<h1>" + esc(doc.name) + "</h1><div class=\"meta\">" + esc(company) + " · " + esc(meta) + "</div>" + parts.join("") +
     "<p class=\"foot\">TAHA Studio Labs Growth Department · " + esc(doc.campaignId) + "</p></body></html>";
@@ -434,7 +435,7 @@ export function createCampaigns(ctx) {
       CHANNELS: f.channels.join(", "),
       BRAIN_VERSION: String(brain.brainVersion),
       BRAIN_JSON: JSON.stringify(brain, null, 1),
-      /* V2 Part H: what the language reviewer taught us about this client's Swedish. */
+      /* V2 Part H: what the language reviewer taught us about this client's wording. */
       LANGUAGE_NOTES: lg.notesText(c.id),
       /* V2 Part C: what the last campaigns brought in (Part D adds the client's own numbers). */
       LAST_RESULTS: (f.lastResults && String(f.lastResults).trim()) || "No results given for this campaign."
@@ -722,7 +723,7 @@ export function createCampaigns(ctx) {
     if (override) body.override = override;
     if (langOverride) body.langOverride = langOverride;
     const r = await api("/admin/campaign/" + encodeURIComponent(id) + "/" + encodeURIComponent(campaignId) + "/status", { method: "PATCH", body });
-    /* V2 Part H: Swedish texts not approved yet. */
+    /* V2 Part H: texts waiting for language review (Swedish or Spanish). */
     if (r.status === 409 && r.d && r.d.error === "lang_pending") {
       e.langAsk = { campaignId, override };
       e.msg = { cls: "err", text: r.d.message.en + " Approve them in the Language review box, or give a reason to deliver anyway." };
@@ -1150,7 +1151,7 @@ export function createCampaigns(ctx) {
         tools.appendChild(h("button", { type: "button", class: "btn-ghost", on: { click: () => discard(c.id) } }, e.isNew ? "Discard" : "Undo changes"));
       } else if (doc.status !== "delivered" && e.langAsk && e.langAsk.campaignId === doc.campaignId) {
         const lid = "gc-lang-why-" + c.id;
-        const lwhy = h("input", { type: "text", id: lid, placeholder: "For example: client approved the Swedish herself" });
+        const lwhy = h("input", { type: "text", id: lid, placeholder: "For example: client approved the wording herself" });
         tools.appendChild(h("div", { class: "gc-ed" }, h("label", { for: lid, text: "Reason to deliver before language review (logged):" }), lwhy));
         tools.appendChild(h("button", { type: "button", class: "gc-brain-btn", on: { click: () => { if (lwhy.value.trim().length >= 5) setStatus(c, doc.campaignId, "delivered", e.langAsk.override, lwhy.value.trim()); else lwhy.focus(); } } }, "Deliver anyway"));
         tools.appendChild(h("button", { type: "button", class: "gc-link", on: { click: () => { e.langAsk = null; ctx.rerender(c.id); } } }, "Cancel"));
@@ -1290,11 +1291,11 @@ export function createCampaigns(ctx) {
       }
       if (card.key === "shortVideo") {
         /* V2 phase G1: the video goes to ScriptForge for one of the two generators it offers. */
-        /* V2 Part H: the video goes with its approved Swedish script, or waits for it. */
+        /* V2 Part H: the video goes with its approved, reviewed script, or waits for it. */
         const sendVideo = (target) => {
           const blocked = savedCampaignId && lg.videoBlocked(c.id, savedCampaignId);
           if (blocked && !e.videoOverride) {
-            e.cardMsg.shortVideo = { cls: "err", text: "Waiting for language review: the Swedish script is not approved yet. Click again to send the machine script anyway." };
+            e.cardMsg.shortVideo = { cls: "err", text: "Waiting for language review: the script is not approved yet. Click again to send the machine script anyway." };
             e.videoOverride = true;
             ctx.rerender(c.id);
             return;

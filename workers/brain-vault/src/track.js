@@ -142,11 +142,28 @@ const LM = {
     tooMany: "Too many attempts. Please wait a while and try again.",
     closed: "The form is not open right now.",
     refused: "The enquiry could not be sent."
+  },
+  /* Markets step 2: French and Spanish pages (the Pidgin pages use English). */
+  fr: {
+    thanks: "Merci ! Nous avons bien reçu votre demande et nous vous répondrons bientôt.",
+    back: "Retour à la page",
+    missing: "Indiquez votre nom et un numéro de téléphone ou une adresse e-mail.",
+    tooMany: "Trop de tentatives. Patientez un moment et réessayez.",
+    closed: "Le formulaire n'est pas ouvert pour le moment.",
+    refused: "La demande n'a pas pu être envoyée."
+  },
+  es: {
+    thanks: "¡Gracias! Hemos recibido tu consulta y te responderemos pronto.",
+    back: "Volver a la página",
+    missing: "Escribe tu nombre y un teléfono o un correo electrónico.",
+    tooMany: "Demasiados intentos. Espera un momento y vuelve a intentarlo.",
+    closed: "El formulario no está abierto ahora mismo.",
+    refused: "No se pudo enviar la consulta."
   }
 };
 
 function leadReply(request, page, status, key, backUrl) {
-  const l = page && page.language === "en" ? "en" : "sv";
+  const l = page && LM[page.language] ? page.language : "sv";
   const text = LM[l][key];
   const wantsJson = /application\/json/i.test(request.headers.get("Accept") || "") || /application\/json/i.test(request.headers.get("Content-Type") || "");
   if (wantsJson) return json({ ok: status < 300, error: status < 300 ? undefined : key, message: { sv: LM.sv[key], en: LM.en[key] } }, status, CORS);

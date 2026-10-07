@@ -1,5 +1,5 @@
 /* TAHA Growth Department V2, Part H: the language reviewer's workspace at /grow/review/.
-   Swedish first, English on request. The reviewer sees only the texts Harry sent to them, for
+   The page itself is Swedish first, English on request; the texts are Swedish or Spanish. The reviewer sees only the texts Harry sent to them, for
    clients they are assigned to: the machine text on the left (read only), their version on the
    right, the character limit, the parts that must not change, and the brand's voice and words.
    Drafts save themselves; Harry sees nothing until an item is Done. */
@@ -17,6 +17,9 @@
   var msgs = {};
   var flagOpen = {};
   var app = document.getElementById("app");
+  /* Markets step 2: a reviewer may check more than one language; each item says which. */
+  var LANG_NAME = { sv: { sv: "Svenska", en: "Swedish" }, es: { sv: "Spanska", en: "Spanish" } };
+  function langName(code) { return LANG_NAME[code] ? LANG_NAME[code][L] : code || ""; }
 
   function t(path, vars) {
     var v = path.split(".").reduce(function (o, k) { return o == null ? o : o[k]; }, DICT ? DICT[L] : null);
@@ -168,7 +171,7 @@
     }
     return h("div", { class: "card rv-item" },
       h("div", { class: "pr-head" }, h("span", { class: "pr-badge" + (it.state === "done" ? " ok" : ""), text: stateLabel(it.state) }),
-        h("span", { class: "muted small", text: it.clientName + " · " + it.campaignName + " · " + t("rev.round", { n: it.round }) + (it.due ? " · " + t("rev.due", { d: it.due }) : "") })),
+        h("span", { class: "muted small", text: langName(it.language) + " · " + it.clientName + " · " + it.campaignName + " · " + t("rev.round", { n: it.round }) + (it.due ? " · " + t("rev.due", { d: it.due }) : "") })),
       h("h2", { class: "rv-label", text: it.label }),
       side,
       h("div", { class: "rv-cols" },
@@ -197,7 +200,7 @@
       if (it.id === openId) return editor(it);
       return h("button", { type: "button", class: "card rv-row", onClick: function () { openId = it.id; render(); } },
         h("span", { class: "pr-badge" + (it.state === "done" ? " ok" : ""), text: stateLabel(it.state) }),
-        h("b", { text: it.label }), h("span", { class: "muted small", text: it.clientName + " · " + it.campaignName }));
+        h("b", { text: it.label }), h("span", { class: "muted small", text: langName(it.language) + " · " + it.clientName + " · " + it.campaignName }));
     });
     return [h("div", { class: "head" }, h("h1", { text: t("rev.title") }), h("p", { class: "lead", text: t("rev.lead") })), tabs,
       rows.length ? rows : h("div", { class: "card" }, h("p", { text: t("rev.empty") }))];

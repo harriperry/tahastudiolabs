@@ -1,6 +1,8 @@
-/* V2 Part H: Swedish language review by a human (spec section 10).
+/* V2 Part H: language review by a human (spec section 10). Markets step 2: every language
+   marked review in assets/growth-languages.js (Swedish and Spanish) goes this way; Harry
+   approves the others (English, French and the two Pidgins) himself.
 
-   Every Swedish text field of a campaign becomes a language item with three kinds of stored
+   Every text field of a reviewed campaign becomes a language item with three kinds of stored
    version, never overwritten: machine (frozen when sent), reviewed (the specialist's) and
    approved (Harry's). Production (client review, Your content, the landing page, Send to
    ScriptForge) reads the approved text; a field without it is "Waiting for language review".
@@ -13,7 +15,8 @@
    POST /admin/lang/item/:itemId                   {action: accept | approve | send_back | keep,
                                                     text?, comment?, reason?}
    GET, POST /admin/lang/notes/:clientId           language notes per client
-   PUT  /admin/lang/setting/:clientId              {review: true|false} Always review Swedish
+   PUT  /admin/lang/setting/:clientId              {review: true|false} Always send this client's
+                                                   reviewed-language campaigns to review
    Reviewer (own assigned clients only):
    GET  /review/queue
    GET, PUT /review/item/:itemId                   read, save a draft
@@ -21,11 +24,12 @@
 import { applyApproved, checkReviewed, getPath, langFields } from "../../../assets/growth-langfields.js";
 import { composeLangNotice, composeLangQueue, sendMail } from "./mail.js";
 import { json, newId, nowIso, readJson, sha256hex } from "./util.js";
+import { LANGUAGES, reviewLanguage } from "../../../assets/growth-languages.js";
 
 const M = {
   badRequest: { sv: "Ogiltig förfrågan.", en: "Bad request." },
   notFound: { sv: "Hittades inte.", en: "Not found." },
-  english: { sv: "Kampanjen är på engelska. Bara svenska texter går till språkgranskning.", en: "The campaign is in English. Only Swedish texts go to language review." },
+  english: { sv: "Kampanjens språk granskas inte av en granskare. Bara svenska och spanska texter går till språkgranskning.", en: "This campaign's language is not sent to a reviewer. Only Swedish and Spanish texts go to language review." },
   state: { sv: "Texten är inte i rätt läge för det.", en: "The text is not in the right state for that." },
   reason: { sv: "Skriv ett skäl (minst 5 tecken).", en: "Give a reason (at least 5 characters)." },
   comment: { sv: "Skriv en kommentar.", en: "Write a comment." },
@@ -42,12 +46,16 @@ async function campaignDoc(env, clientId, campaignId) {
   return r ? JSON.parse(r.data) : null;
 }
 
-const isSwedish = (doc) => doc && (doc.language === "sv" || doc.language === "both");
+/* The language a reviewer checks for this campaign (sv, es), or null. */
+const reviewLang = (doc) => (doc ? reviewLanguage(doc.language) : null);
+/* "sv,es" contains the code as a whole entry (SQL side of the same test). */
+const HAS_LANG = "(',' || m.languages || ',') LIKE '%,' || ? || ',%'";
 
-async function reviewerFor(env, clientId) {
+async function reviewerFor(env, clientId, language) {
+  if (!language) return null;
   return env.DB.prepare(
-    "SELECT m.* FROM team_members m JOIN team_access a ON a.member_id = m.id WHERE a.client_id = ? AND m.active = 1 AND m.agreement_at IS NOT NULL AND m.languages LIKE '%sv%' ORDER BY m.created_at ASC LIMIT 1"
-  ).bind(clientId).first();
+    "SELECT m.* FROM team_members m JOIN team_access a ON a.member_id = m.id WHERE a.client_id = ? AND m.active = 1 AND m.agreement_at IS NOT NULL AND " + HAS_LANG + " ORDER BY m.created_at ASC LIMIT 1"
+  ).bind(clientId, language).first();
 }
 
 async function latestVersions(env, itemIds) {
@@ -66,15 +74,16 @@ async function latestVersions(env, itemIds) {
   return by;
 }
 
-/* Queue fields for review. Used by the Send button and, with "Always review Swedish", when a
-   Swedish campaign with a Visual Pack is saved. Returns {created, requeued, member}. */
+/* Queue fields for review. Used by the Send button and, with "Always review", when a Swedish
+   or Spanish campaign with a Visual Pack is saved. Returns {created, requeued, member}. */
 export async function queueFields(env, cfg, ctx, clientId, campaignId, doc, { paths, note, due } = {}) {
   const fields = langFields(doc).filter((f) => !paths || paths.includes(f.path));
   const existing = await all(env, "SELECT * FROM lang_items WHERE client_id = ? AND campaign_id = ?", clientId, campaignId);
   const byPath = {};
   existing.forEach((i) => { byPath[i.field_path] = i; });
   const vers = await latestVersions(env, existing.map((i) => i.id));
-  const member = await reviewerFor(env, clientId);
+  const language = reviewLang(doc) || "sv";
+  const member = await reviewerFor(env, clientId, language);
   const t = nowIso();
   const stmts = [];
   let created = 0, requeued = 0;
@@ -84,8 +93,8 @@ export async function queueFields(env, cfg, ctx, clientId, campaignId, doc, { pa
     if (!it) {
       const id = newId("li", 14);
       created++;
-      stmts.push(env.DB.prepare("INSERT INTO lang_items (id, client_id, campaign_id, field_path, output_key, label, kind, max_len, language, state, round, member_id, due, note, sent_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'sv', 'waiting', 1, ?, ?, ?, ?, ?)")
-        .bind(id, clientId, campaignId, f.path, f.outputKey, f.label, f.kind, f.maxLen, member ? member.id : null, due || null, note || null, t, t));
+      stmts.push(env.DB.prepare("INSERT INTO lang_items (id, client_id, campaign_id, field_path, output_key, label, kind, max_len, language, state, round, member_id, due, note, sent_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting', 1, ?, ?, ?, ?, ?)")
+        .bind(id, clientId, campaignId, f.path, f.outputKey, f.label, f.kind, f.maxLen, language, member ? member.id : null, due || null, note || null, t, t));
       stmts.push(env.DB.prepare("INSERT INTO lang_versions (item_id, client_id, kind, text, author, round, base_hash, at) VALUES (?, ?, 'machine', ?, 'scriptforge', 1, ?, ?)").bind(id, clientId, f.text, h, t));
       continue;
     }
@@ -105,14 +114,14 @@ export async function queueFields(env, cfg, ctx, clientId, campaignId, doc, { pa
   for (let i = 0; i < stmts.length; i += 90) await env.DB.batch(stmts.slice(i, i + 90));
   if ((created || requeued) && member) {
     const n = await env.DB.prepare("SELECT COUNT(*) AS n FROM lang_items WHERE member_id = ? AND state IN ('waiting','sent_back')").bind(member.id).first();
-    const mail = composeLangQueue(cfg, { name: member.name, count: n.n, link: cfg.siteOrigin + "/grow/review/" });
+    const mail = composeLangQueue(cfg, { name: member.name, count: n.n, link: cfg.siteOrigin + "/grow/review/", language: String(member.languages || "sv").split(",").includes("sv") ? "sv" : "en" });
     ctx.waitUntil(sendMail(cfg, env, { to: member.email, ...mail }).catch((e) => console.error("lang queue email failed: " + e.message)));
   }
   return { created, requeued, member: member ? { id: member.id, name: member.name } : null };
 }
 
 /* Called after a campaign is saved: a sent text that was edited or regenerated becomes
-   Outdated, and with Always review Swedish a new Swedish campaign with visuals is queued. */
+   Outdated, and with Always review a new Swedish or Spanish campaign with visuals is queued. */
 export async function afterCampaignSaved(env, cfg, ctx, clientId, doc) {
   const items = await all(env, "SELECT * FROM lang_items WHERE client_id = ? AND campaign_id = ?", clientId, doc.campaignId);
   if (items.length) {
@@ -132,7 +141,7 @@ export async function afterCampaignSaved(env, cfg, ctx, clientId, doc) {
     return;
   }
   const c = await env.DB.prepare("SELECT lang_review FROM clients WHERE id = ?").bind(clientId).first();
-  if (c && c.lang_review === 1 && isSwedish(doc) && Array.isArray(doc.visuals) && doc.visuals.length) {
+  if (c && c.lang_review === 1 && reviewLang(doc) && Array.isArray(doc.visuals) && doc.visuals.length) {
     await queueFields(env, cfg, ctx, clientId, doc.campaignId, doc, {});
   }
 }
@@ -150,13 +159,13 @@ export async function approvedMap(env, clientId, campaignId) {
 export async function langGate(env, clientId, campaignId, doc) {
   const items = await all(env, "SELECT state FROM lang_items WHERE client_id = ? AND campaign_id = ?", clientId, campaignId);
   const c = await env.DB.prepare("SELECT lang_review FROM clients WHERE id = ?").bind(clientId).first();
-  const required = items.length > 0 || (!!c && c.lang_review === 1 && isSwedish(doc));
+  const required = items.length > 0 || (!!c && c.lang_review === 1 && !!reviewLang(doc));
   const approved = items.filter((i) => i.state === "approved" || i.state === "kept").length;
   const pending = required ? (items.length ? items.length - approved : langFields(doc).length) : 0;
   return { required, total: items.length, approved, pending };
 }
 
-/* The campaign as production must use it: approved Swedish text in place of the machine text. */
+/* The campaign as production must use it: approved, reviewed text in place of the machine text. */
 export async function productionDoc(env, clientId, campaignId, doc) {
   return applyApproved(doc, await approvedMap(env, clientId, campaignId));
 }
@@ -183,6 +192,7 @@ function itemOut(i, v) {
     outputKey: i.output_key,
     label: i.label,
     kind: i.kind,
+    language: i.language || "sv",
     maxLen: i.max_len,
     state: i.state,
     round: i.round,
@@ -206,7 +216,7 @@ function itemOut(i, v) {
 export async function sendLang(request, env, cfg, ctx, clientId, campaignId) {
   const doc = await campaignDoc(env, clientId, campaignId);
   if (!doc) return json({ error: "not_found", message: M.notFound }, 404);
-  if (!isSwedish(doc)) return json({ error: "english", message: M.english }, 400);
+  if (!reviewLang(doc)) return json({ error: "english", message: M.english }, 400);
   const b = (await readJson(request, 16 * 1024)) || {};
   const paths = Array.isArray(b.paths) ? b.paths.map(String).slice(0, 200) : null;
   const note = clean(b.note, 1000) || null;
@@ -223,10 +233,14 @@ export async function getLang(env, clientId, campaignId) {
   const items = await all(env, "SELECT * FROM lang_items WHERE client_id = ? AND campaign_id = ? ORDER BY rowid ASC", clientId, campaignId);
   const vers = await latestVersions(env, items.map((i) => i.id));
   const c = await env.DB.prepare("SELECT lang_review FROM clients WHERE id = ?").bind(clientId).first();
-  const reviewer = await reviewerFor(env, clientId);
+  const rl = reviewLang(doc);
+  const reviewer = await reviewerFor(env, clientId, rl);
   return json({
     language: doc.language,
-    swedish: isSwedish(doc),
+    /* The language a reviewer checks (sv or es), or null when Harry approves it himself. */
+    reviewLanguage: rl,
+    reviewLanguageName: rl ? LANGUAGES[rl].name : null,
+    swedish: rl === "sv",
     alwaysReview: !!c && c.lang_review === 1,
     reviewer: reviewer ? { id: reviewer.id, name: reviewer.name } : null,
     items: items.map((i) => itemOut(i, vers[i.id])),
@@ -338,7 +352,7 @@ export async function putSetting(request, env, clientId) {
 async function memberItem(env, auth, itemId) {
   if (!/^li_[a-z0-9]{4,32}$/.test(itemId)) return null;
   return env.DB.prepare(
-    "SELECT i.* FROM lang_items i JOIN team_access a ON a.client_id = i.client_id AND a.member_id = ? WHERE i.id = ? AND (i.member_id = ? OR i.member_id IS NULL)"
+    "SELECT i.* FROM lang_items i JOIN team_access a ON a.client_id = i.client_id AND a.member_id = ? JOIN team_members m ON m.id = a.member_id WHERE i.id = ? AND (i.member_id = ? OR i.member_id IS NULL) AND " + HAS_LANG.replace("?", "i.language")
   ).bind(auth.memberId, itemId, auth.memberId).first();
 }
 
@@ -350,7 +364,7 @@ async function contextFor(env, clientId) {
 
 export async function reviewQueue(env, auth) {
   const rows = await all(env,
-    "SELECT i.*, c.name AS client_name, json_extract(k.data, '$.name') AS campaign_name FROM lang_items i JOIN team_access a ON a.client_id = i.client_id AND a.member_id = ? JOIN clients c ON c.id = i.client_id LEFT JOIN campaigns k ON k.client_id = i.client_id AND k.campaign_id = i.campaign_id WHERE (i.member_id = ? OR i.member_id IS NULL) AND i.state IN ('waiting','sent_back','done','flagged') ORDER BY i.sent_at ASC, i.rowid ASC",
+    "SELECT i.*, c.name AS client_name, json_extract(k.data, '$.name') AS campaign_name FROM lang_items i JOIN team_access a ON a.client_id = i.client_id AND a.member_id = ? JOIN team_members m ON m.id = a.member_id JOIN clients c ON c.id = i.client_id LEFT JOIN campaigns k ON k.client_id = i.client_id AND k.campaign_id = i.campaign_id WHERE (i.member_id = ? OR i.member_id IS NULL) AND " + HAS_LANG.replace("?", "i.language") + " AND i.state IN ('waiting','sent_back','done','flagged') ORDER BY i.sent_at ASC, i.rowid ASC",
     auth.memberId, auth.memberId);
   const vers = await latestVersions(env, rows.map((r) => r.id));
   const ctxs = {};
