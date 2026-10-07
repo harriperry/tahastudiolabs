@@ -230,6 +230,16 @@ ol li,ul li{margin:4px 0}
 </table></div>
 <p>The gate: <code>POST .../review</code>, <code>POST /admin/page/.../publish</code> and Mark delivered answer 409 <code>lang_pending</code> while required Swedish texts are not approved, unless the body has <code>langOverride</code> (a reason, logged). Files: <code>src/team.js</code>, <code>src/lang.js</code>, <code>src/public/reviewer.html</code>, <code>src/public/reviewer.js</code>, <code>../../assets/growth-langfields.js</code> (shared by the Worker and ScriptForge), <code>../../assets/growth-lang.js</code>, <code>test/lang.test.mjs</code> (68 checks). Tables (migration 8): <code>team_members</code>, <code>team_access</code>, <code>member_tokens</code>, <code>member_sessions</code>, <code>lang_items</code>, <code>lang_versions</code>, <code>lang_notes</code>, <code>lang_log</code>, and <code>clients.lang_review</code>. <code>CONSENT_VERSION</code> is now <code>c-4</code>.</p>
 
+<h2>2p. Endpoints added in Markets step 1 (hub and spoke)</h2>
+<div class="tw"><table>
+<tr><th>Endpoint</th><th>Who</th><th>What it does</th></tr>
+<tr><td><code>GET /admin/clients</code></td><td>Admin</td><td>Each client now has <code>market</code>; the answer also carries <code>markets</code> and <code>currencies</code> for the panel's pickers.</td></tr>
+<tr><td><code>POST /admin/clients</code></td><td>Admin</td><td>Takes an optional <code>market</code> (SE, CM, NG; anything else is SE).</td></tr>
+<tr><td><code>PUT /admin/clients/:clientId/market</code></td><td>Admin</td><td><code>{ market }</code>. Moves the client and relabels her costs that were in the old market's currency (amounts kept). Answers <code>{ ok, market, currency }</code>.</td></tr>
+<tr><td><code>GET, PUT /admin/costs/:clientId/:campaignId</code></td><td>Admin</td><td>Unchanged, except that the currency defaults to the client's market and must be one of the known codes.</td></tr>
+</table></div>
+<p>Files: <code>../../assets/growth-markets.js</code> (shared by the Worker and ScriptForge: markets, currencies, <code>formatMoney</code>), <code>src/admin.js</code>, <code>src/roi.js</code>, <code>../../assets/growth.js</code> (Market pickers), <code>../../assets/growth-landing.js</code> (money and the Currency list), <code>test/markets.test.mjs</code> (21 checks). Migration 12: <code>clients.market TEXT NOT NULL DEFAULT 'SE'</code>. Health reports <code>part: "m1"</code>.</p>
+
 <h2>2o. Endpoints added in V2 Part E (client videos)</h2>
 <div class="tw"><table>
 <tr><th>Endpoint</th><th>Who</th><th>What it does</th></tr>

@@ -39,7 +39,7 @@ import {
   sizeLabel,
   withVisuals
 } from "./growth-visuals.js?v=e";
-import { createLandingUi } from "./growth-landing.js?v=h";
+import { createLandingUi } from "./growth-landing.js?v=m1";
 import { createReviewUi } from "./growth-review.js?v=h";
 import { createLangUi } from "./growth-lang.js?v=h";
 import { createResultsUi } from "./growth-results.js?v=d";

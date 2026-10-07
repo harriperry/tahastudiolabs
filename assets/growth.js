@@ -262,6 +262,7 @@
       if (r.ok && r.d && Array.isArray(r.d.clients)) {
         var before = selected();
         S.clients = r.d.clients;
+        if (Array.isArray(r.d.markets) && r.d.markets.length) MARKETS = r.d.markets;
         if (!S.selectedId && S.clients.length) {
           var firstNew = S.clients.filter(function (c) { return c.isNew; })[0];
           S.selectedId = (firstNew || S.clients[0]).id;
@@ -434,7 +435,7 @@
         refresh();
       }
     };
-    brainLoading = Promise.all([import("/assets/growth-brain.js?v=e"), import("/assets/growth-campaign.js?v=e")]).then(function (mods) {
+    brainLoading = Promise.all([import("/assets/growth-brain.js?v=e"), import("/assets/growth-campaign.js?v=m1")]).then(function (mods) {
       brain = mods[0].createBrain(ctx);
       camps = mods[1].createCampaigns(ctx);
       if (ui) renderDetail();
@@ -528,6 +529,14 @@
     return panel;
   }
 
+  /* Markets step 1 (hub and spoke): the markets a client can belong to. The Vault sends the
+     list (assets/growth-markets.js); this copy is only used until the first answer. */
+  var MARKETS = [{ code: "SE", name: "Sweden", currency: "SEK" }, { code: "CM", name: "Cameroon", currency: "XAF" }, { code: "NG", name: "Nigeria", currency: "NGN" }];
+  function marketName(code) {
+    var m = MARKETS.filter(function (x) { return x.code === code; })[0];
+    return m ? m.name : code;
+  }
+
   function buildInviteForm() {
     var name = h("input", { type: "text", id: "gcInvName", maxlength: "200", autocomplete: "off", required: true });
     var email = h("input", { type: "email", id: "gcInvEmail", autocomplete: "off", required: true });
@@ -535,12 +544,14 @@
       h("option", { value: "sv" }, "Svenska"),
       h("option", { value: "en" }, "English")
     );
+    var market = h("select", { id: "gcInvMarket" }, MARKETS.map(function (m) { return h("option", { value: m.code }, m.name); }));
     var msg = h("div", { class: "gc-msg", hidden: true, role: "status" });
     var send = h("button", { type: "submit", class: "btn-primary" }, "Send invite");
     var form = h("form", { class: "gc-form", id: "gcInvite", hidden: true, novalidate: true },
       h("label", { for: "gcInvName", text: "Business name" }), name,
       h("label", { for: "gcInvEmail", text: "Email" }), email,
       h("label", { for: "gcInvLang", text: "Invite language" }), lang,
+      h("label", { for: "gcInvMarket", text: "Market (sets the currency)" }), market,
       h("div", { class: "gc-actions" },
         send,
         h("button", { type: "button", class: "btn-ghost", on: { click: function () { form.hidden = true; } } }, "Cancel")
@@ -560,7 +571,7 @@
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return say("err", "Enter a valid email address.");
       send.disabled = true;
       say("info", "Sending the invite...");
-      api("/admin/clients", { method: "POST", body: { name: n, email: e, language: lang.value } }).then(function (r) {
+      api("/admin/clients", { method: "POST", body: { name: n, email: e, language: lang.value, market: market.value } }).then(function (r) {
         send.disabled = false;
         if (r.ok && r.d && r.d.client) {
           say(r.d.emailSent ? "ok" : "err", r.d.emailSent
@@ -690,6 +701,25 @@
     });
     var statusCtl = h("div", { class: "gc-verpick gc-status-ctl" }, h("label", { for: "gcStatusSel", class: "gc-label", text: "Status the client sees" }), stSel);
 
+    /* Markets step 1: the client's market gives her currency. Changing it relabels the costs
+       already entered in the old market's currency; amounts are not converted. */
+    var mkSel = h("select", { id: "gcMarketSel", class: "gc-select" }, MARKETS.map(function (m) { return h("option", { value: m.code, selected: m.code === (c.market || "SE") }, m.name + " (" + (m.currency === "XAF" ? "FCFA" : m.currency) + ")"); }));
+    var mkMsg = h("div", { class: "gc-msg", hidden: true, role: "status" });
+    mkSel.addEventListener("change", function () {
+      var to = mkSel.value;
+      mkSel.disabled = true;
+      api("/admin/clients/" + encodeURIComponent(c.id) + "/market", { method: "PUT", body: { market: to } }).then(function (r) {
+        mkSel.disabled = false;
+        if (!r.ok) { mkSel.value = c.market || "SE"; mkMsg.className = "gc-msg err"; mkMsg.textContent = "Could not change the market."; mkMsg.hidden = false; return; }
+        c.market = to;
+        mkMsg.className = "gc-msg ok";
+        mkMsg.textContent = "Market set to " + marketName(to) + ". Costs now show in " + (r.d.currency === "XAF" ? "FCFA" : r.d.currency) + " (amounts are not converted).";
+        mkMsg.hidden = false;
+        refresh();
+      });
+    });
+    var marketCtl = h("div", { class: "gc-verpick gc-status-ctl" }, h("label", { for: "gcMarketSel", class: "gc-label", text: "Market" }), mkSel, mkMsg);
+
     var resendMsg = h("div", { class: "gc-msg", hidden: true, role: "status" });
     var resend = null;
     if (c.status === "invited" || c.status === "profile_in_progress") {
@@ -719,6 +749,7 @@
         chips,
         resend ? h("div", { style: "margin-top:8px" }, resend) : null,
         statusCtl,
+        marketCtl,
         resendMsg
       ),
       h("div", null, brainBtn, h("div", { class: "gc-hint", id: "gcBrainHint", text: bs.hint || "" }))

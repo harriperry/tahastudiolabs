@@ -15,6 +15,7 @@
    Every campaign text reaches the page through campaignText(). That is the one place Part H
    (human language review) changes: it will return the approved Swedish text instead. */
 import qrcode from "./vendor/qrcode-generator-1.4.4.mjs";
+import { currencyLabel, currencyList, formatMoney } from "./growth-markets.js?v=m1";
 
 export const TEMPLATE_URL = "/assets/growth/landing.template.html?v=g2b";
 export const NOTICE_VERSION = "n-1";
@@ -1084,8 +1085,7 @@ export function createLandingUi(ctx) {
   }
 
   function money(v, cur) {
-    if (v == null) return "-";
-    return Math.round(v).toLocaleString("sv-SE") + " " + (cur || "SEK");
+    return formatMoney(v, cur);
   }
   function pct(v) {
     if (v == null) return "-";
@@ -1130,6 +1130,7 @@ export function createLandingUi(ctx) {
     const st2 = s.stats;
     const r = st2.roi;
     const cur = (s.roi.costs && s.roi.costs.currency) || "SEK";
+    const curLabel = currencyLabel(cur);
     const tiles = [
       ["Visits", r.totals.views], ["Visitors", r.totals.uniques], ["Button clicks", r.totals.clicks], ["QR scans", r.totals.scans], ["Enquiries", r.totals.enquiries],
       ["Cost per enquiry", money(r.costPerEnquiry, cur)], ["Cost per new customer", money(r.costPerNewCustomer, cur)],
@@ -1165,9 +1166,12 @@ export function createLandingUi(ctx) {
     box.appendChild(grid);
     box.appendChild(h("div", { class: "gc-label", text: "Costs" }));
     const cg = h("div", { class: "lp-grid" });
-    cg.appendChild(inp("Campaign fee (" + cur + ")", s.roi.costs.fee, (v) => { s.roi.costs.fee = v; s.roi.dirty = true; }, { type: "number", min: "0", step: "any" }));
-    cg.appendChild(inp("Average order value (" + cur + ")", s.roi.costs.avgOrderValue == null ? "" : s.roi.costs.avgOrderValue, (v) => { s.roi.costs.avgOrderValue = v === "" ? null : v; s.roi.dirty = true; }, { type: "number", min: "0", step: "any" }));
-    cg.appendChild(inp("Currency", cur, (v) => { s.roi.costs.currency = v.toUpperCase().slice(0, 3); s.roi.dirty = true; }));
+    cg.appendChild(inp("Campaign fee (" + curLabel + ")", s.roi.costs.fee, (v) => { s.roi.costs.fee = v; s.roi.dirty = true; }, { type: "number", min: "0", step: "any" }));
+    cg.appendChild(inp("Average order value (" + curLabel + ")", s.roi.costs.avgOrderValue == null ? "" : s.roi.costs.avgOrderValue, (v) => { s.roi.costs.avgOrderValue = v === "" ? null : v; s.roi.dirty = true; }, { type: "number", min: "0", step: "any" }));
+    /* The client's market sets the currency; it can still be changed for one campaign here. */
+    const curSel = h("select", { id: "lpCurrency" }, currencyList().map((c) => h("option", { value: c.code, selected: c.code === cur }, c.label + " (" + c.name + ")")));
+    curSel.addEventListener("change", () => { s.roi.costs.currency = curSel.value; s.roi.dirty = true; ctx.rerender(client.id); });
+    cg.appendChild(h("div", { class: "gc-ed" }, h("label", { for: "lpCurrency", text: "Currency" }), curSel));
     Array.from(new Set((doc.channels || []).map((c) => (c === "google_business" ? "google" : c)))).forEach((c) => {
       cg.appendChild(inp("Ad spend on " + (CHANNEL_LABEL[c] || c), (s.roi.costs.adSpend || {})[c] || "", (v) => { s.roi.costs.adSpend = Object.assign({}, s.roi.costs.adSpend, { [c]: v }); s.roi.dirty = true; }, { type: "number", min: "0", step: "any" }));
     });

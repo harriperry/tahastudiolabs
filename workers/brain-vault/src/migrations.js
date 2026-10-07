@@ -549,5 +549,14 @@ export const MIGRATIONS = [
         PRIMARY KEY (upload_id, n)
       )`
     ]
+  },
+  {
+    id: 12,
+    name: "markets-step-1",
+    statements: [
+      /* Hub and spoke, step 1: every client belongs to a market (assets/growth-markets.js). The
+         market gives the defaults, for now the currency. Existing clients start in Sweden. */
+      `ALTER TABLE clients ADD COLUMN market TEXT NOT NULL DEFAULT 'SE'`
+    ]
   }
 ];

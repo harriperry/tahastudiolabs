@@ -5,7 +5,7 @@
    GET        /admin/stats/:clientId/:campaignId     Performance tab: counts per channel and day,
                                                      before and after, costs, and the ROI metrics
    GET, PUT   /admin/baseline/:clientId/:campaignId  {before:{metric:value}, after:{metric:value}}
-   GET, PUT   /admin/costs/:clientId/:campaignId     {currency, fee, adSpend:{channel:amount},
+   GET, PUT   /admin/costs/:clientId/:campaignId     {currency (default: the client's market), fee, adSpend:{channel:amount},
                                                      avgOrderValue, baselinePeriod}
    GET        /admin/leads/:clientId/:campaignId     the campaign's enquiries
    Client (own id only):
@@ -17,6 +17,7 @@
    DELETE     /portal/leads/:leadId                  delete one */
 import { daysAfterEnd, linkOut, pageOut } from "./pages.js";
 import { json, nowIso, readJson } from "./util.js";
+import { currencyOf, validCurrency } from "../../../assets/growth-markets.js";
 
 const M = {
   badRequest: { sv: "Ogiltig förfrågan.", en: "Bad request." },
@@ -38,9 +39,15 @@ export async function readBaselines(env, clientId, campaignId) {
   return out;
 }
 
+/* The currency of the client's market (Markets step 1): new costs start in it. */
+async function marketCurrency(env, clientId) {
+  const c = await env.DB.prepare("SELECT market FROM clients WHERE id = ?").bind(clientId).first();
+  return currencyOf(c && c.market);
+}
+
 export async function readCosts(env, clientId, campaignId) {
   const r = await env.DB.prepare("SELECT * FROM costs WHERE client_id = ? AND campaign_id = ?").bind(clientId, campaignId).first();
-  if (!r) return { currency: "SEK", fee: 0, adSpend: {}, avgOrderValue: null, baselinePeriod: "", updatedAt: null };
+  if (!r) return { currency: await marketCurrency(env, clientId), fee: 0, adSpend: {}, avgOrderValue: null, baselinePeriod: "", updatedAt: null };
   let adSpend = {};
   try { adSpend = JSON.parse(r.ad_spend || "{}"); } catch (e) {}
   return { currency: r.currency, fee: r.fee, adSpend, avgOrderValue: r.avg_order_value, baselinePeriod: r.baseline_period || "", updatedAt: r.updated_at };
@@ -95,7 +102,7 @@ export async function putCosts(request, env, clientId, campaignId) {
     }
   }
   if (fee < 0 || fee > 1e9 || (aov !== null && (aov < 0 || aov > 1e7))) return json({ error: "bad_request", message: M.badRequest }, 400);
-  const currency = /^[A-Z]{3}$/.test(String(b.currency || "")) ? b.currency : "SEK";
+  const currency = validCurrency(String(b.currency || "")) ? b.currency : await marketCurrency(env, clientId);
   const period = typeof b.baselinePeriod === "string" ? b.baselinePeriod.trim().slice(0, 100) : "";
   await env.DB.prepare("INSERT INTO costs (client_id, campaign_id, currency, fee, ad_spend, avg_order_value, baseline_period, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(client_id, campaign_id) DO UPDATE SET currency = excluded.currency, fee = excluded.fee, ad_spend = excluded.ad_spend, avg_order_value = excluded.avg_order_value, baseline_period = excluded.baseline_period, updated_at = excluded.updated_at")
     .bind(clientId, campaignId, currency, fee, JSON.stringify(ad), aov, period, nowIso()).run();

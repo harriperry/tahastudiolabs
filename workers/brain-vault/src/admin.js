@@ -6,6 +6,7 @@ import { eraseAfter } from "./gdpr.js";
 import { createLoginToken, isAdminEmail, signinUrl, verifyLink } from "./auth.js";
 import { composeEmail, sendMail } from "./mail.js";
 import { json, lang, newId, normEmail, nowIso, readJson, validEmail } from "./util.js";
+import { MARKETS, currencyList, currencyOf, market, marketList } from "../../../assets/growth-markets.js";
 
 const M = {
   badRequest: { sv: "Ogiltig förfrågan.", en: "Bad request." },
@@ -13,7 +14,8 @@ const M = {
   email: { sv: "Skriv en giltig e-postadress.", en: "Enter a valid email address." },
   adminEmail: { sv: "Den adressen är en admin-adress.", en: "That address is an admin address." },
   exists: { sv: "Det finns redan en kund med den e-postadressen.", en: "A client with that email already exists." },
-  notFound: { sv: "Kunden finns inte.", en: "Client not found." }
+  notFound: { sv: "Kunden finns inte.", en: "Client not found." },
+  market: { sv: "Okänd marknad.", en: "Unknown market." }
 };
 
 function publicClient(c) {
@@ -22,6 +24,7 @@ function publicClient(c) {
     name: c.name,
     email: c.email,
     language: c.language,
+    market: market(c.market),
     status: c.status,
     statusLabel: STATUS_LABELS[c.status],
     createdAt: c.created_at,
@@ -78,11 +81,11 @@ export async function createClient(request, env, cfg) {
   if (existing) return json({ error: "exists", message: M.exists, clientId: existing.id }, 409);
 
   const t = nowIso();
-  const client = { id: newId("cl", 12), name, email, language: lang(b.language) };
+  const client = { id: newId("cl", 12), name, email, language: lang(b.language), market: market(b.market) };
   await env.DB.batch([
     env.DB.prepare(
-      "INSERT INTO clients (id, name, email, language, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'invited', ?, ?)"
-    ).bind(client.id, name, email, client.language, t, t),
+      "INSERT INTO clients (id, name, email, language, market, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'invited', ?, ?)"
+    ).bind(client.id, name, email, client.language, client.market, t, t),
     env.DB.prepare(
       "INSERT INTO status_history (client_id, status, changed_at, changed_by) VALUES (?, 'invited', ?, 'admin')"
     ).bind(client.id, t)
@@ -111,7 +114,22 @@ export async function listClients(env) {
      FROM clients c ORDER BY c.created_at DESC`
   ).all();
   const clients = (rows.results || []).map(publicClient);
-  return json({ clients, newCount: clients.filter((c) => c.isNew).length, checkedAt: nowIso() });
+  return json({ clients, newCount: clients.filter((c) => c.isNew).length, checkedAt: nowIso(), markets: marketList(), currencies: currencyList() });
+}
+
+/* PUT /admin/clients/:clientId/market {market}: the market the client belongs to (Markets step
+   1). Costs still written in the old market's currency move to the new one: the label changes,
+   the amounts are kept as they are (no exchange rate is applied). */
+export async function setMarket(request, env, clientId) {
+  const b = await readJson(request, 256);
+  if (!b || !MARKETS[b.market]) return json({ error: "market", message: M.market }, 400);
+  const c = await env.DB.prepare("SELECT market FROM clients WHERE id = ?").bind(clientId).first();
+  if (!c) return json({ error: "not_found", message: M.notFound }, 404);
+  const from = currencyOf(c.market), to = currencyOf(b.market);
+  const stmts = [env.DB.prepare("UPDATE clients SET market = ?, updated_at = ? WHERE id = ?").bind(b.market, nowIso(), clientId)];
+  if (from !== to) stmts.push(env.DB.prepare("UPDATE costs SET currency = ? WHERE client_id = ? AND currency = ?").bind(to, clientId, from));
+  await env.DB.batch(stmts);
+  return json({ ok: true, market: b.market, currency: to });
 }
 
 /* POST /admin/clients/:clientId/seen {version}: Harry has opened this intake version in

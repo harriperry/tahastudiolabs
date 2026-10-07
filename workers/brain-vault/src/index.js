@@ -30,7 +30,7 @@ import {
   issueLoginLink,
   sessionCookie
 } from "./auth.js";
-import { createClient, getIntakeAdmin, listClients, markSeen, resendInvite } from "./admin.js";
+import { createClient, getIntakeAdmin, listClients, markSeen, resendInvite, setMarket } from "./admin.js";
 import { getBrains, getBrainVersion, saveBrain } from "./brain.js";
 import { getCampaign, listCampaigns, saveCampaign, setCampaignStatus, setManualStatus } from "./campaign.js";
 import { eraseNow, exportClient, retentionSweep, setLeft } from "./gdpr.js";
@@ -201,7 +201,7 @@ async function handle(request, env, ctx) {
 
   if (method === "GET" && path === "/health") {
     const db = await env.DB.prepare("SELECT 1 AS ok").first();
-    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "e" });
+    return json({ ok: !!db, db: !!db, files: !!env.FILES, phase: 6, part: "m1" });
   }
 
   if (method === "GET" && path === "/portal/meta") {
@@ -336,6 +336,8 @@ async function handle(request, env, ctx) {
     if (path === "/admin/clients" && method === "POST") return respond(await createClient(request, env, cfg));
     const inv = path.match(/^\/admin\/clients\/(cl_[a-z0-9]{4,32})\/invite$/);
     if (inv && method === "POST") return respond(await resendInvite(env, cfg, inv[1]));
+    const mk = path.match(/^\/admin\/clients\/(cl_[a-z0-9]{4,32})\/market$/);
+    if (mk && method === "PUT") return respond(await setMarket(request, env, mk[1]));
     const seen = path.match(/^\/admin\/clients\/(cl_[a-z0-9]{4,32})\/seen$/);
     if (seen && method === "POST") return respond(await markSeen(request, env, seen[1]));
     const br = path.match(/^\/admin\/brain\/(cl_[a-z0-9]{4,32})(?:\/([0-9]{1,6}))?$/);

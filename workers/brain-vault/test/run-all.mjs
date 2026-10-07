@@ -108,7 +108,7 @@ if (want("e2e") || want("portal")) {
 }
 
 /* Round 2 */
-const round2 = ["panel", "brain", "campaign", "gdpr", "visuals", "photos", "pages", "review", "lang", "rhythm", "results", "videos"];
+const round2 = ["panel", "brain", "campaign", "gdpr", "visuals", "photos", "pages", "review", "lang", "rhythm", "results", "videos", "markets"];
 if (round2.some(want)) {
   const site = await startSite();
   const w = await startWorker("r2", "http://localhost:8080", "http://127.0.0.1:8080/api/me");
@@ -125,6 +125,7 @@ if (round2.some(want)) {
     if (fs.existsSync(path.join(DIR, "test", "rhythm.test.mjs"))) runSuite("rhythm", "rhythm.test.mjs", env);
     if (fs.existsSync(path.join(DIR, "test", "results.test.mjs"))) runSuite("results", "results.test.mjs", env);
     if (fs.existsSync(path.join(DIR, "test", "videos.test.mjs"))) runSuite("videos", "videos.test.mjs", env);
+    if (fs.existsSync(path.join(DIR, "test", "markets.test.mjs"))) runSuite("markets", "markets.test.mjs", env);
     runSuite("gdpr", "gdpr.test.mjs", env);
   } finally {
     stopWorker(w);
