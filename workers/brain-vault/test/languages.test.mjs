@@ -194,7 +194,7 @@ try {
   ok(r.status < 300 && r.data.page.language === "fr", "or French");
 
   r = await call("/health");
-  ok(r.data && r.data.part === "l2", "health reports Markets step 2");
+  ok(r.data && ["l2", "m3"].includes(r.data.part), "health reports Markets step 2 or later");
 } catch (e) {
   fail++;
   console.log("FAIL crashed: " + (e && e.stack || e));

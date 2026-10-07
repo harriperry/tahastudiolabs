@@ -436,7 +436,7 @@
         refresh();
       }
     };
-    brainLoading = Promise.all([import("/assets/growth-brain.js?v=l2"), import("/assets/growth-campaign.js?v=l2")]).then(function (mods) {
+    brainLoading = Promise.all([import("/assets/growth-brain.js?v=l2"), import("/assets/growth-campaign.js?v=m3")]).then(function (mods) {
       brain = mods[0].createBrain(ctx);
       camps = mods[1].createCampaigns(ctx);
       if (ui) renderDetail();
@@ -513,9 +513,16 @@
             h("button", { type: "button", class: "btn-copy", "aria-pressed": "false", id: "gcTeamBtn", on: { click: function () {
               S.view = S.view === "team" ? "" : "team";
               document.getElementById("gcTeamBtn").setAttribute("aria-pressed", S.view === "team" ? "true" : "false");
+              document.getElementById("gcMarketsBtn").setAttribute("aria-pressed", "false");
               if (S.view === "team") loadBrain();
               renderDetail();
             } } }, "Team"),
+            h("button", { type: "button", class: "btn-copy", "aria-pressed": "false", id: "gcMarketsBtn", on: { click: function () {
+              S.view = S.view === "markets" ? "" : "markets";
+              document.getElementById("gcMarketsBtn").setAttribute("aria-pressed", S.view === "markets" ? "true" : "false");
+              document.getElementById("gcTeamBtn").setAttribute("aria-pressed", "false");
+              renderDetail();
+            } } }, "Markets"),
             h("button", { type: "button", class: "btn-copy", on: { click: closePanel } }, "Close"))
         ),
         h("div", { class: "gc-strip" }, ui.provider, ui.live),
@@ -536,6 +543,64 @@
   function marketName(code) {
     var m = MARKETS.filter(function (x) { return x.code === code; })[0];
     return m ? m.name : code;
+  }
+
+  /* Markets step 3: the Markets view. Each market's default monthly fee (new costs start with
+     it) and default channels (a new client's plan and campaigns start with them), plus where
+     page visitors can complain about their data. Per client, everything can still be changed. */
+  var MK = { loaded: false, loading: false, list: [], channels: [], msg: {} };
+  var CH_LABEL = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google_business: "Google Business", email: "Email", whatsapp: "WhatsApp" };
+  function loadMarkets(force) {
+    if ((MK.loaded && !force) || MK.loading) return;
+    MK.loading = true;
+    api("/admin/markets").then(function (r) {
+      MK.loading = false;
+      MK.loaded = true;
+      if (r.ok && r.d) { MK.list = r.d.markets; MK.channels = r.d.channels; }
+      if (S.view === "markets") renderDetail();
+    });
+  }
+  function renderMarkets() {
+    loadMarkets();
+    ui.main.appendChild(h("div", { class: "gc-title" }, h("div", null, h("h3", { text: "Markets" }),
+      h("div", { class: "gc-sub", text: "One TAHA, several markets. Each market sets its clients' currency, time zone, default channels and default monthly fee, and names its data protection authority on campaign pages. Change a client's market in her header." }))));
+    if (!MK.loaded) { ui.main.appendChild(h("div", { class: "gc-msg info" }, h("span", { class: "spin" }), "Loading...")); return; }
+    MK.list.forEach(function (m) {
+      var box = h("div", { class: "gc-box" });
+      var cur = m.currency === "XAF" ? "FCFA" : m.currency;
+      var count = S.clients.filter(function (c) { return (c.market || "SE") === m.code; }).length;
+      box.appendChild(h("div", { class: "gc-bh" }, m.name + " · " + cur, h("span", { class: "gc-badge", text: count + (count === 1 ? " client" : " clients") })));
+      box.appendChild(h("div", { class: "gc-meta", text: "Time zone " + m.timeZone + ". Page visitors can complain to " + m.authority + "." }));
+      var feeId = "mk-fee-" + m.code;
+      var fee = h("input", { type: "number", min: "0", step: "any", id: feeId });
+      fee.value = m.fee == null ? "0" : String(m.fee);
+      box.appendChild(h("div", { class: "gc-ed" }, h("label", { for: feeId, text: "Default monthly fee (" + cur + "), used for new campaigns' costs" }), fee));
+      box.appendChild(h("div", { class: "gc-label", text: "Default channels for new clients" }));
+      var ticks = h("div", { class: "lg-ticks" });
+      var inputs = [];
+      MK.channels.forEach(function (ch) {
+        var id = "mk-ch-" + m.code + "-" + ch;
+        var el = h("input", { type: "checkbox", id: id });
+        el.checked = m.channels.indexOf(ch) > -1;
+        el.dataset.ch = ch;
+        inputs.push(el);
+        ticks.appendChild(h("label", { for: id, class: "lp-tick" }, el, h("span", { text: CH_LABEL[ch] || ch })));
+      });
+      box.appendChild(ticks);
+      var save = h("button", { type: "button", class: "btn-copy", on: { click: function () {
+        var chosen = inputs.filter(function (x) { return x.checked; }).map(function (x) { return x.dataset.ch; });
+        save.disabled = true;
+        api("/admin/markets/" + m.code, { method: "PUT", body: { fee: Number(fee.value || 0), channels: chosen } }).then(function (r) {
+          save.disabled = false;
+          MK.msg[m.code] = r.ok ? { cls: "ok", text: "Saved. New clients and new campaigns in " + m.name + " start with these." } : { cls: "err", text: (r.d && r.d.message && r.d.message.en) || "Could not save." };
+          if (r.ok && r.d && r.d.market) { var i = MK.list.findIndex(function (x) { return x.code === m.code; }); if (i > -1) MK.list[i] = r.d.market; refresh(); }
+          renderDetail();
+        });
+      } } }, "Save " + m.name);
+      box.appendChild(h("div", { class: "gc-brain-tools" }, save));
+      if (MK.msg[m.code]) box.appendChild(h("div", { class: "gc-msg " + MK.msg[m.code].cls, role: "status", text: MK.msg[m.code].text }));
+      ui.main.appendChild(box);
+    });
   }
 
   function buildInviteForm() {
@@ -609,6 +674,8 @@
         S.view = "";
         var tb = document.getElementById("gcTeamBtn");
         if (tb) tb.setAttribute("aria-pressed", "false");
+        var mb = document.getElementById("gcMarketsBtn");
+        if (mb) mb.setAttribute("aria-pressed", "false");
         if (S.selectedId === c.id && S.detail) { renderDetail(); return; }
         S.selectedId = c.id;
         S.detail = null;
@@ -660,6 +727,11 @@
     if (!ui) return;
     clear(ui.main);
     if (S.notice) ui.main.appendChild(h("div", { class: "gc-msg " + S.notice.cls, role: "status", text: S.notice.text }));
+    /* Markets step 3: each market's default fee and channels. */
+    if (S.view === "markets") {
+      renderMarkets();
+      return;
+    }
     /* V2 Part H: the Team view (language reviewers). */
     if (S.view === "team") {
       if (!camps) {

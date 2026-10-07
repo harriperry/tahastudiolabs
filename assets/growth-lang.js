@@ -13,7 +13,7 @@
    Production (the landing page, Send to ScriptForge, client review, delivery) uses the
    approved text: approved() gives the map, and applyApproved() in growth-langfields.js puts
    it in place. */
-import { applyApproved, wordDiff } from "./growth-langfields.js?v=l2";
+import { applyApproved, wordDiff } from "./growth-langfields.js?v=m3";
 import { LANGUAGES, REVIEW_LANGUAGES } from "./growth-languages.js?v=l2";
 
 const STATE = {

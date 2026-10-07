@@ -7,6 +7,7 @@ import { createLoginToken, isAdminEmail, signinUrl, verifyLink } from "./auth.js
 import { composeEmail, sendMail } from "./mail.js";
 import { json, lang, newId, normEmail, nowIso, readJson, validEmail } from "./util.js";
 import { MARKETS, currencyList, currencyOf, market, marketList } from "../../../assets/growth-markets.js";
+import { PLAN_CHANNELS } from "./rhythm-core.js";
 
 const M = {
   badRequest: { sv: "Ogiltig förfrågan.", en: "Bad request." },
@@ -15,7 +16,8 @@ const M = {
   adminEmail: { sv: "Den adressen är en admin-adress.", en: "That address is an admin address." },
   exists: { sv: "Det finns redan en kund med den e-postadressen.", en: "A client with that email already exists." },
   notFound: { sv: "Kunden finns inte.", en: "Client not found." },
-  market: { sv: "Okänd marknad.", en: "Unknown market." }
+  market: { sv: "Okänd marknad.", en: "Unknown market." },
+  marketSettings: { sv: "Avgiften måste vara ett tal från 0 och minst en kanal måste väljas.", en: "The fee must be a number from 0, and at least one channel must be chosen." }
 };
 
 function publicClient(c) {
@@ -113,8 +115,34 @@ export async function listClients(env) {
        (SELECT built_from_intake_version FROM brains b2 WHERE b2.client_id = c.id ORDER BY version DESC LIMIT 1) AS brain_built_from
      FROM clients c ORDER BY c.created_at DESC`
   ).all();
-  const clients = (rows.results || []).map(publicClient);
-  return json({ clients, newCount: clients.filter((c) => c.isNew).length, checkedAt: nowIso(), markets: marketList(), currencies: currencyList() });
+  const markets = await savedMarkets(env);
+  /* Markets step 3: each client carries her market's default channels and fee for the panel. */
+  const byCode = Object.fromEntries(markets.map((m) => [m.code, m]));
+  const clients = (rows.results || []).map(publicClient).map((c) => Object.assign(c, { marketChannels: byCode[c.market].channels, marketFee: byCode[c.market].fee }));
+  return json({ clients, newCount: clients.filter((c) => c.isNew).length, checkedAt: nowIso(), markets, currencies: currencyList() });
+}
+
+async function savedMarkets(env) {
+  return marketList((await env.DB.prepare("SELECT * FROM market_settings").all()).results || []);
+}
+
+/* GET /admin/markets, PUT /admin/markets/:code {fee, channels}: Harry's settings per market
+   (Markets step 3). The fee is the default monthly fee in the market's currency (new costs
+   start with it); the channels are the default for a new client's plan and campaigns. */
+export async function getMarkets(env) {
+  return json({ markets: await savedMarkets(env), channels: PLAN_CHANNELS });
+}
+
+export async function putMarket(request, env, code) {
+  if (!MARKETS[code]) return json({ error: "market", message: M.market }, 404);
+  const b = await readJson(request, 2048);
+  if (!b) return json({ error: "bad_request", message: M.badRequest }, 400);
+  const fee = Number(b.fee);
+  const channels = Array.isArray(b.channels) ? b.channels.filter((c, i, a) => PLAN_CHANNELS.includes(c) && a.indexOf(c) === i) : [];
+  if (!isFinite(fee) || fee < 0 || fee > 1e9 || !channels.length) return json({ error: "invalid", message: M.marketSettings }, 400);
+  await env.DB.prepare("INSERT INTO market_settings (code, fee, channels, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(code) DO UPDATE SET fee = excluded.fee, channels = excluded.channels, updated_at = excluded.updated_at")
+    .bind(code, fee, JSON.stringify(channels), nowIso()).run();
+  return json({ ok: true, market: (await savedMarkets(env)).find((m) => m.code === code) });
 }
 
 /* PUT /admin/clients/:clientId/market {market}: the market the client belongs to (Markets step

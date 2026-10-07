@@ -30,8 +30,8 @@ export const RESULT_FIELDS = {
 /* The free text every business can add. */
 export const SAID = { key: "said", type: "text", label: "What customers said", max: 1000 };
 
-export const POST_CHANNELS = ["instagram", "facebook", "tiktok", "linkedin", "google_business", "email", "landing_page", "other"];
-export const POST_LABEL = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google_business: "Google Business", email: "Email", landing_page: "Landing page", other: "Something else" };
+export const POST_CHANNELS = ["instagram", "facebook", "tiktok", "linkedin", "google_business", "email", "whatsapp", "landing_page", "other"];
+export const POST_LABEL = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google_business: "Google Business", email: "Email", whatsapp: "WhatsApp", landing_page: "Landing page", other: "Something else" };
 export const MAX_NUMBER = 10000000;
 
 export function niche(n) {

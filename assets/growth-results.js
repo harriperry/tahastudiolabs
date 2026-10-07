@@ -6,7 +6,7 @@
    shown), a note, and a small chart of the client's main number (orders, bookings or customers)
    month by month. The numbers and the note go into the next campaign's {{LAST_RESULTS}}.
    No em-dashes anywhere. */
-import { POST_CHANNELS, POST_LABEL } from "./growth-resultfields.js?v=d";
+import { POST_CHANNELS, POST_LABEL } from "./growth-resultfields.js?v=m3";
 
 export function createResultsUi(ctx) {
   const { h, api } = ctx;

@@ -14,7 +14,8 @@
     "Instagram Story and Reel cover: top 250 and bottom 340 became top 270, bottom 384 for Stories and 672 for Reel covers (longer captions), plus 65 on each side.",
     "TikTok cover: bottom 420 became 484, and top 130 and left 44 were added (right 140 unchanged).",
     "LinkedIn: added a 4:5 portrait size, 1080 x 1350.",
-    "Google Business: clear zone made exact, everything important inside the centre 900 x 900."
+    "Google Business: clear zone made exact, everything important inside the centre 900 x 900.",
+    "WhatsApp Status (Markets step 3, 7 October 2026): 1080 x 1920 with the top 220 and bottom 300 px kept empty. TAHA's own measurement on current phones; WhatsApp publishes no official safe zone."
   ],
   "platforms": {
     "instagram_feed": {
@@ -109,6 +110,13 @@
       "clear_zone": "Keep the left half (960 px) empty on desktop for the headline. The mobile crop is the right 864 x 1080 (4:5): keep its top third empty there.",
       "focus": "The promise of the offer, matching the page headline."
     },
+    "whatsapp_status": {
+      "label": "WhatsApp Status",
+      "ratio": "9:16", "width": 1080, "height": 1920,
+      "clear": { "top": 220, "bottom": 300, "left": 60, "right": 60 },
+      "clear_zone": "Keep the top 220 px (name and progress bar) and the bottom 300 px (reply bar and caption) empty, and 60 px on each side. Subject in the middle.",
+      "focus": "Vertical and warm, one subject in the middle, readable on a small phone in a few seconds."
+    },
     "open_graph": {
       "label": "Link preview (Open Graph)",
       "ratio": "1.91:1", "width": 1200, "height": 630,
@@ -118,7 +126,7 @@
     }
   },
   "slots": {
-    "socialCopy": { "instagram": "instagram_feed", "facebook": "facebook_feed", "tiktok": "tiktok_cover", "linkedin": "linkedin_square" },
+    "socialCopy": { "instagram": "instagram_feed", "facebook": "facebook_feed", "tiktok": "tiktok_cover", "linkedin": "linkedin_square", "whatsapp": "whatsapp_status" },
     "adPlatformOrder": ["facebook", "instagram", "linkedin", "tiktok"],
     "adPlatform": { "facebook": "facebook_feed", "instagram": "instagram_feed", "linkedin": "linkedin_square", "tiktok": "tiktok_cover" },
     "adAngles": ["product", "person", "setting", "product", "person"],

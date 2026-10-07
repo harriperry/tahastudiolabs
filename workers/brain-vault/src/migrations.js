@@ -558,5 +558,20 @@ export const MIGRATIONS = [
          market gives the defaults, for now the currency. Existing clients start in Sweden. */
       `ALTER TABLE clients ADD COLUMN market TEXT NOT NULL DEFAULT 'SE'`
     ]
+  },
+  {
+    id: 13,
+    name: "markets-step-3",
+    statements: [
+      /* Hub and spoke, step 3: Harry's own settings per market over the defaults in
+         assets/growth-markets.js: the default monthly fee (in the market's currency) and the
+         default channels for a new client's plan and campaigns. */
+      `CREATE TABLE IF NOT EXISTS market_settings (
+        code TEXT PRIMARY KEY,
+        fee REAL,
+        channels TEXT,
+        updated_at TEXT NOT NULL
+      )`
+    ]
   }
 ];

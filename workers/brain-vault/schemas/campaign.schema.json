@@ -66,10 +66,11 @@
           "tiktok",
           "linkedin",
           "google_business",
-          "email"
+          "email",
+          "whatsapp"
         ]
       },
-      "maxItems": 6,
+      "maxItems": 7,
       "uniqueItems": true
     },
     "concept": {
@@ -174,7 +175,8 @@
               "tiktok",
               "linkedin",
               "google_business",
-              "email"
+              "email",
+              "whatsapp"
             ]
           },
           "text": {
@@ -196,7 +198,7 @@
           "hashtags"
         ]
       },
-      "maxItems": 6
+      "maxItems": 7
     },
     "adVariations": {
       "type": "array",
@@ -415,6 +417,7 @@
               "instagram_feed",
               "instagram_feed_3x4",
               "instagram_story",
+              "whatsapp_status",
               "tiktok_cover",
               "facebook_feed",
               "facebook_square",

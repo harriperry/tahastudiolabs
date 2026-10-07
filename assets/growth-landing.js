@@ -15,7 +15,7 @@
    Every campaign text reaches the page through campaignText(). That is the one place Part H
    (human language review) changes: it will return the approved Swedish text instead. */
 import qrcode from "./vendor/qrcode-generator-1.4.4.mjs";
-import { currencyLabel, currencyList, formatMoney } from "./growth-markets.js?v=m1";
+import { authorityLine, currencyLabel, currencyList, formatMoney } from "./growth-markets.js?v=m3";
 import { localeOf, pageLanguage } from "./growth-languages.js?v=l2";
 
 export const TEMPLATE_URL = "/assets/growth/landing.template.html?v=g2b";
@@ -158,8 +158,8 @@ export function codePrefix(company) {
   const w = words.find((x) => !GENERIC.test(x)) || words[0] || "TAHA";
   return w.toUpperCase().slice(0, 8);
 }
-const CODE_SUFFIX = { share: "WEB", instagram: "IG", facebook: "FB", tiktok: "TT", linkedin: "LI", google: "GB", email: "EM", print: "QR", video: "VID", bio: "BIO" };
-export const CHANNEL_LABEL = { share: "Short link (shared anywhere)", instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google: "Google Business", email: "Email", print: "Print (QR)", video: "Video", bio: "Profile link", download: "Downloaded page", direct: "Direct or unknown", other: "Other" };
+const CODE_SUFFIX = { share: "WEB", instagram: "IG", facebook: "FB", tiktok: "TT", linkedin: "LI", google: "GB", email: "EM", whatsapp: "WA", print: "QR", video: "VID", bio: "BIO" };
+export const CHANNEL_LABEL = { share: "Short link (shared anywhere)", instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google: "Google Business", email: "Email", whatsapp: "WhatsApp", print: "Print (QR)", video: "Video", bio: "Profile link", download: "Downloaded page", direct: "Direct or unknown", other: "Other" };
 
 /* Which buttons the page can show, from the contact details Harry filled in. */
 export function availableActions(s) {
@@ -197,7 +197,8 @@ export function linkPlan(doc, prefix, settings) {
   });
   if (channels.includes("instagram")) add("bio.instagram", "instagram", "bio", "Instagram bio link");
   if (channels.includes("tiktok")) add("bio.tiktok", "tiktok", "bio", "TikTok bio link");
-  const adChannel = channels.includes("facebook") ? "facebook" : channels.includes("instagram") ? "instagram" : channels[0] || "facebook";
+  /* Ads run on Meta, TikTok or LinkedIn; a WhatsApp-only campaign's ads (click to WhatsApp) run on Facebook. */
+  const adChannel = channels.includes("facebook") ? "facebook" : channels.includes("instagram") ? "instagram" : channels.find((c) => !["whatsapp", "email", "google"].includes(c)) || "facebook";
   (doc.adVariations || []).forEach((a, i) => add("ad." + (i + 1), adChannel, "paid", "Ad variation " + (i + 1)));
   if (doc.shortVideo) add("video.voice", "video", "video", "Short link read aloud in the video");
   add("qr.flyer", "print", "print", "QR code on flyers");
@@ -243,7 +244,8 @@ function campaignTextFor(text, key) {
   return "";
 }
 
-/* Privacy notice per page: the client is the controller, TAHA the processor (spec 9.5). */
+/* Privacy notice per page: the client is the controller, TAHA the processor (spec 9.5).
+   Markets step 3: the last line names the data protection authority of the client's market. */
 export function privacyNotice(m) {
   const co = m.company;
   const contact = [m.settings.email, m.settings.phone].filter(Boolean).join(", ") || co;
@@ -255,7 +257,7 @@ export function privacyNotice(m) {
       m.formOn ? "Si vous envoyez une demande, nous conservons votre nom, votre numéro de téléphone ou votre adresse e-mail et votre message afin que " + co + " puisse vous répondre. La base légale est l'intérêt légitime de " + co + " à répondre à votre demande. " + co + " ne vous enverra des offres que si vous cochez la case, sur la base de votre consentement, que vous pouvez retirer à tout moment." : null,
       m.formOn ? "Les demandes sont conservées dans l'UE chez Cloudflare et supprimées 90 jours après la fin de l'offre" + (end ? " (" + end + ")" : "") + "." : null,
       "Les visites sont comptées sans cookies. Votre adresse IP n'est pas conservée ; une valeur aléatoire qui change chaque jour sert uniquement à compter les visiteurs uniques. Les données de visite sont supprimées après 90 jours.",
-      "Vous avez le droit de savoir quelles informations nous détenons sur vous, de les faire corriger ou supprimer et de vous y opposer. Contactez " + co + ". Vous pouvez aussi déposer une plainte auprès de l'autorité suédoise de protection des données (IMY), imy.se."
+      "Vous avez le droit de savoir quelles informations nous détenons sur vous, de les faire corriger ou supprimer et de vous y opposer. Contactez " + co + ". " + authorityLine(m.market, "fr")
     ].filter(Boolean);
   }
   if (m.lang === "es") {
@@ -265,7 +267,7 @@ export function privacyNotice(m) {
       m.formOn ? "Si envías una consulta, guardamos tu nombre, tu teléfono o tu correo electrónico y tu mensaje para que " + co + " pueda responderte. La base legal es el interés legítimo de " + co + " en responder a tu consulta. " + co + " solo te enviará ofertas si marcas la casilla, con tu consentimiento como base, y puedes retirarlo cuando quieras." : null,
       m.formOn ? "Las consultas se guardan en la UE con Cloudflare y se borran 90 días después de que termine la oferta" + (end ? " (" + end + ")" : "") + "." : null,
       "Las visitas se cuentan sin cookies. Tu dirección IP no se guarda; un valor aleatorio que cambia cada día se usa solo para contar visitantes únicos. Los datos de visitas se borran a los 90 días.",
-      "Tienes derecho a saber qué datos tenemos sobre ti, a que se corrijan o se borren y a oponerte. Contacta con " + co + ". También puedes reclamar ante la autoridad sueca de protección de datos (IMY), imy.se."
+      "Tienes derecho a saber qué datos tenemos sobre ti, a que se corrijan o se borren y a oponerte. Contacta con " + co + ". " + authorityLine(m.market, "es")
     ].filter(Boolean);
   }
   if (m.lang === "en") {
@@ -275,7 +277,7 @@ export function privacyNotice(m) {
       m.formOn ? "If you send an enquiry, we store your name, your phone number or email address and your message so that " + co + " can answer you. The legal basis is " + co + "'s legitimate interest in answering your enquiry. Only if you tick the box will " + co + " also send you offers, based on your consent, which you can withdraw at any time." : null,
       m.formOn ? "Enquiries are stored in the EU with Cloudflare and deleted 90 days after the offer ends" + (end ? " (" + end + ")" : "") + "." : null,
       "Visits are counted without cookies. Your IP address is not stored; a random value that changes every day is used only to count unique visitors. Counting data is deleted after 90 days.",
-      "You have the right to know what information we hold about you, to have it corrected or deleted, and to object. Contact " + co + ". You can also complain to the Swedish Authority for Privacy Protection (IMY), imy.se."
+      "You have the right to know what information we hold about you, to have it corrected or deleted, and to object. Contact " + co + ". " + authorityLine(m.market, "en")
     ].filter(Boolean);
   }
   return [
@@ -284,7 +286,7 @@ export function privacyNotice(m) {
     m.formOn ? "Om du skickar en förfrågan sparar vi ditt namn, ditt telefonnummer eller din e-postadress och ditt meddelande, så att " + co + " kan svara dig. Den rättsliga grunden är " + co + " berättigade intresse av att svara på din förfrågan. Bara om du kryssar i rutan skickar " + co + " även erbjudanden till dig, med ditt samtycke som grund. Du kan ta tillbaka samtycket när du vill." : null,
     m.formOn ? "Förfrågningar lagras inom EU hos Cloudflare och raderas 90 dagar efter att erbjudandet har slutat" + (end ? " (" + end + ")" : "") + "." : null,
     "Besök räknas utan kakor. Din IP-adress sparas inte; ett slumpat värde som byts varje dygn används bara för att räkna unika besökare. Besöksdata raderas efter 90 dagar.",
-    "Du har rätt att få veta vilka uppgifter som finns om dig, att få dem rättade eller raderade och att invända. Kontakta " + co + ". Du kan också klaga hos Integritetsskyddsmyndigheten (IMY), imy.se."
+    "Du har rätt att få veta vilka uppgifter som finns om dig, att få dem rättade eller raderade och att invända. Kontakta " + co + ". " + authorityLine(m.market, "sv")
   ].filter(Boolean);
 }
 
@@ -309,7 +311,7 @@ export function jsonLd(m) {
 }
 
 /* Builds the model the template is filled from. images: name to URL (hosted) or data URI. */
-export function pageModel({ doc, text, profile, kit, page, images, origin, tahaEmail, mode, links, brainNotes }) {
+export function pageModel({ doc, text, profile, kit, page, images, origin, tahaEmail, mode, links, brainNotes, market }) {
   const s = page.settings || {};
   const lang = text.language;
   const company = noDash(s.companyName || (profile && profile.companyName) || "");
@@ -320,6 +322,7 @@ export function pageModel({ doc, text, profile, kit, page, images, origin, tahaE
   return {
     mode,
     lang,
+    market: market || "SE",
     t: L[lang],
     text,
     doc,
@@ -793,7 +796,8 @@ export function createLandingUi(ctx) {
       origin: s.origin || location.origin,
       tahaEmail: "agborkak@gmail.com",
       mode,
-      links: s.links
+      links: s.links,
+      market: info.client.market
     });
     return { html: renderPage(tpl, m), ended: renderPage(tpl, m, { ended: true }), model: m };
   }
@@ -1153,7 +1157,7 @@ export function createLandingUi(ctx) {
       ["gbp_views", "Google Business profile views"],
       ["gbp_calls", "Google Business calls"]
     ];
-    (doc.channels || []).filter((c) => c !== "email" && c !== "google_business").forEach((c) => base.push(["followers_" + c, "Followers on " + (CHANNEL_LABEL[c] || c)]));
+    (doc.channels || []).filter((c) => c !== "email" && c !== "google_business" && c !== "whatsapp").forEach((c) => base.push(["followers_" + c, "Followers on " + (CHANNEL_LABEL[c] || c)]));
     const codes = Array.from(new Set(links.filter((l) => l.offerCode).map((l) => l.offerCode)));
     codes.forEach((c) => base.push(["redemptions-" + c, "Redemptions of " + c]));
     return base;
@@ -1220,7 +1224,7 @@ export function createLandingUi(ctx) {
     box.appendChild(grid);
     box.appendChild(h("div", { class: "gc-label", text: "Costs" }));
     const cg = h("div", { class: "lp-grid" });
-    cg.appendChild(inp("Campaign fee (" + curLabel + ")", s.roi.costs.fee, (v) => { s.roi.costs.fee = v; s.roi.dirty = true; }, { type: "number", min: "0", step: "any" }));
+    cg.appendChild(inp("Campaign fee (" + curLabel + ")" + (s.roi.costs.feeFromMarket ? ", the market's default until you save" : ""), s.roi.costs.fee, (v) => { s.roi.costs.fee = v; s.roi.dirty = true; }, { type: "number", min: "0", step: "any" }));
     cg.appendChild(inp("Average order value (" + curLabel + ")", s.roi.costs.avgOrderValue == null ? "" : s.roi.costs.avgOrderValue, (v) => { s.roi.costs.avgOrderValue = v === "" ? null : v; s.roi.dirty = true; }, { type: "number", min: "0", step: "any" }));
     /* The client's market sets the currency; it can still be changed for one campaign here. */
     const curSel = h("select", { id: "lpCurrency" }, currencyList().map((c) => h("option", { value: c.code, selected: c.code === cur }, c.label + " (" + c.name + ")")));

@@ -19,13 +19,13 @@
 import { validate } from "./growth-validate.js?v=p5";
 import { stripDashes } from "./growth-brain.js?v=l2";
 
-export const PLATFORMS_URL = "/assets/growth/platforms.json?v=g1";
+export const PLATFORMS_URL = "/assets/growth/platforms.json?v=m3";
 export const VISUALS_PROMPT_URL = "/assets/growth/visuals.prompt.json?v=l2";
 
 /* Fields ScriptForge sets from platforms.json; the model never writes them. */
 const SET_BY_SCRIPTFORGE = ["output_key", "platform", "placement", "ratio", "width", "height", "clear_zone"];
 const MUST_BE_CLIENT_PHOTO = ["product", "place", "team"];
-const CHANNEL_LABEL = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google_business: "Google Business", email: "Email" };
+const CHANNEL_LABEL = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google_business: "Google Business", email: "Email", whatsapp: "WhatsApp" };
 
 /* ---------- pure helpers (exported for tests) ---------- */
 

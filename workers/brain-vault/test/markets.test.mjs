@@ -3,7 +3,10 @@
    entered (amounts kept), and one campaign can still use another currency.
    Same local setup as results.test.mjs (started by test/run-all.mjs). */
 import fs from "node:fs";
-import { CURRENCIES, MARKETS, currencyLabel, currencyOf, formatMoney, market } from "../../../assets/growth-markets.js";
+import { CURRENCIES, MARKETS, authorityLine, currencyLabel, currencyOf, formatMoney, market, marketDate } from "../../../assets/growth-markets.js";
+import { linkPlan, privacyNotice } from "../../../assets/growth-landing.js";
+import { buildSlots } from "../../../assets/growth-visuals.js";
+import { lockedChips } from "../../../assets/growth-langfields.js";
 
 const BASE = process.env.VAULT_URL || "http://127.0.0.1:8080/api/vault";
 const ORIGIN = process.env.ORIGIN || "http://localhost:8080";
@@ -130,8 +133,52 @@ try {
   r = await call("/admin/clients/" + SE.id + "/market", { method: "PUT", body: { market: "SE" } });
   ok(r.status === 401, "only Harry can change a market");
 
+  /* ---------- Markets step 3 ---------- */
+  ok(/Swedish Authority for Privacy Protection \(IMY\), imy\.se\.$/.test(authorityLine("SE", "en")) && /Integritetsskyddsmyndigheten \(IMY\), imy\.se\.$/.test(authorityLine("SE", "sv")), "Swedish pages still name IMY, word for word as before");
+  ok(/Personal Data Protection Authority \(Law No\. 2024\/017\)\.$/.test(authorityLine("CM", "en")) && /loi n° 2024\/017/.test(authorityLine("CM", "fr")) && /ndpc\.gov\.ng/.test(authorityLine("NG", "en")), "Cameroon pages name Cameroon's authority (Law No. 2024/017), Nigerian pages the NDPC");
+  const pnCM = privacyNotice({ lang: "en", market: "CM", company: "Chef Sandy's Kitchen", settings: {}, formOn: false, tahaEmail: "t@t.t" });
+  ok(/Cameroon's Personal Data Protection Authority/.test(pnCM[pnCM.length - 1]) && !/IMY/.test(pnCM.join(" ")), "a Cameroon client's English page notice has no IMY");
+  ok(/IMY/.test(privacyNotice({ lang: "sv", company: "X", settings: {}, formOn: false, tahaEmail: "t@t.t" }).join(" ")), "a page without a market stays Swedish (IMY)");
+  ok(/^\d{4}-\d{2}-\d{2}$/.test(marketDate("CM")) && marketDate("CM", Date.UTC(2026, 9, 31, 23, 30)) === "2026-11-01" && marketDate("SE", Date.UTC(2026, 11, 31, 23, 30)) === "2027-01-01" && marketDate("CM", Date.UTC(2026, 11, 31, 23, 30)) === "2027-01-01", "each market has its own date (Douala and Stockholm)");
+  ok(MARKETS.CM.channels[0] === "whatsapp" && MARKETS.NG.channels[0] === "whatsapp" && MARKETS.SE.channels.includes("google_business"), "WhatsApp first in Cameroon and Nigeria; Google Business in Sweden");
+
+  /* WhatsApp as a channel */
+  const waDoc = Object.assign(campaign("cl_x", "2026-12"), { channels: ["whatsapp", "facebook"] });
+  waDoc.socialCopy = [{ channel: "whatsapp", text: "Hello! Ndole special this week. Order on WhatsApp.", hashtags: [] }, waDoc.socialCopy.find((p) => p.channel === "facebook")];
+  const lp = linkPlan(waDoc, "SANDY", {});
+  ok(lp.some((l) => l.outputKey === "post.whatsapp" && l.offerCode === "SANDY-WA") && lp.filter((l) => l.medium === "paid").every((l) => l.channel === "facebook"), "a WhatsApp post gets its own link and offer code (SANDY-WA); ads still run on Facebook");
+  ok(lockedChips("Use SANDY-WA today").includes("SANDY-WA"), "a reviewer cannot change a WhatsApp offer code");
+  const plat = JSON.parse(fs.readFileSync(new URL("../../../assets/growth/platforms.json", import.meta.url), "utf8"));
+  const slots = buildSlots(waDoc, plat);
+  ok(slots.some((x) => x.id === "v_social_whatsapp" && x.width === 1080 && x.height === 1920), "the Visual Pack makes a 9:16 WhatsApp Status image");
+  const WA = await newClient("Market WhatsApp", "CM");
+  r = await call("/admin/campaign/" + WA.id, { method: "POST", cookie: ADMIN, body: { campaign: Object.assign(waDoc, { clientId: WA.id, campaignId: "cp_2026_12_en" }) } });
+  ok(r.status === 201, "a campaign with the WhatsApp channel is saved");
+
+  /* Harry's market settings */
+  r = await call("/admin/markets", { cookie: ADMIN });
+  ok(r.status === 200 && r.data.markets.find((m) => m.code === "CM").channels.join() === "whatsapp,facebook,instagram" && r.data.channels.includes("whatsapp"), "the Markets view lists each market's defaults and the channels to pick from");
+  r = await call("/admin/plan/" + WA.id, { cookie: ADMIN });
+  ok(r.data.plan.saved === false && r.data.plan.channels[0] === "whatsapp", "a new Cameroon client's monthly plan starts with WhatsApp");
+  r = await call("/admin/markets/CM", { method: "PUT", cookie: ADMIN, body: { fee: 25000, channels: ["whatsapp", "facebook", "nope"] } });
+  ok(r.status === 200 && r.data.market.fee === 25000 && r.data.market.channels.join() === "whatsapp,facebook", "Harry sets Cameroon's default fee and channels (unknown channels dropped)");
+  r = await call("/admin/costs/" + WA.id + "/cp_2026_12_en", { cookie: ADMIN });
+  ok(r.data.fee === 25000 && r.data.currency === "XAF" && r.data.feeFromMarket === true, "a new Cameroon campaign's costs start with the market fee, 25 000 FCFA");
+  r = await call("/admin/clients", { cookie: ADMIN });
+  const waRow = r.data.clients.find((c) => c.id === WA.id);
+  ok(waRow.marketChannels.join() === "whatsapp,facebook" && waRow.marketFee === 25000, "the client list carries her market's channels and fee for the New campaign form");
+  r = await call("/admin/markets/CM", { method: "PUT", cookie: ADMIN, body: { fee: -1, channels: ["whatsapp"] } });
+  ok(r.status === 400, "a negative fee is refused");
+  r = await call("/admin/markets/CM", { method: "PUT", cookie: ADMIN, body: { fee: 0, channels: [] } });
+  ok(r.status === 400, "and so is a market without channels");
+  r = await call("/admin/markets/XX", { method: "PUT", cookie: ADMIN, body: { fee: 0, channels: ["whatsapp"] } });
+  ok(r.status === 404, "an unknown market is refused");
+  r = await call("/admin/markets", {});
+  ok(r.status === 401, "only Harry sees the markets");
+  await call("/admin/markets/CM", { method: "PUT", cookie: ADMIN, body: { fee: 0, channels: ["whatsapp", "facebook", "instagram"] } });
+
   r = await call("/health");
-  ok(r.data && ["m1", "l2"].includes(r.data.part), "health reports Markets step 1 or later");
+  ok(r.data && ["m3"].includes(r.data.part), "health reports Markets step 3");
 } catch (e) {
   fail++;
   console.log("FAIL crashed: " + (e && e.stack || e));

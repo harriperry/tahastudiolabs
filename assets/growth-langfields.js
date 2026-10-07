@@ -8,9 +8,9 @@
    and visuals (by id: visuals.v_offer.overlay.headline). */
 import { reviewLanguage } from "./growth-languages.js";
 
-const CH = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google_business: "Google Business", email: "Email" };
+const CH = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google_business: "Google Business", email: "Email", whatsapp: "WhatsApp" };
 /* Where a platform allows less than the campaign schema, the platform wins. */
-const POST_LIMIT = { instagram: 2200, tiktok: 2200, facebook: 3000, linkedin: 3000, google_business: 1500, email: 3000 };
+const POST_LIMIT = { instagram: 2200, tiktok: 2200, facebook: 3000, linkedin: 3000, google_business: 1500, email: 3000, whatsapp: 700 };
 
 export function langFields(doc) {
   const out = [];
@@ -110,7 +110,7 @@ export function lockedChips(text) {
   const found = [];
   const add = (re) => { (s.match(re) || []).forEach((x) => { if (!found.includes(x)) found.push(x); }); };
   add(/https?:\/\/[^\s<>"']+/g);
-  add(/\b[A-Z]{2,8}-(?:IG|FB|TT|LI|GB|EM|QR|VID|BIO|WEB)\b/g);
+  add(/\b[A-Z]{2,8}-(?:IG|FB|TT|LI|GB|EM|WA|QR|VID|BIO|WEB)\b/g);
   add(/\{\{[A-Z_]+\}\}/g);
   return found;
 }

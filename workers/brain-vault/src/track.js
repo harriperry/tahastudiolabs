@@ -16,7 +16,7 @@ import { escapeHtml, json, newId, nowIso, randomToken, sha256hex } from "./util.
 
 const EVENT_TYPES = ["view", "click", "form", "scan", "link"];
 const BUTTONS = ["call", "whatsapp", "booking", "directions", "order", "form", "other"];
-const SOURCES = ["instagram", "facebook", "tiktok", "linkedin", "google", "email", "print", "video", "bio", "share", "download"];
+const SOURCES = ["instagram", "facebook", "tiktok", "linkedin", "google", "email", "whatsapp", "print", "video", "bio", "share", "download"];
 const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|whatsapp|telegrambot|discordbot|linkedinbot|embedly|quora link|pinterest|vkshare|headless|lighthouse|pagespeed|curl|wget|python-requests|httpclient|okhttp|go-http/i;
 const MAX_EVENTS_PER_VISITOR_DAY = 120;
 const LEADS_PER_IP_HOUR = 5;

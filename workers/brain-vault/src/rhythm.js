@@ -17,6 +17,7 @@
    one is the first month, from this month (or the plan's start month, if later) to next month,
    that has fewer campaigns than perMonth. A client who has left, has no Business Brain yet, or
    whose plan is paused is skipped. */
+import { marketList } from "../../../assets/growth-markets.js";
 import { composeRhythmReminder, sendMail } from "./mail.js";
 import { reportedFor } from "./results.js";
 import { reportedText } from "../../../assets/growth-resultfields.js";
@@ -33,15 +34,21 @@ const M = {
 
 /* ---------- plan storage ---------- */
 
-function planOut(row, client, todayMonth) {
-  if (!row) return defaultPlan(client.created_at, todayMonth);
+/* Markets step 3: every market with Harry's saved settings, by code. */
+export async function marketMap(env) {
+  const rows = (await env.DB.prepare("SELECT * FROM market_settings").all()).results || [];
+  return Object.fromEntries(marketList(rows).map((m) => [m.code, m]));
+}
+
+function planOut(row, client, todayMonth, markets) {
+  if (!row) return defaultPlan(client.created_at, todayMonth, markets ? (markets[client.market] || markets.SE || {}).channels : null);
   let channels = [];
   try { channels = JSON.parse(row.channels); } catch (e) {}
   return { perMonth: row.per_month, readyDay: row.ready_day, channels, goal: row.goal, active: !!row.active, startMonth: row.start_month, saved: true, updatedAt: row.updated_at };
 }
 
 async function client(env, clientId) {
-  return env.DB.prepare("SELECT id, name, created_at, left_at, niche FROM clients WHERE id = ?").bind(clientId).first();
+  return env.DB.prepare("SELECT id, name, created_at, left_at, niche, market FROM clients WHERE id = ?").bind(clientId).first();
 }
 
 /* Development only: the tests move the clock with ?today=YYYY-MM-DD. */
@@ -56,7 +63,7 @@ export async function getPlan(env, cfg, clientId, url) {
   if (!c) return json({ error: "not_found", message: M.notFound }, 404);
   const today = todayFrom(url, cfg);
   const row = await env.DB.prepare("SELECT * FROM plans WHERE client_id = ?").bind(clientId).first();
-  return json({ plan: Object.assign(planOut(row, c, today.month), { niche: c.niche || "other" }), channels: PLAN_CHANNELS, goals: PLAN_GOALS });
+  return json({ plan: Object.assign(planOut(row, c, today.month, await marketMap(env)), { niche: c.niche || "other" }), channels: PLAN_CHANNELS, goals: PLAN_GOALS });
 }
 
 export async function putPlan(request, env, cfg, clientId) {
@@ -80,16 +87,17 @@ export async function putPlan(request, env, cfg, clientId) {
 
 async function overview(env, today) {
   const clients = (await env.DB.prepare(
-    "SELECT c.id, c.name, c.created_at, c.left_at, (SELECT MAX(version) FROM brains b WHERE b.client_id = c.id) AS brain FROM clients c ORDER BY c.name COLLATE NOCASE"
+    "SELECT c.id, c.name, c.created_at, c.left_at, c.market, (SELECT MAX(version) FROM brains b WHERE b.client_id = c.id) AS brain FROM clients c ORDER BY c.name COLLATE NOCASE"
   ).all()).results || [];
   const plans = (await env.DB.prepare("SELECT * FROM plans").all()).results || [];
   const byClient = Object.fromEntries(plans.map((p) => [p.client_id, p]));
+  const markets = await marketMap(env);
   const counts = {};
   ((await env.DB.prepare("SELECT client_id, month, COUNT(*) AS n FROM campaigns GROUP BY client_id, month").all()).results || []).forEach((r) => {
     (counts[r.client_id] = counts[r.client_id] || {})[r.month] = r.n;
   });
   const items = clients.map((c) => {
-    const plan = planOut(byClient[c.id], c, today.month);
+    const plan = planOut(byClient[c.id], c, today.month, markets);
     let skip = null;
     if (c.left_at) skip = "left";
     else if (!c.brain) skip = "no_brain";

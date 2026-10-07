@@ -31,7 +31,7 @@ import { PAGE_LANGUAGES } from "../../../assets/growth-languages.js";
 const MB = 1024 * 1024;
 export const SLUG = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 const RESERVED = new Set(["r", "a", "t", "t.js", "api", "grow", "admin", "assets"]);
-export const CHANNELS = ["instagram", "facebook", "tiktok", "linkedin", "google", "email", "print", "video", "bio", "share", "download", "direct", "other"];
+export const CHANNELS = ["instagram", "facebook", "tiktok", "linkedin", "google", "email", "whatsapp", "print", "video", "bio", "share", "download", "direct", "other"];
 export const BUTTONS = ["call", "whatsapp", "booking", "directions", "order", "form", "other"];
 const MEDIUMS = ["social", "paid", "email", "bio", "print", "video", "button", "share"];
 const ASSET = /^[a-z0-9][a-z0-9-]{0,40}\.(webp|jpg|png)$/;

@@ -38,16 +38,16 @@ import {
   photoList,
   sizeLabel,
   withVisuals
-} from "./growth-visuals.js?v=l2";
-import { createLandingUi } from "./growth-landing.js?v=l2";
+} from "./growth-visuals.js?v=m3";
+import { createLandingUi } from "./growth-landing.js?v=m3";
 import { createReviewUi } from "./growth-review.js?v=h";
-import { createLangUi } from "./growth-lang.js?v=l2";
-import { createResultsUi } from "./growth-results.js?v=d";
-import { NICHES } from "./growth-resultfields.js?v=d";
+import { createLangUi } from "./growth-lang.js?v=m3";
+import { createResultsUi } from "./growth-results.js?v=m3";
+import { NICHES } from "./growth-resultfields.js?v=m3";
 import { campaignLanguageFromBrain, campaignLanguageList } from "./growth-languages.js?v=l2";
 
 const VAULT = "/api/vault";
-const PROMPT_URL = "/assets/growth/campaign.prompt.json?v=l2";
+const PROMPT_URL = "/assets/growth/campaign.prompt.json?v=m3";
 const DRAFT_PREFIX = "taha-growth-campaign-draft:";
 const SET_BY_SCRIPTFORGE = ["schemaVersion", "clientId", "campaignId", "brainVersion", "name", "month", "goal", "language", "channels", "status"];
 
@@ -57,7 +57,9 @@ export const CHANNELS = [
   ["tiktok", "TikTok"],
   ["linkedin", "LinkedIn"],
   ["google_business", "Google Business"],
-  ["email", "Email"]
+  ["email", "Email"],
+  /* Markets step 3: WhatsApp Status and broadcast lists, the first channel in Cameroon and Nigeria. */
+  ["whatsapp", "WhatsApp"]
 ];
 const CHANNEL_LABEL = Object.fromEntries(CHANNELS);
 const GOALS = [["awareness", "Awareness"], ["bookings", "Bookings"], ["sales", "Sales"], ["launch", "Launch"]];
@@ -65,7 +67,7 @@ const GOALS = [["awareness", "Awareness"], ["bookings", "Bookings"], ["sales", "
    to a human reviewer; Harry approves the others himself. */
 const LANGS = campaignLanguageList().map((l) => [l.code, l.name + (l.review ? " (reviewed)" : "")]);
 const LANG_LABEL = Object.fromEntries(LANGS);
-const NO_HASHTAGS = ["google_business", "email"];
+const NO_HASHTAGS = ["google_business", "email", "whatsapp"];
 
 /* ---------- pure helpers (exported for tests) ---------- */
 
@@ -867,7 +869,8 @@ export function createCampaigns(ctx) {
       offerPick: offers.length ? "0" : "custom",
       offer: offers.length ? [offers[0].name, offers[0].terms, offers[0].validUntil ? "valid until " + offers[0].validUntil : ""].filter(Boolean).join(". ") : "",
       language: lang0,
-      channels: (preset && preset.channels && preset.channels.length ? preset.channels : ["instagram", "facebook", "google_business"]).slice(),
+      /* Markets step 3: without a plan, the channels of the client's market (Markets view). */
+      channels: (preset && preset.channels && preset.channels.length ? preset.channels : c.marketChannels && c.marketChannels.length ? c.marketChannels : ["instagram", "facebook", "google_business"]).slice(),
       visuals: true,
       fromPlan: !!preset,
       lastResults: null,

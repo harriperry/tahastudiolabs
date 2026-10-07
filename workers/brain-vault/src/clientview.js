@@ -7,7 +7,7 @@
    landing page has them, so the client can paste it straight into the post. */
 import { noDashes } from "./util.js";
 
-const CH = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google_business: "Google Business", email: "E-post / Email" };
+const CH = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google_business: "Google Business", email: "E-post / Email", whatsapp: "WhatsApp" };
 const T = (sv, en) => ({ sv, en });
 
 function linkKey(cardKey) {

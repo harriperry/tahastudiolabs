@@ -1,7 +1,7 @@
 /* V2 Part C: the monthly rhythm, pure helpers (no Worker imports), shared by src/rhythm.js and
    the plain node tests. See src/rhythm.js for the rules. */
 
-export const PLAN_CHANNELS = ["instagram", "facebook", "tiktok", "linkedin", "google_business", "email"];
+export const PLAN_CHANNELS = ["instagram", "facebook", "tiktok", "linkedin", "google_business", "email", "whatsapp"];
 export const PLAN_GOALS = ["awareness", "bookings", "sales", "launch"];
 export const DUE_WINDOW_DAYS = 7;
 export const REMINDER_DAY = 20;
@@ -33,11 +33,13 @@ export function dueDateFor(month, readyDay) {
   return addMonths(month, -1) + "-" + String(readyDay).padStart(2, "0");
 }
 
-export function defaultPlan(createdAt, todayMonth) {
+export function defaultPlan(createdAt, todayMonth, channels) {
   /* A client's first rhythm month is the one after they joined, never earlier than next month. */
   const joined = String(createdAt || "").slice(0, 7);
   const first = /^\d{4}-\d{2}$/.test(joined) ? addMonths(joined, 1) : addMonths(todayMonth, 1);
-  return { perMonth: 1, readyDay: 25, channels: ["instagram", "facebook", "google_business"], goal: "sales", active: true, startMonth: first, saved: false };
+  /* Markets step 3: a new client's channels come from her market (Harry's Markets view). */
+  const ch = Array.isArray(channels) && channels.length ? channels.slice() : ["instagram", "facebook", "google_business"];
+  return { perMonth: 1, readyDay: 25, channels: ch, goal: "sales", active: true, startMonth: first, saved: false };
 }
 
 /* The next campaign that is due, or null when the client is ahead. counts: { "YYYY-MM": n }. */
@@ -73,7 +75,7 @@ export function validatePlan(p) {
   return errors.length ? { errors } : { plan: { perMonth, readyDay, channels, goal: p.goal, active: p.active, startMonth: p.startMonth, niche: p.niche } };
 }
 
-const CH = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google_business: "Google Business", email: "Email", qr: "QR code", share: "shared link", direct: "direct" };
+const CH = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn", google_business: "Google Business", email: "Email", whatsapp: "WhatsApp", qr: "QR code", share: "shared link", direct: "direct" };
 
 export function resultsText(list) {
   if (!list.length) return "No results yet from earlier campaigns. Write from the Business Brain alone.";

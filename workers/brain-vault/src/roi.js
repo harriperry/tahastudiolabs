@@ -17,7 +17,7 @@
    DELETE     /portal/leads/:leadId                  delete one */
 import { daysAfterEnd, linkOut, pageOut } from "./pages.js";
 import { json, nowIso, readJson } from "./util.js";
-import { currencyOf, validCurrency } from "../../../assets/growth-markets.js";
+import { marketWithSettings, validCurrency } from "../../../assets/growth-markets.js";
 
 const M = {
   badRequest: { sv: "Ogiltig förfrågan.", en: "Bad request." },
@@ -39,15 +39,19 @@ export async function readBaselines(env, clientId, campaignId) {
   return out;
 }
 
-/* The currency of the client's market (Markets step 1): new costs start in it. */
-async function marketCurrency(env, clientId) {
+/* The client's market with Harry's settings (Markets steps 1 and 3): new costs start in its
+   currency and with its default monthly fee. */
+async function clientMarket(env, clientId) {
   const c = await env.DB.prepare("SELECT market FROM clients WHERE id = ?").bind(clientId).first();
-  return currencyOf(c && c.market);
+  const code = c && c.market;
+  const saved = code ? await env.DB.prepare("SELECT * FROM market_settings WHERE code = ?").bind(code).first() : null;
+  return marketWithSettings(code, saved);
 }
+const marketCurrency = async (env, clientId) => (await clientMarket(env, clientId)).currency;
 
 export async function readCosts(env, clientId, campaignId) {
   const r = await env.DB.prepare("SELECT * FROM costs WHERE client_id = ? AND campaign_id = ?").bind(clientId, campaignId).first();
-  if (!r) return { currency: await marketCurrency(env, clientId), fee: 0, adSpend: {}, avgOrderValue: null, baselinePeriod: "", updatedAt: null };
+  if (!r) { const m = await clientMarket(env, clientId); return { currency: m.currency, fee: m.fee, adSpend: {}, avgOrderValue: null, baselinePeriod: "", updatedAt: null, feeFromMarket: true }; }
   let adSpend = {};
   try { adSpend = JSON.parse(r.ad_spend || "{}"); } catch (e) {}
   return { currency: r.currency, fee: r.fee, adSpend, avgOrderValue: r.avg_order_value, baselinePeriod: r.baseline_period || "", updatedAt: r.updated_at };

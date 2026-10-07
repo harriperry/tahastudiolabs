@@ -230,6 +230,17 @@ ol li,ul li{margin:4px 0}
 </table></div>
 <p>The gate: <code>POST .../review</code>, <code>POST /admin/page/.../publish</code> and Mark delivered answer 409 <code>lang_pending</code> while required Swedish texts are not approved, unless the body has <code>langOverride</code> (a reason, logged). Files: <code>src/team.js</code>, <code>src/lang.js</code>, <code>src/public/reviewer.html</code>, <code>src/public/reviewer.js</code>, <code>../../assets/growth-langfields.js</code> (shared by the Worker and ScriptForge), <code>../../assets/growth-lang.js</code>, <code>test/lang.test.mjs</code> (68 checks). Tables (migration 8): <code>team_members</code>, <code>team_access</code>, <code>member_tokens</code>, <code>member_sessions</code>, <code>lang_items</code>, <code>lang_versions</code>, <code>lang_notes</code>, <code>lang_log</code>, and <code>clients.lang_review</code>. <code>CONSENT_VERSION</code> is now <code>c-4</code>.</p>
 
+<h2>2r. Markets step 3 (market settings, WhatsApp)</h2>
+<div class="tw"><table>
+<tr><th>Endpoint</th><th>Who</th><th>What it does</th></tr>
+<tr><td><code>GET /admin/markets</code></td><td>Admin</td><td>Every market with Harry's settings over the defaults: <code>{code, name, currency, timeZone, channels, fee, authority}</code>, plus the channels to pick from.</td></tr>
+<tr><td><code>PUT /admin/markets/:code</code></td><td>Admin</td><td><code>{ fee, channels }</code>: fee from 0, at least one known channel. 404 for an unknown market.</td></tr>
+<tr><td><code>GET /admin/clients</code></td><td>Admin</td><td>Each client also has <code>marketChannels</code> and <code>marketFee</code>.</td></tr>
+<tr><td><code>GET /admin/costs/...</code></td><td>Admin</td><td>Without saved costs: the market's currency and fee, and <code>feeFromMarket: true</code>.</td></tr>
+<tr><td><code>GET /admin/plan/:clientId</code></td><td>Admin</td><td>An unsaved plan starts with the market's channels.</td></tr>
+</table></div>
+<p>WhatsApp (<code>whatsapp</code>) is now a channel in <code>campaign.schema.json</code> (channels, socialCopy, platform <code>whatsapp_status</code>), <code>platforms.json</code>, the plan, results, tracking (<code>?utm_source=whatsapp</code>, offer code suffix <code>WA</code>) and the portal wording. Files: <code>../../assets/growth-markets.js</code> (<code>authorityLine</code>, <code>marketDate</code>, <code>marketList</code>), <code>src/admin.js</code>, <code>src/roi.js</code>, <code>src/rhythm.js</code>, <code>src/results.js</code>, <code>../../assets/growth.js</code> (Markets view), <code>test/markets.test.mjs</code> (40 checks). Migration 13: <code>market_settings(code, fee, channels, updated_at)</code>. Health reports <code>part: "m3"</code>.</p>
+
 <h2>2q. Markets step 2 (campaign languages)</h2>
 <div class="tw"><table>
 <tr><th>Endpoint</th><th>Who</th><th>What changed</th></tr>

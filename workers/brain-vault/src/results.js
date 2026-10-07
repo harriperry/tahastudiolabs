@@ -19,7 +19,8 @@
    the panel's Monthly plan box. The questions are in assets/growth-resultfields.js. */
 import { composeResultsNotice, sendMail } from "./mail.js";
 import { json, nowIso, readJson } from "./util.js";
-import { addMonths, stockholmDate } from "./rhythm-core.js";
+import { addMonths } from "./rhythm-core.js";
+import { marketDate } from "../../../assets/growth-markets.js";
 import { cleanResults, effective, fieldsFor, mainField, niche, POST_CHANNELS } from "../../../assets/growth-resultfields.js";
 
 const M = {
@@ -34,10 +35,11 @@ export function askWindow(month, todayIso) {
   return todayIso >= month + "-25" && todayIso < addMonths(month, 3) + "-01";
 }
 
-function todayIso(url, cfg) {
+/* Markets step 3: the client's own date, in her market's time zone. */
+function todayIso(url, cfg, market) {
   const t = url && url.searchParams.get("today");
   if (cfg.environment === "development" && t && /^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
-  return stockholmDate(Date.now()).iso;
+  return marketDate(market);
 }
 
 const parse = (s) => { try { return s ? JSON.parse(s) : null; } catch (e) { return null; } };
@@ -52,7 +54,7 @@ async function rows(env, clientId) {
 }
 
 async function clientNiche(env, clientId) {
-  const c = await env.DB.prepare("SELECT id, name, niche FROM clients WHERE id = ?").bind(clientId).first();
+  const c = await env.DB.prepare("SELECT id, name, niche, market FROM clients WHERE id = ?").bind(clientId).first();
   return c ? Object.assign(c, { niche: niche(c.niche) }) : null;
 }
 
@@ -60,7 +62,7 @@ async function clientNiche(env, clientId) {
 
 export async function portalResults(env, cfg, auth, url) {
   const c = await clientNiche(env, auth.clientId);
-  const today = todayIso(url, cfg);
+  const today = todayIso(url, cfg, c.market);
   const items = (await rows(env, auth.clientId)).filter((r) => r.status === "delivered").map((r) => {
     const mine = parse(r.client_data);
     return {
