@@ -20,41 +20,57 @@ export async function sendMail(cfg, env, { to, subject, text, html }) {
     return { ok: true, provider: "log" };
   }
   if (cfg.mailProvider === "resend") {
-    if (!cfg.resendKey) throw new Error("RESEND_API_KEY is not set");
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + cfg.resendKey, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: cfg.fromName + " <" + from + ">",
-        to: [to],
-        reply_to: from,
-        subject,
-        text,
-        html
-      })
-    });
-    if (!res.ok) throw new Error("Resend failed with " + res.status);
-    return { ok: true, provider: "resend" };
+    /* Part F fix: if Resend is missing or refuses, log why and fall back to Gmail SMTP
+       (still From hej@, a verified Gmail send-as address), so login links never stop. */
+    let why = "";
+    if (!cfg.resendKey) why = "RESEND_API_KEY is not set";
+    else {
+      try {
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + cfg.resendKey, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: cfg.fromName + " <" + from + ">",
+            to: [to],
+            reply_to: from,
+            subject,
+            text,
+            html
+          })
+        });
+        if (res.ok) return { ok: true, provider: "resend" };
+        why = "Resend failed with " + res.status + ": " + (await res.text()).slice(0, 300);
+      } catch (e) {
+        why = "Resend unreachable: " + e.message;
+      }
+    }
+    console.error("[mail] " + why + (cfg.smtp.pass ? "; falling back to Gmail SMTP" : ""));
+    if (!cfg.smtp.pass) throw new Error(why);
+    return sendGmail(cfg, from, to, { subject, text, html }, "gmail-smtp-fallback");
   }
   if (cfg.mailProvider === "gmail-smtp") {
     if (!cfg.smtp.pass && cfg.smtp.secure !== "off") throw new Error("SMTP_PASSWORD is not set");
-    const message = buildMessage({ fromName: cfg.fromName, from, to, replyTo: from, subject, text, html });
-    await smtpSend(
-      {
-        host: cfg.smtp.host,
-        port: cfg.smtp.port,
-        secure: cfg.smtp.secure,
-        user: cfg.smtp.user,
-        pass: cfg.smtp.pass,
-        from,
-        to,
-        heloName: new URL(cfg.siteOrigin).hostname
-      },
-      message
-    );
-    return { ok: true, provider: "gmail-smtp" };
+    return sendGmail(cfg, from, to, { subject, text, html }, "gmail-smtp");
   }
   throw new Error("Unknown MAIL_PROVIDER");
+}
+
+async function sendGmail(cfg, from, to, { subject, text, html }, label) {
+  const message = buildMessage({ fromName: cfg.fromName, from, to, replyTo: from, subject, text, html });
+  await smtpSend(
+    {
+      host: cfg.smtp.host,
+      port: cfg.smtp.port,
+      secure: cfg.smtp.secure,
+      user: cfg.smtp.user,
+      pass: cfg.smtp.pass,
+      from,
+      to,
+      heloName: new URL(cfg.siteOrigin).hostname
+    },
+    message
+  );
+  return { ok: true, provider: label };
 }
 
 const COPY = {

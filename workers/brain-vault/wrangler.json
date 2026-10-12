@@ -43,6 +43,7 @@
     "PRODUCT_NAME": "TAHA Studio Labs Growth Department",
     "MAIL_PROVIDER": "resend",
     "SMTP_HOST": "smtp.gmail.com",
+    "SMTP_USER": "agborkak@gmail.com",
     "SMTP_PORT": "465",
     "SMTP_SECURE": "on",
     "LOGIN_TOKEN_TTL_MINUTES": "15",
