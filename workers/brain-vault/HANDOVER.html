@@ -29,7 +29,7 @@ li{margin:0 0 6px}
 <body>
 <main>
 <h1>TAHA Studio Labs Growth Department</h1>
-<p class="sub">V1 handover, 5 October 2026, built in six phases. V2 phases G1, G2a and G2b added 6 October 2026 (below). G2b, Parts A and B and Part H are live. The ScriptForge reskin went live the same evening. Part C (monthly rhythm) went live the same night. Part D (results) went live on 7 October 2026. Part E (client videos) went live the same day, Markets step 1 (market and currency per client) that evening, Markets step 2 (six campaign languages) the same night, and Markets step 3 (market settings, WhatsApp, local privacy authority) just after midnight. Part F (email moves to hej@tahastudiolabs.com) was built on 12 October 2026, see below.</p>
+<p class="sub">V1 handover, 5 October 2026, built in six phases. V2 phases G1, G2a and G2b added 6 October 2026 (below). G2b, Parts A and B and Part H are live. The ScriptForge reskin went live the same evening. Part C (monthly rhythm) went live the same night. Part D (results) went live on 7 October 2026. Part E (client videos) went live the same day, Markets step 1 (market and currency per client) that evening, Markets step 2 (six campaign languages) the same night, and Markets step 3 (market settings, WhatsApp, local privacy authority) just after midnight. Part F (email moves to hej@tahastudiolabs.com) went live on 12 October 2026, completing V2.</p>
 
 <h2>V2 Part F: email moves to hej@tahastudiolabs.com</h2>
 <div class="card">
@@ -41,7 +41,7 @@ li{margin:0 0 6px}
 <li>Files: <code>wrangler.json</code>, <code>src/config.js</code>, <code>src/mail.js</code>, the seven notice senders, <code>privacy.html</code>, <code>assets/growth-landing.js</code> (script versions bumped to f1). All 24 test suites pass. No database or DNS change.</li>
 </ul>
 </div>
-<div class="card"><p><b>To go live (needs your approval):</b> first add the Worker secret <code>RESEND_API_KEY</code> in Cloudflare (brain-vault, Settings, Variables and secrets). Then merge <code>growth-f</code> into <code>main</code> (site) and push it to <code>growth-phase-1</code> (Worker). Gate: request a magic link at /grow/ and check it arrives from hej@, and that a test intake notice reaches agborkak@gmail.com.</p></div>
+<div class="card"><p><b>Live since 12 October 2026.</b> <code>RESEND_API_KEY</code> is a Worker secret (Variables and Secrets, not Build). Gate passed: a magic link arrived from hej@ with mailed-by and signed-by tahastudiolabs.com (Resend, DKIM aligned). If Resend ever fails, the Vault logs the reason and falls back to Gmail SMTP, still From hej@ (needs the <code>SMTP_PASSWORD</code> secret, kept).</p></div>
 
 <h2>Markets step 3: each market's privacy authority, time zone, channels and fee</h2>
 <div class="card">
