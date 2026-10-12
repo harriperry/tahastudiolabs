@@ -157,7 +157,7 @@ export async function receivePhoto(env, cfg, ctx, clientId, req, fileId) {
   const c = await env.DB.prepare("SELECT name FROM clients WHERE id = ?").bind(clientId).first();
   const left = await env.DB.prepare("SELECT COUNT(*) AS n FROM photo_requests WHERE client_id = ? AND state = 'open'").bind(clientId).first();
   const mail = composePhotoNotice(cfg, { company: (c && c.name) || "A client", open: left.n, link: cfg.growthPanelUrl });
-  ctx.waitUntil(sendMail(cfg, env, { to: cfg.tahaEmail, ...mail }).catch((e) => console.error("photo notice failed: " + e.message)));
+  ctx.waitUntil(sendMail(cfg, env, { to: cfg.notifyEmail, ...mail }).catch((e) => console.error("photo notice failed: " + e.message)));
   return { briefUpdated, stillOpen: left.n };
 }
 

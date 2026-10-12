@@ -342,7 +342,7 @@ export function pageModel({ doc, text, profile, kit, page, images, origin, tahaE
     pageId: page.id,
     token: page.token,
     origin,
-    tahaEmail: tahaEmail || "agborkak@gmail.com",
+    tahaEmail: tahaEmail || "hej@tahastudiolabs.com",
     images: images || {},
     ogImage: images && images.ogAbsolute ? images.ogAbsolute : "",
     links: links || [],
@@ -526,7 +526,7 @@ export function guideHtml(company, url) {
     "<h1>" + esc(company) + "</h1><p>Sidan finns redan på / The page is already live at <code>" + esc(url) + "</code>. Den här filen behövs bara om ni vill ha sidan på er egen webbplats. / You only need this file if you want the page on your own website.</p>" +
     block("sv", "Lägg sidan på din webbplats", "Filen innehåller allt: text, bilder och knappar. Klick och förfrågningar räknas fortfarande.") +
     block("en", "Put the page on your website", "The file holds everything: text, images and buttons. Clicks and enquiries are still counted.") +
-    "<p>Frågor? / Questions? TAHA Studio Labs, agborkak@gmail.com</p></body></html>");
+    "<p>Frågor? / Questions? TAHA Studio Labs, hej@tahastudiolabs.com</p></body></html>");
 }
 
 /* QR code as SVG markup and as a PNG data URL (via canvas, browser only). */
@@ -794,7 +794,7 @@ export function createLandingUi(ctx) {
       page: s.page,
       images,
       origin: s.origin || location.origin,
-      tahaEmail: "agborkak@gmail.com",
+      tahaEmail: "hej@tahastudiolabs.com",
       mode,
       links: s.links,
       market: info.client.market

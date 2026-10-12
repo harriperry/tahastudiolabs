@@ -1,9 +1,10 @@
 /* Brain Vault configuration.
    Every setting comes from wrangler.json "vars" (plain values) or from Worker secrets
    (SMTP_PASSWORD, RESEND_API_KEY). Nothing secret is ever written in this file.
-   TAHA_EMAIL is the single address used as sender, notification receiver and client
-   contact. To move from agborkak@gmail.com to hej@tahastudiolabs.com, change TAHA_EMAIL
-   (and ADMIN_EMAILS if Harry signs in with the new address) and redeploy. */
+   TAHA_EMAIL is the sender and the contact address clients see (hej@tahastudiolabs.com
+   since Part F, 12 Oct 2026). NOTIFY_EMAIL is where Harry's notices go; it defaults to
+   TAHA_EMAIL but is set to his Gmail inbox, because Gmail can hide mail that arrives
+   "from" one of its own send-as addresses. */
 
 function int(value, fallback) {
   const n = parseInt(value, 10);
@@ -19,13 +20,14 @@ function list(value) {
 
 export function getConfig(env) {
   const siteOrigin = (env.SITE_ORIGIN || "https://tahastudiolabs.com").replace(/\/+$/, "");
-  const tahaEmail = String(env.TAHA_EMAIL || "agborkak@gmail.com").trim().toLowerCase();
+  const tahaEmail = String(env.TAHA_EMAIL || "hej@tahastudiolabs.com").trim().toLowerCase();
   const adminEmails = list(env.ADMIN_EMAILS);
   return {
     environment: env.ENVIRONMENT || "production",
     siteOrigin,
     basePath: "/api/vault",
     tahaEmail,
+    notifyEmail: String(env.NOTIFY_EMAIL || tahaEmail).trim().toLowerCase(),
     adminEmails: adminEmails.length ? adminEmails : [tahaEmail],
     fromName: env.MAIL_FROM_NAME || "TAHA Studio Labs",
     productName: env.PRODUCT_NAME || "TAHA Studio Labs Growth Department",

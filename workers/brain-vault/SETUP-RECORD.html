@@ -45,14 +45,15 @@ th{color:var(--muted);font-weight:600}
 <tr><th>Name</th><th>Production value</th></tr>
 <tr><td><code>ENVIRONMENT</code></td><td>production</td></tr>
 <tr><td><code>SITE_ORIGIN</code></td><td>https://tahastudiolabs.com</td></tr>
-<tr><td><code>TAHA_EMAIL</code></td><td>agborkak@gmail.com (sender, notifications and client contact, all in one value)</td></tr>
-<tr><td><code>ADMIN_EMAILS</code></td><td>agborkak@gmail.com</td></tr>
+<tr><td><code>TAHA_EMAIL</code></td><td>hej@tahastudiolabs.com (sender and client contact, since Part F)</td></tr>
+<tr><td><code>NOTIFY_EMAIL</code></td><td>agborkak@gmail.com (Harry's notices)</td></tr>
+<tr><td><code>ADMIN_EMAILS</code></td><td>agborkak@gmail.com, hej@tahastudiolabs.com</td></tr>
 <tr><td><code>MAIL_FROM_NAME</code></td><td>TAHA Studio Labs</td></tr>
 <tr><td><code>PRODUCT_NAME</code></td><td>TAHA Studio Labs Growth Department</td></tr>
 <tr><td><code>CONSENT_VERSION</code></td><td>c-1</td></tr>
 <tr><td><code>RETENTION_MONTHS</code></td><td>6</td></tr>
 <tr><td><code>PRIVACY_URL</code></td><td>https://tahastudiolabs.com/privacy.html</td></tr>
-<tr><td><code>MAIL_PROVIDER</code></td><td>gmail-smtp</td></tr>
+<tr><td><code>MAIL_PROVIDER</code></td><td>resend (since Part F; was gmail-smtp)</td></tr>
 <tr><td><code>SMTP_HOST</code> / <code>SMTP_PORT</code> / <code>SMTP_SECURE</code></td><td>smtp.gmail.com / 465 / on</td></tr>
 <tr><td><code>LOGIN_TOKEN_TTL_MINUTES</code></td><td>15</td></tr>
 <tr><td><code>SESSION_DAYS</code></td><td>30</td></tr>
@@ -69,20 +70,20 @@ th{color:var(--muted);font-weight:600}
 <h2>Secrets (names only)</h2>
 <div class="wrap"><table>
 <tr><th>Name</th><th>What it holds</th><th>Status</th></tr>
-<tr><td><code>SMTP_PASSWORD</code></td><td>A Gmail app password for agborkak@gmail.com (Google Account, Security, 2-Step Verification, App passwords).</td><td class="wait">Harry to create</td></tr>
-<tr><td><code>RESEND_API_KEY</code></td><td>Only once the switch to hej@tahastudiolabs.com happens through Resend.</td><td>Not needed yet</td></tr>
+<tr><td><code>SMTP_PASSWORD</code></td><td>A Gmail app password for agborkak@gmail.com (Google Account, Security, 2-Step Verification, App passwords).</td><td>Fallback only</td></tr>
+<tr><td><code>RESEND_API_KEY</code></td><td>A Resend key, Sending access, domain tahastudiolabs.com. Set in Cloudflare as a Worker secret.</td><td class="wait">Harry to add before Part F go live</td></tr>
 </table></div>
 <p>The Vault has no LLM API key setting, and none is ever needed: all AI calls stay in Harry's browser inside ScriptForge.</p>
 
 <h2>Email sender settings</h2>
 <div class="wrap"><table>
 <tr><th>Setting</th><th>Value</th></tr>
-<tr><td>From</td><td>TAHA Studio Labs &lt;agborkak@gmail.com&gt;</td></tr>
-<tr><td>Reply-To</td><td>agborkak@gmail.com</td></tr>
-<tr><td>Transport</td><td>Gmail SMTP, smtp.gmail.com:465, TLS, with the app password</td></tr>
+<tr><td>From</td><td>TAHA Studio Labs &lt;hej@tahastudiolabs.com&gt;</td></tr>
+<tr><td>Reply-To</td><td>hej@tahastudiolabs.com</td></tr>
+<tr><td>Transport</td><td>Resend API, EU region (eu-west-1)</td></tr>
 <tr><td>Languages</td><td>Every email has Swedish and English. The client's chosen language comes first.</td></tr>
 <tr><td>Content</td><td>Names, links and status words only. No client business content.</td></tr>
-<tr><td>Later switch</td><td>Change <code>TAHA_EMAIL</code> to hej@tahastudiolabs.com. If it sends through Resend, also set <code>MAIL_PROVIDER</code> to resend, add <code>RESEND_API_KEY</code>, and verify the domain in Resend's EU region (this adds DNS records, so it needs approval).</td></tr>
+<tr><td>Inbound</td><td>Cloudflare Email Routing forwards hej@ to agborkak@gmail.com. Gmail sends as hej@ through smtp.resend.com.</td></tr>
 </table></div>
 
 <h2>Cookies the Vault sets</h2>

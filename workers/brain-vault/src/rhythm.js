@@ -132,7 +132,7 @@ export async function rhythmReminder(env, cfg, ms) {
     .bind(today.month, nowIso()).run();
   if (!o.due.length) return { sent: false, reason: "nobody_due" };
   const mail = composeRhythmReminder(cfg, { items: o.due, link: cfg.growthPanelUrl });
-  await sendMail(cfg, env, { to: cfg.tahaEmail, ...mail });
+  await sendMail(cfg, env, { to: cfg.notifyEmail, ...mail });
   return { sent: true, count: o.due.length };
 }
 

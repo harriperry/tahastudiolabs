@@ -319,9 +319,10 @@ ol li,ul li{margin:4px 0}
 <p>Plain settings live in <code>wrangler.json</code> under <code>vars</code>. Secrets are set with <code>wrangler secret put</code> and never go in a file.</p>
 <div class="wrap"><table>
 <tr><th>Name</th><th>Default</th><th>Meaning</th></tr>
-<tr><td><code>TAHA_EMAIL</code></td><td>agborkak@gmail.com</td><td>The one address for sending, for Harry's notifications, and as the client contact. Change it here to switch to hej@tahastudiolabs.com.</td></tr>
-<tr><td><code>ADMIN_EMAILS</code></td><td>agborkak@gmail.com</td><td>Comma separated list of admin emails.</td></tr>
-<tr><td><code>MAIL_PROVIDER</code></td><td>gmail-smtp</td><td><code>gmail-smtp</code>, <code>resend</code>, or <code>log</code> (local tests only, refused in production).</td></tr>
+<tr><td><code>TAHA_EMAIL</code></td><td>hej@tahastudiolabs.com</td><td>The sender address and the contact address clients see (Part F, 12 October 2026).</td></tr>
+<tr><td><code>NOTIFY_EMAIL</code></td><td>agborkak@gmail.com</td><td>Where Harry's notices go (new intake, photos, enquiries, approvals, results, reminders). Defaults to <code>TAHA_EMAIL</code>. Kept on the Gmail inbox because Gmail can hide mail that arrives from one of its own send-as addresses.</td></tr>
+<tr><td><code>ADMIN_EMAILS</code></td><td>agborkak@gmail.com, hej@tahastudiolabs.com</td><td>Comma separated list of admin emails.</td></tr>
+<tr><td><code>MAIL_PROVIDER</code></td><td>resend</td><td><code>gmail-smtp</code>, <code>resend</code>, or <code>log</code> (local tests only, refused in production).</td></tr>
 <tr><td><code>MAIL_FROM_NAME</code></td><td>TAHA Studio Labs</td><td>The sender name clients see.</td></tr>
 <tr><td><code>PRODUCT_NAME</code></td><td>TAHA Studio Labs Growth Department</td><td>The product name clients see in the portal and emails (confirmed by Harry).</td></tr>
 <tr><td><code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_SECURE</code></td><td>smtp.gmail.com, 465, on</td><td>Gmail sending. <code>SMTP_USER</code> is optional and defaults to <code>TAHA_EMAIL</code>.</td></tr>
@@ -335,16 +336,12 @@ ol li,ul li{margin:4px 0}
 <tr><td><code>PRIVACY_URL</code></td><td>https://tahastudiolabs.com/privacy.html</td><td>The privacy policy linked from the consent screen.</td></tr>
 <tr><td><code>SCRIPTFORGE_ME_URL</code></td><td>(empty = SITE_ORIGIN + /api/me)</td><td>Only changed for local tests.</td></tr>
 <tr><td><code>SITE_ORIGIN</code>, <code>ENVIRONMENT</code></td><td>https://tahastudiolabs.com, production</td><td>Used for links and for the Origin check.</td></tr>
-<tr><td><b>Secret</b> <code>SMTP_PASSWORD</code></td><td></td><td>The Gmail app password. Needed while <code>MAIL_PROVIDER</code> is gmail-smtp.</td></tr>
-<tr><td><b>Secret</b> <code>RESEND_API_KEY</code></td><td></td><td>Only needed after switching to Resend.</td></tr>
+<tr><td><b>Secret</b> <code>RESEND_API_KEY</code></td><td></td><td>A Resend key with Sending access for tahastudiolabs.com. Needed while <code>MAIL_PROVIDER</code> is resend (live since Part F).</td></tr>
+<tr><td><b>Secret</b> <code>SMTP_PASSWORD</code></td><td></td><td>The Gmail app password. Only needed if <code>MAIL_PROVIDER</code> goes back to gmail-smtp.</td></tr>
 </table></div>
 
-<h3>Switching to hej@tahastudiolabs.com later</h3>
-<ol>
-<li>Pick how the new mailbox sends. If it's Resend, add tahastudiolabs.com in Resend with region EU (eu-west-1) and add the DNS records Resend lists. That is a DNS change, so it needs Harry's approval. Then run <code>wrangler secret put RESEND_API_KEY</code> and set <code>MAIL_PROVIDER</code> to <code>resend</code>. If the mailbox is Google Workspace, you can stay on gmail-smtp and make a new app password.</li>
-<li>Set <code>TAHA_EMAIL</code> to <code>hej@tahastudiolabs.com</code>, and add it to <code>ADMIN_EMAILS</code> if Harry will sign in with it.</li>
-<li>Run <code>npx wrangler deploy</code>.</li>
-</ol>
+<h3>Email since Part F (12 October 2026)</h3>
+<p>Emails go out through Resend (EU region) as <code>TAHA Studio Labs &lt;hej@tahastudiolabs.com&gt;</code>, with replies to hej@. The domain was already verified in Resend (DKIM at <code>resend._domainkey</code>, bounces at <code>send.tahastudiolabs.com</code>). Mail to hej@ is forwarded by Cloudflare Email Routing to agborkak@gmail.com, and Gmail sends as hej@ through Resend SMTP. A mail-tester.com check scored 10/10. To go back to Gmail sending, set <code>MAIL_PROVIDER</code> to gmail-smtp and <code>TAHA_EMAIL</code> to agborkak@gmail.com.</p>
 
 <h2>5. How to redeploy</h2>
 <p>Run these from <code>workers/brain-vault/</code> on a computer with Node.js 20 or newer.</p>

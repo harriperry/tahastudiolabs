@@ -329,7 +329,7 @@ export async function submitIntake(env, cfg, auth, ctx) {
     version,
     link: cfg.growthPanelUrl
   });
-  ctx.waitUntil(sendMail(cfg, env, { to: cfg.tahaEmail, ...mail }).catch((e) => console.error("submit notice failed: " + e.message)));
+  ctx.waitUntil(sendMail(cfg, env, { to: cfg.notifyEmail, ...mail }).catch((e) => console.error("submit notice failed: " + e.message)));
   return json({ ok: true, intakeVersion: version, submittedAt: t, status: "submitted", statusLabel: STATUS_LABELS.submitted });
 }
 

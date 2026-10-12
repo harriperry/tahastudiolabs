@@ -130,7 +130,7 @@ export async function postReview(request, env, cfg, ctx, auth, campaignId) {
     ]);
     const c = await env.DB.prepare("SELECT name FROM clients WHERE id = ?").bind(auth.clientId).first();
     const mail = composeDecisionNotice(cfg, { company: (c && c.name) || "A client", round: r.round, approved: state === "approved", link: cfg.growthPanelUrl });
-    ctx.waitUntil(sendMail(cfg, env, { to: cfg.tahaEmail, ...mail }).catch((e) => console.error("decision notice failed: " + e.message)));
+    ctx.waitUntil(sendMail(cfg, env, { to: cfg.notifyEmail, ...mail }).catch((e) => console.error("decision notice failed: " + e.message)));
   }
   return json({ ok: true, state, round: r.round, changes });
 }

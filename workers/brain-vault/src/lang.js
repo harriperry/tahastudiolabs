@@ -401,7 +401,7 @@ async function noticeIfCampaignDone(env, cfg, ctx, it) {
   const done = rows.filter((r) => ["done", "approved", "kept"].includes(r.state)).length;
   const flagged = rows.filter((r) => r.state === "flagged").length;
   const mail = composeLangNotice(cfg, { company: (c && c.name) || "A client", done, total: rows.length, flagged, link: cfg.growthPanelUrl });
-  ctx.waitUntil(sendMail(cfg, env, { to: cfg.tahaEmail, ...mail }).catch((e) => console.error("lang notice failed: " + e.message)));
+  ctx.waitUntil(sendMail(cfg, env, { to: cfg.notifyEmail, ...mail }).catch((e) => console.error("lang notice failed: " + e.message)));
 }
 
 export async function reviewDone(request, env, cfg, ctx, auth, itemId) {

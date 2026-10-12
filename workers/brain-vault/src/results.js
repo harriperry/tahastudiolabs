@@ -104,7 +104,7 @@ export async function putPortalResults(request, env, cfg, ctx, auth, campaignId)
   ).bind(auth.clientId, campaignId, cp.month, JSON.stringify(values), t, t).run();
   if (first) {
     const mail = composeResultsNotice(cfg, { company: c.name, month: cp.month, link: cfg.growthPanelUrl });
-    ctx.waitUntil(sendMail(cfg, env, { to: cfg.tahaEmail, ...mail }).catch((e) => console.error("results notice failed: " + e.message)));
+    ctx.waitUntil(sendMail(cfg, env, { to: cfg.notifyEmail, ...mail }).catch((e) => console.error("results notice failed: " + e.message)));
   }
   return json({ ok: true, values });
 }

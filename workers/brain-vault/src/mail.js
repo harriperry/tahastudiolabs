@@ -1,9 +1,9 @@
 /* Outgoing email: magic links and invites, always in both Swedish and English.
    Providers (MAIL_PROVIDER):
-     gmail-smtp  sends through Gmail with an app password (SMTP_PASSWORD secret). Default.
-     resend      sends through Resend (RESEND_API_KEY secret). Needs a verified sending
-                 domain, so use it once hej@tahastudiolabs.com exists. Create the Resend
-                 domain in the EU region (eu-west-1).
+     resend      sends through Resend (RESEND_API_KEY secret) as hej@tahastudiolabs.com.
+                 The domain is verified in Resend's EU region (eu-west-1). Live since Part F.
+     gmail-smtp  sends through Gmail with an app password (SMTP_PASSWORD secret). The
+                 original Phase 1 path, kept as a fallback.
      log         development only: prints the email to the local console. Refused in production.
    Emails never contain client business content, only names, links and status words. */
 import { smtpSend, buildMessage } from "./smtp.js";

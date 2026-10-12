@@ -240,7 +240,7 @@ export async function pubLead(request, env, cfg, ctx, pageId) {
   await env.DB.prepare("INSERT INTO daily_stats (client_id, page_id, day, channel, type, n) VALUES (?, ?, ?, ?, 'form', 1) ON CONFLICT(page_id, day, channel, type) DO UPDATE SET n = n + 1").bind(p.client_id, p.id, day, channel).run();
   const portal = cfg.siteOrigin + cfg.clientHome + "#enquiries";
   ctx.waitUntil(sendMail(cfg, env, { to: p.client_email, ...composeEnquiryEmail(cfg, { name: p.client_name, language: p.client_language, link: portal }) }).catch((e) => console.error("enquiry email failed: " + e.message)));
-  ctx.waitUntil(sendMail(cfg, env, { to: cfg.tahaEmail, ...composeEnquiryNotice(cfg, { company: p.client_name, link: cfg.growthPanelUrl }) }).catch((e) => console.error("enquiry notice failed: " + e.message)));
+  ctx.waitUntil(sendMail(cfg, env, { to: cfg.notifyEmail, ...composeEnquiryNotice(cfg, { company: p.client_name, link: cfg.growthPanelUrl }) }).catch((e) => console.error("enquiry notice failed: " + e.message)));
   if (sameSite && !/application\/json/i.test((request.headers.get("Accept") || "") + (request.headers.get("Content-Type") || ""))) {
     return new Response(null, { status: 303, headers: { Location: pageUrl + "#sent", "Cache-Control": "no-store" } });
   }
