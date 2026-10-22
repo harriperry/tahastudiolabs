@@ -39,6 +39,7 @@
 <link rel="stylesheet" href="/assets/growth.css?v=d">
 <!-- ScriptForge brand theme (safe reskin, style only). Remove this line to switch it off. -->
 <link rel="stylesheet" href="/assets/scriptforge-theme.css?v=r">
+<link rel="stylesheet" href="/assets/ugc-funnel.css?v=1">
 <link rel="preload" href="/assets/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <script src="/assets/jspdf.umd.min.js" defer></script>
 </head>
@@ -303,6 +304,8 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
          below, and the longform.js <script> tag near the bottom of this file, removes the
          entire feature with zero effect on Quick Generation, Characters, or Library. -->
     <button class="btn-copy" id="btnLongform" style="border-color:var(--accent);color:var(--accent2)">Long-Form Project</button>
+    <!-- AI UGC FUNNEL - additive only. Remove this button, the ugc-funnel.css link and the two ugc scripts to switch it off. -->
+    <button class="btn-copy" id="btnUgcFunnel" style="border-color:var(--gold,#E3A21A);color:var(--accent2)">AI UGC Funnel</button>
     <button class="btn-copy" id="btnLibrary">Library</button>
   </div>
   <div id="output"><div class="empty">Formatted segments will appear here.<br><br>Paste your script, pick your settings, and hit <b>Format</b>.</div></div>
@@ -528,6 +531,8 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
      segment rendering) directly by name. See the header comment in assets/longform.js for the
      full design rationale and rollback contract. -->
 <script src="/assets/longform.js?v=r" defer></script>
+<script src="/assets/ugc-funnel-core.js?v=1" defer></script>
+<script src="/assets/ugc-funnel.js?v=1" defer></script>
 <script src="/assets/visit-tracker.js" defer></script>
 <!-- Growth Clients panel (TAHA Growth Department, admin only). It stays invisible unless the
      Brain Vault confirms the signed-in account is the admin. Remove this line to switch it off. -->

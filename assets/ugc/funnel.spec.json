@@ -1,0 +1,181 @@
+{
+  "name": "ScriptForge AI UGC Funnel spec",
+  "version": "ugc-funnel-1",
+  "notes": "Single source of truth for the AI UGC Funnel. Read by assets/ugc-funnel-core.js in the browser and in the tests, and by the Claude skill in skills/ugc-funnel-prompt/. Edit wording, caps and lists here, never in the code. The builder injects only the length row, archetypes and rules that apply to a run, which keeps the prompt short. Placeholders look like {{name}}. No em dashes or en dashes anywhere, in this file or in any output.",
+
+  "wordFactor": {
+    "en": 1,
+    "sv": 1,
+    "_note": "Multiplier applied to every word range for a language. Keep at 1 until a real TTS test shows how many words of that language fit each scene. Do not change it from a guess."
+  },
+
+  "lengths": {
+    "12": [
+      { "key": "hook", "start": 0, "end": 3, "min": 5, "max": 8 },
+      { "key": "problem", "start": 3, "end": 9, "min": 12, "max": 18 },
+      { "key": "cta", "start": 9, "end": 12, "min": 5, "max": 8 }
+    ],
+    "15": [
+      { "key": "hook", "start": 0, "end": 3, "min": 5, "max": 8 },
+      { "key": "problem", "start": 3, "end": 7, "min": 8, "max": 12 },
+      { "key": "solution", "start": 7, "end": 12, "min": 10, "max": 15 },
+      { "key": "cta", "start": 12, "end": 15, "min": 5, "max": 8 }
+    ],
+    "30": [
+      { "key": "hook", "start": 0, "end": 3, "min": 5, "max": 8 },
+      { "key": "problem", "start": 3, "end": 13, "min": 20, "max": 30 },
+      { "key": "solution", "start": 13, "end": 25, "min": 24, "max": 36 },
+      { "key": "cta", "start": 25, "end": 30, "min": 8, "max": 12 }
+    ],
+    "45": [
+      { "key": "hook", "start": 0, "end": 4, "min": 8, "max": 12 },
+      { "key": "problem", "start": 4, "end": 19, "min": 30, "max": 45 },
+      { "key": "solution", "start": 19, "end": 38, "min": 38, "max": 57 },
+      { "key": "cta", "start": 38, "end": 45, "min": 10, "max": 17 }
+    ],
+    "60": [
+      { "key": "hook", "start": 0, "end": 5, "min": 10, "max": 15 },
+      { "key": "problem", "start": 5, "end": 25, "min": 40, "max": 60 },
+      { "key": "solution", "start": 25, "end": 50, "min": 50, "max": 75 },
+      { "key": "cta", "start": 50, "end": 60, "min": 15, "max": 25 }
+    ]
+  },
+
+  "archetypes": [
+    { "id": "shock", "label": "Shock", "definition": "A blunt statement or startling moment that makes people stop. Never fear based." },
+    { "id": "secret", "label": "Secret", "definition": "A simple tip that feels like an insider insight. Never say anyone is hiding it or does not want people to know." },
+    { "id": "callout", "label": "Call-out", "definition": "Speak straight to one specific person in one specific situation." },
+    { "id": "question", "label": "Question", "definition": "A relatable question the viewer answers yes to in their head." },
+    { "id": "beforeafter", "label": "Before and after", "definition": "Contrast the frustrating routine with an easier one, in words only. Promise no result." },
+    { "id": "confession", "label": "Confession", "definition": "A small honest admission about a habit or mistake. Personal, never a result claim." },
+    { "id": "mythbust", "label": "Myth-bust", "definition": "Challenge a common belief mildly. No attacks, and never use the words scam, lie or fake." }
+  ],
+  "fallbackArchetypes": ["callout", "question", "shock", "confession", "mythbust", "secret", "beforeafter"],
+
+  "tones": [
+    { "id": "warm_honest", "label": "Warm and honest" },
+    { "id": "high_energy", "label": "High energy" },
+    { "id": "calm_dry", "label": "Calm and dry" },
+    { "id": "playful", "label": "Playful" },
+    { "id": "confident", "label": "Confident and direct" }
+  ],
+
+  "categories": [
+    { "id": "skincare", "label": "Skincare", "profile": "strict", "kind": "physical", "tone": "warm_honest", "pivot": "Until I tried this." },
+    { "id": "haircare", "label": "Haircare", "profile": "strict", "kind": "physical", "tone": "warm_honest", "pivot": "Until I tried this." },
+    { "id": "supplements", "label": "Supplements", "profile": "strict", "kind": "physical", "tone": "calm_dry", "pivot": "Until I found this." },
+    { "id": "wellness", "label": "Health and wellness", "profile": "strict", "kind": "physical", "tone": "warm_honest", "pivot": "Until I tried this." },
+    { "id": "apps", "label": "Apps and AI tools", "profile": "standard", "kind": "app", "tone": "high_energy", "pivot": "Until I tapped this button." },
+    { "id": "food", "label": "Food and drink", "profile": "standard", "kind": "physical", "tone": "playful", "pivot": "Until I tried this." },
+    { "id": "fashion", "label": "Fashion and accessories", "profile": "standard", "kind": "physical", "tone": "confident", "pivot": "Until I found this." },
+    { "id": "home", "label": "Home and kitchen", "profile": "standard", "kind": "physical", "tone": "calm_dry", "pivot": "Until I tried this." },
+    { "id": "general", "label": "General products", "profile": "standard", "kind": "physical", "tone": "warm_honest", "pivot": "Until I tried this." }
+  ],
+
+  "shots": {
+    "types": ["talking_head", "punch_in", "b_roll", "screen_recording", "product_in_use", "ui_zoom", "text_pop", "before_after"],
+    "blockedForStrict": ["before_after"],
+    "t2iTypes": ["b_roll", "product_in_use", "ui_zoom", "before_after"],
+    "minSeconds": 2,
+    "maxSeconds": 3,
+    "textPopMaxWords": 5
+  },
+
+  "scans": {
+    "medical": {
+      "profiles": ["strict"],
+      "pattern": "\\b(cures?|cured|curing|heals?|healed|healing|treats?|treated|treating|treatment|therapy|clinically|dermatologist|doctor|prescription|eczema|psoriasis|rosacea|dermatitis|acne|breakouts?|cancer|diabetes|disease|infection|inflammation|anti-?aging|wrinkles?|scars?|detox|clears?|cleared|clearing|repairs?|repaired|reverses?|reversed|miracle|permanent|permanently|instantly|overnight)\\b",
+      "reason": "medical, curative or result-promising wording is not allowed for this category"
+    },
+    "fear": {
+      "profiles": ["strict", "standard"],
+      "pattern": "\\b(scams?|rip-?offs?|toxic|poison|poisonous|dangerous|harmful chemicals?|they don'?t want you to know|doesn'?t want you to know|don'?t want you knowing|big pharma|big beauty|liars?|disgusting)\\b",
+      "reason": "fear, shame or hidden-truth framing is not allowed"
+    },
+    "hype": {
+      "profiles": ["strict", "standard"],
+      "pattern": "\\b(guaranteed|100 ?%|miracle|risk-?free|no risk)\\b",
+      "reason": "unprovable promise"
+    },
+    "proof": {
+      "profiles": ["strict", "standard"],
+      "pattern": "\\b(reviews?|reviewed|rated|ratings?|five-star|5-star|awards?|award-winning|best-?sell(er|ers|ing)|thousands|millions|customers love|everyone (is|loves)|viral|sold out)\\b",
+      "reason": "no reviews, ratings, awards or popularity claims unless they were typed into the brief"
+    }
+  },
+  "numberWords": ["two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "twenty", "thirty", "forty", "fifty", "hundred", "hundreds", "thousand", "million", "percent", "dozen"],
+  "firstPerson": "\\b(i|i'm|i've|i'd|i'll|my|me|mine|myself)\\b",
+  "dashes": "[\\u2012\\u2013\\u2014\\u2015]|--",
+
+  "prompt": {
+    "role": [
+      "You write direct-response UGC scripts for vertical video, {{length}} seconds long.",
+      "Return valid JSON only. No commentary, no code fences."
+    ],
+    "scenePlanIntro": "Scene plan. Word ranges count the spoken text only, in {{language}} words:",
+    "jobs": {
+      "hook": "HOOK: stop the scroll. Start in the middle of the action or thought. No greeting, no introduction. Write {{hook_count}} different hooks, one per archetype below, in the order given.",
+      "problem": "PROBLEM: name the one pain point fast, then add concrete everyday detail so the frustration is felt. Show it, do not just state it. First person is fine. Write 1.",
+      "solutionProduct": "SOLUTION: {{product_name}} is the hero. Show a quick demo of it in use, then what the viewer can see. Describe the action and what is visible, never a personal result. Write 1.",
+      "solutionCategory": "SOLUTION: no product is named, so write at category level. Show a quick demo of this kind of product in use, then what the viewer can see. Never a personal result. Write 1.",
+      "cta": "CTA: one clear action that says exactly where to tap or go. Write {{cta_count}} different CTAs."
+    },
+    "archetypesIntro": "Hook archetypes, one per hook:",
+    "body": [
+      "PROBLEM and SOLUTION are one body written as a pair. The SOLUTION opens with a short pivot that jumps straight from the pain to the fix, for example \"{{pivot}}\". No dead transitions."
+    ],
+    "body12": "In this length the body is the PROBLEM alone.",
+    "isolation": "Hooks and CTAs are swappable because the code combines every hook with the body and every CTA. No hook refers to the body. The body has no greeting, no introduction, no callback to the hook and no call to action. CTAs start fresh and do not repeat the problem or the solution.",
+    "ctaRules": [
+      "With 2 or more CTAs the first is soft (follow, save or comment) and the rest are direct (buy, claim or tap the link). A single CTA is direct. Each CTA has exactly one action."
+    ],
+    "ctaProduct": "Direct CTAs name {{product_name}}.",
+    "noBenefit": "No benefit was given: state no result. Show the action and the relief in general terms only.",
+    "visuals": [
+      "Each scene returns \"spoken\" and \"visual\". Only \"spoken\" is counted.",
+      "\"visual\" is a list of shots. Each shot has \"t\" (a time range written like 0:03 to 0:06), \"type\" and \"shot\".",
+      "Shot types allowed: {{shot_types}}.",
+      "Every shot lasts 2 or 3 seconds. A 3 second scene is one 3 second shot. Shots start at the scene start, follow each other with no gaps and end exactly at the scene end.",
+      "text_pop shots give the exact on-screen words in \"shot\", 5 words maximum, nothing else.",
+      "Describe actions and framing only. Never describe the presenter's looks, clothes or the setting's style. The look is added later by the system."
+    ],
+    "visualsProblem": "In the PROBLEM, at least half of the shots are b_roll, not talking to camera.",
+    "visualsSolution": "In the SOLUTION, include one demo shot of type {{demo_type}} and one result shot of type {{result_types}}.",
+    "voice": [
+      "Write in {{language}}, in a natural spoken creator voice. Tone: {{tone}}. Write for continuous speech with no dead air.",
+      "Never use em dashes or en dashes. No filler. Every sentence earns its place inside the word range.",
+      "Never invent numbers, hours, percentages, reviews, testimonials, awards or statistics. Use a number only if it appears in the inputs.",
+      "No medical, curative or unprovable claims."
+    ],
+    "voiceStrict": [
+      "Never use words like cure, treat, heal, clear, repair, clinically proven, miracle, guaranteed, instantly or overnight. No fear or shame framing. Never say \"scam\" or \"they don't want you to know\".",
+      "The SOLUTION never uses first person (I, my, me). It shows the product in use and what is visible, in neutral words. First person is only for the PROBLEM, the hooks and the CTAs."
+    ],
+    "flags": "If an input forces a claim like that, soften it and add a short note to \"flags\".",
+    "shapeIntro": "Output shape:",
+    "shapeSolutionNote": "Leave out \"solution\" in this length."
+  },
+
+  "repair": {
+    "role": "You rewrite ONE scene of a UGC video script. Return valid JSON only, no commentary, in this shape:",
+    "fixIntro": "Fix every problem listed. Keep what already works.",
+    "userNote": "Extra request from the user:"
+  },
+
+  "autofill": {
+    "role": "You suggest inputs for a UGC ad brief. Return valid JSON only, no commentary, in this shape:",
+    "shape": "{\"pain_points\":[\"\",\"\",\"\",\"\"],\"audience\":\"\",\"benefits\":[\"\",\"\",\"\"]}",
+    "rules": [
+      "pain_points: 4 different ones. Each is one short sentence a real customer would say or think about one concrete everyday moment. No numbers, no medical claims, no brand names.",
+      "audience: one short phrase, no more than 8 words.",
+      "benefits: 3 modest, non-medical benefits, each under 10 words, only things this kind of product could plausibly offer. The user will confirm them, so never state a result as a fact.",
+      "Never use em dashes or en dashes. Write in {{language}}."
+    ]
+  },
+
+  "limits": {
+    "maxRetries": 2,
+    "maxPainsPerBatch": 8,
+    "savedKitsCap": 50
+  }
+}

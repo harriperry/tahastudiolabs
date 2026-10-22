@@ -1,0 +1,58 @@
+/* AI UGC Funnel. Uses the TAHA tokens mapped in scriptforge-theme.css, so light and dark both work. */
+.ugc-panel{max-width:1240px;max-height:90vh;padding:0;border-top:3px solid var(--gold,#E3A21A)}
+.ugc-panel>h2{margin:0;padding:14px 20px;background:var(--ink,#14161C);color:var(--on-dark,#F6F1E7);border-bottom:2px solid var(--gold,#E3A21A);font-family:"Space Grotesk",system-ui,sans-serif}
+.ugc-layout{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:16px;padding:16px 20px}
+.ugc-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.ugc-card{background:var(--panel2,var(--panel));border:1px solid var(--border);border-radius:10px;padding:14px}
+.ugc-card h4{margin:0 0 10px;font:600 .8rem "Space Grotesk",system-ui,sans-serif;text-transform:uppercase;letter-spacing:1.2px;color:var(--accent2)}
+.ugc-card h3{margin:16px 0 8px;font:600 .95rem "Space Grotesk",system-ui,sans-serif;color:var(--text)}
+.ugc-field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.ugc-lab{font-size:.74rem;color:var(--muted);font-weight:600}
+.ugc-hint{font-size:.74rem;color:var(--muted);margin-top:2px}
+.ugc-field input,.ugc-field select,.ugc-field textarea{width:100%}
+.ugc-grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.ugc-check-line{display:flex;gap:8px;align-items:center;font-size:.82rem;margin:4px 0}
+.ugc-archs{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.ugc-gold{border-color:var(--gold,#E3A21A)!important;color:var(--accent2)!important;margin-bottom:10px;width:100%}
+.ugc-gold-btn{background:var(--gold,#E3A21A)!important;color:#14161C!important;border:none;margin-top:12px;width:100%;font-weight:700}
+.ugc-gold-btn:disabled{opacity:.6}
+.ugc-row{display:flex;justify-content:space-between;gap:10px;font-size:.82rem;padding:3px 0;border-bottom:1px dashed var(--border)}
+.ugc-save{font-size:.76rem;color:var(--ok);margin-top:8px}
+.ugc-status{font-size:.8rem;margin-top:10px;color:var(--muted);min-height:1.2em}
+.ugc-status.bad{color:var(--err)}
+.ugc-empty{color:var(--muted);font-size:.9rem;padding:30px 0;text-align:center}
+.ugc-strip{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.ugc-strip span{border:1px solid var(--border);border-radius:999px;padding:3px 12px;font-size:.76rem;background:var(--panel)}
+.ugc-strip .ok{color:var(--ok);border-color:var(--ok)}
+.ugc-strip .bad{color:var(--err);border-color:var(--err)}
+.ugc-pick{margin-bottom:10px}
+.ugc-unit{border:1px solid var(--border);border-left:3px solid var(--gold,#E3A21A);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:var(--panel)}
+.ugc-unit.warn{border-left-color:var(--err)}
+.ugc-unit-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ugc-count{margin-left:auto;font-size:.74rem;color:var(--muted)}
+.ugc-tc,.ugc-shot .ugc-tc{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.72rem;color:var(--muted)}
+.ugc-spoken{margin:8px 0;font-size:.95rem;line-height:1.5;white-space:pre-wrap}
+.ugc-shots{display:flex;flex-direction:column;gap:3px}
+.ugc-shot{display:grid;grid-template-columns:96px 120px 1fr;gap:8px;font-size:.78rem;color:var(--muted)}
+.ugc-type{font-family:"JetBrains Mono",ui-monospace,monospace;color:var(--accent2)}
+.ugc-mini{background:transparent;border:1px solid var(--border);border-radius:999px;color:var(--text);padding:2px 10px;font-size:.72rem;cursor:pointer}
+.ugc-mini:hover{border-color:var(--gold,#E3A21A)}
+.ugc-variants{display:flex;flex-direction:column;gap:6px}
+.ugc-variant{display:flex;gap:10px;align-items:center;font-size:.82rem;padding:5px 0;border-bottom:1px dashed var(--border)}
+.ugc-variant .ugc-mini{margin-left:auto}
+.ugc-exports{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.ugc-check{display:flex;gap:10px;align-items:flex-start;padding:6px 0;font-size:.84rem}
+.ugc-dot{font:700 .66rem "JetBrains Mono",ui-monospace,monospace;border-radius:999px;padding:3px 8px;min-width:46px;text-align:center;border:1px solid var(--border)}
+.ugc-check.pass .ugc-dot{color:var(--ok);border-color:var(--ok)}
+.ugc-check.edited .ugc-dot{color:var(--gold-deep,var(--warn));border-color:var(--warn)}
+.ugc-check.fail .ugc-dot{color:var(--err);border-color:var(--err)}
+.ugc-rules{border-color:var(--ok)}
+.ugc-rules ul{margin:0;padding-left:18px;font-size:.82rem;line-height:1.6}
+@media (max-width:900px){
+  .ugc-layout{grid-template-columns:1fr;padding:12px}
+  .ugc-shot{grid-template-columns:1fr}
+  .ugc-count{margin-left:0}
+}
+.ugc-check-line{justify-content:flex-start;text-align:left}
+.ugc-check-line input{width:auto!important;flex:none;margin:0}
+.ugc-check-line span{flex:1;text-align:left}
