@@ -83,7 +83,10 @@
     var data = await res.json().catch(function () { return {}; });
     if (!res.ok) throw new Error((data && data.error && data.error.message) || ("HTTP " + res.status));
     var text = (data.content || []).filter(function (b) { return b.type === "text"; }).map(function (b) { return b.text; }).join("\n").trim();
-    if (!text) throw new Error("Empty response from the API.");
+    if (!text) {
+      var why = data.stop_reason ? " (stop reason: " + data.stop_reason + ")" : "";
+      throw new Error("The model returned no text" + why + ". " + (data.stop_reason === "max_tokens" ? "It ran out of output room before answering, try again or pick a model without extended thinking." : "Try again, or check the model name for " + p.meta.label + "."));
+    }
     return text;
   }
 

@@ -210,7 +210,7 @@
     if (tilingHint) U.push(tilingHint);
     if (neighbour) U.push("", neighbour);
     if (note) U.push("", spec.repair.userNote + " " + note);
-    return { system: L.join("\n"), user: U.join("\n"), max_tokens: 900 };
+    return { system: L.join("\n"), user: U.join("\n"), max_tokens: 4000 };
   }
 
   function buildAutofillPrompt(spec, a) {
@@ -219,7 +219,7 @@
     var L = [spec.autofill.role, spec.autofill.shape, ""];
     spec.autofill.rules.forEach(function (r) { L.push(fill(r, { language: lang })); });
     var U = ["category: " + cat.label, "product_name: " + (str(a.product_name) || "none"), "what_it_is: " + (str(a.description) || "none"), "language: " + lang];
-    return { system: L.join("\n"), user: U.join("\n"), max_tokens: 700 };
+    return { system: L.join("\n"), user: U.join("\n"), max_tokens: 4000 };
   }
 
   /* ------------------------------------------------------------------ parsing */
@@ -577,7 +577,9 @@
     c.hookCount = hookCount; c.ctaCount = ctaCount; c.plan = ctx.plan.slice(0, hookCount);
     return c;
   }
-  function kitMaxTokens(est) { return Math.max(1500, Math.round(est.tokensOut * 1.6 + 600)); }
+  /* Generous on purpose: some models spend part of max_tokens on hidden thinking, and a tight
+     limit then leaves no room for the answer. Unused budget is not billed. */
+  function kitMaxTokens(est) { return Math.max(6000, Math.round(est.tokensOut * 2 + 3000)); }
 
   /* ------------------------------------------------------------------ auto-fill */
 
