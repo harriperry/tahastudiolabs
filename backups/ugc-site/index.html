@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UGC Creator in Sweden | TAHA Studio Labs</title>
+<meta name="description" content="UGC videos for beauty, food, apps and lifestyle brands. Vertical, native-feeling content in English and Swedish, with raw files and clear usage rights.">
+<meta property="og:title" content="UGC Creator in Sweden | TAHA Studio Labs">
+<meta property="og:description" content="Vertical UGC videos in English and Swedish for brands that want content that feels real.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ugc.tahastudiolabs.com/">
+<link rel="canonical" href="https://ugc.tahastudiolabs.com/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f0d0c; --panel:#191614; --line:#2a2522; --text:#f3ede6; --muted:#a79d93;
+    --accent:#e8a33d; --accent-ink:#1a1209;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  header{position:sticky;top:0;z-index:10;background:rgba(15,13,12,.88);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  header .wrap{display:flex;align-items:center;justify-content:space-between;height:58px}
+  .brand{font-family:Fraunces,serif;font-weight:700;letter-spacing:.02em;text-decoration:none}
+  nav a{margin-left:20px;font-size:14px;color:var(--muted);text-decoration:none}
+  nav a:hover{color:var(--text)}
+  .btn{display:inline-block;background:var(--accent);color:var(--accent-ink);font-weight:600;padding:13px 22px;border-radius:999px;text-decoration:none;font-size:15px}
+  .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+  .btn:hover{filter:brightness(1.08)}
+  .hero{padding:72px 0 56px}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+  h1{font-family:Fraunces,serif;font-weight:700;font-size:clamp(34px,6vw,60px);line-height:1.1;margin:14px 0 18px;max-width:16ch}
+  .lead{color:var(--muted);font-size:18px;max-width:56ch;margin-bottom:28px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:26px}
+  .chip{border:1px solid var(--line);color:var(--muted);padding:6px 14px;border-radius:999px;font-size:13px}
+  section{padding:56px 0;border-top:1px solid var(--line)}
+  h2{font-family:Fraunces,serif;font-size:clamp(26px,4vw,36px);margin-bottom:8px}
+  .sub{color:var(--muted);margin-bottom:28px;max-width:60ch}
+  .reel{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
+  .clip{aspect-ratio:9/16;background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;position:relative;display:flex;align-items:flex-end}
+  .clip video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .clip .ph{position:relative;padding:14px;font-size:13px;color:var(--muted)}
+  .clip .ph b{display:block;color:var(--text);font-size:14px;margin-bottom:2px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .card h3{font-family:Fraunces,serif;font-size:20px;margin-bottom:8px}
+  .card p,.card li{color:var(--muted);font-size:15px}
+  .card ul{padding-left:18px}
+  .card li{margin:4px 0}
+  .price{font-family:Fraunces,serif;font-size:30px;font-weight:700;color:var(--accent);margin-bottom:6px}
+  .card .fit{color:var(--text);font-size:14px;margin-bottom:12px;min-height:44px}
+  .price .per{font-size:16px;font-weight:600;color:var(--muted)}
+  @media(min-width:900px){.card .fit{min-height:68px}}
+  section{scroll-margin-top:70px}
+  .rights-list{list-style:none;display:grid;gap:10px;margin-bottom:24px;max-width:72ch}
+  .rights-list li{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;color:var(--muted);font-size:15px}
+  .rights-list b{color:var(--text)}
+  .sub.wide{max-width:72ch;margin-bottom:0}
+  .steps{counter-reset:s;display:grid;gap:14px}
+  .steps div{counter-increment:s;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px 16px 58px;position:relative;color:var(--muted)}
+  .steps div::before{content:counter(s);position:absolute;left:18px;top:14px;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:700;display:grid;place-items:center;font-size:14px}
+  .steps b{color:var(--text)}
+  .contact{text-align:center}
+  .contact .lead{margin-left:auto;margin-right:auto}
+  .contact .cta{justify-content:center}
+  footer{border-top:1px solid var(--line);padding:26px 0;color:var(--muted);font-size:13px;text-align:center}
+  @media(max-width:600px){nav a:not(.btn){display:none}.hero{padding-top:44px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="brand" href="#top">TAHA Studio Labs <span style="color:var(--accent)">UGC</span></a>
+    <nav>
+      <a href="#work">Work</a>
+      <a href="#offer">Offer</a>
+      <a href="#process">Process</a>
+      <a class="btn" style="padding:8px 16px;font-size:14px;margin-left:20px;color:var(--accent-ink)" href="/brief/">Share Your Brief</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="wrap hero">
+    <div class="eyebrow">AI UGC CREATION SERVICE</div>
+    <h1>Content that feels real, made to sell.</h1>
+    <p class="lead">Vertical, native-feeling videos for beauty, food, apps and lifestyle brands. Shot for Instagram, TikTok, Reels and Shorts, delivered with raw files and clear usage rights.</p>
+    <div class="cta">
+      <a class="btn" href="#offer">Get Rates</a>
+      <a class="btn ghost" href="#work">See sample work</a>
+    </div>
+    <div class="chips">
+      <span class="chip">English</span><span class="chip">Svenska</span><span class="chip">Francais</span>
+      <span class="chip">Hooks and scripts included</span><span class="chip">Raw files on request</span>
+    </div>
+  </div>
+
+  <section id="work">
+    <div class="wrap">
+      <h2>Sample work</h2>
+      <p class="sub">Short vertical videos, 15 to 30 seconds. Each one opens with a hook in the first two seconds.</p>
+      <div class="reel" id="reel">
+        <!-- Replace each .ph block with: <video src="videos/sample-1.mp4" controls playsinline preload="metadata" poster="videos/sample-1.jpg"></video> -->
+        <div class="clip"><div class="ph"><b>Sample 1</b>Product demo, 20s</div></div>
+        <div class="clip"><div class="ph"><b>Sample 2</b>Unboxing and first reaction, 25s</div></div>
+        <div class="clip"><div class="ph"><b>Sample 3</b>Problem and solution, 15s</div></div>
+        <div class="clip"><div class="ph"><b>Sample 4</b>Day-in-the-life, 30s</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="offer">
+    <div class="wrap">
+      <h2>SERVICE PRICE LIST</h2>
+      <p class="sub">Simple packages, scoped to your product and platform. Final pricing depends on video count, length and usage rights.</p>
+      <div class="cards">
+        <div class="card">
+          <h3>Starter Single Video</h3>
+          <div class="price">$100-$150</div>
+          <p class="fit">Perfect for testing one product, offer, or message</p>
+          <ul>
+            <li>1 AI UGC vertical video</li>
+            <li>1 hook</li>
+            <li>Captions</li>
+            <li>15 to 60 seconds</li>
+            <li>Basic editing</li>
+            <li>1 revision</li>
+            <li>30-day organic usage limit</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Growth Package</h3>
+          <div class="price">$200-$350</div>
+          <p class="fit">Best for brands running paid ads and A/B testing.</p>
+          <ul>
+            <li>3 AI UGC vertical videos</li>
+            <li>3 different hooks</li>
+            <li>15 to 60 seconds each</li>
+            <li>Captions</li>
+            <li>Basic editing</li>
+            <li>Same product, varied angles</li>
+            <li>10 static images and captions</li>
+            <li>Text content and captions</li>
+            <li>60-day paid advertising usage</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Scale Package</h3>
+          <div class="price">$499</div>
+          <p class="fit">For brands that need creative volume and faster testing</p>
+          <ul>
+            <li>5 AI UGC videos</li>
+            <li>15 to 60 seconds each</li>
+            <li>5 hook variations</li>
+            <li>Captions</li>
+            <li>Platform-ready vertical exports</li>
+            <li>3 revisions</li>
+            <li>90-day paid advertising usage</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>AI UGC Creator Retainer</h3>
+          <div class="price">From $899<span class="per">/month</span></div>
+          <p class="fit">Your ongoing AI UGC content partner.</p>
+          <ul>
+            <li>12 AI UGC videos per month</li>
+            <li>Monthly content strategy call</li>
+            <li>12 hook variations</li>
+            <li>Captions</li>
+            <li>Priority delivery</li>
+            <li>2 revisions per video</li>
+            <li>Flexible monthly usage rights</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="rights">
+    <div class="wrap">
+      <h2>Usage rights</h2>
+      <p class="sub">Organic posting on the brand’s own channels is included with every package.</p>
+      <ul class="rights-list">
+        <li><b>Starter:</b> Organic social media usage + 30-day paid advertising usage</li>
+        <li><b>Growth:</b> 60-day paid advertising usage</li>
+        <li><b>Scale:</b> 90-day paid advertising usage</li>
+        <li><b>Retainer:</b> Flexible monthly usage rights, including paid advertising</li>
+      </ul>
+      <p class="sub wide">Paid ads, whitelisting, and extended usage beyond the included period are priced separately and agreed in writing before delivery. All AI-generated videos include commercial clearance for the synthetic avatars, voices, and rendered assets. The paid advertising period begins when your campaign goes live.</p>
+    </div>
+  </section>
+
+  <section id="process">
+    <div class="wrap">
+      <h2>How it works</h2>
+      <p class="sub">Clear steps, quick turnaround.</p>
+      <div class="steps">
+        <div><b>Brief.</b> You share the product, audience and goal.</div>
+        <div><b>Concept.</b> I send hook ideas and a short script for approval.</div>
+        <div><b>Shoot and edit.</b> Vertical video with captions and sound design.</div>
+        <div><b>Deliver.</b> Final files, the revisions included in your package, usage terms confirmed.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" class="contact">
+    <div class="wrap">
+      <h2>Let's make something that converts</h2>
+      <p class="lead">Send a product link and what you want to achieve. I will reply with three hook ideas.</p>
+      <div class="cta">
+        <a class="btn" href="mailto:hej@tahastudiolabs.com?subject=UGC%20video%20for%20my%20brand">hej@tahastudiolabs.com</a>
+        <a class="btn ghost" href="https://tahastudiolabs.com">TAHA Studio Labs</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">TAHA Studio Labs, Sweden. UGC for brands in the Nordics and beyond.</div>
+</footer>
+</body>
+</html>
