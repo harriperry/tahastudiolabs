@@ -1,0 +1,48 @@
+{
+  "name": "ugc-brief",
+  "main": "src/index.js",
+  "rules": [
+    {
+      "type": "Text",
+      "globs": ["**/*.html", "**/*.css", "**/public/*.js"],
+      "fallthrough": false
+    }
+  ],
+  "compatibility_date": "2025-09-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "ugc.tahastudiolabs.com/brief", "zone_name": "tahastudiolabs.com" },
+    { "pattern": "ugc.tahastudiolabs.com/brief/*", "zone_name": "tahastudiolabs.com" },
+    { "pattern": "ugc.tahastudiolabs.com/api/brief/*", "zone_name": "tahastudiolabs.com" }
+  ],
+  "vars": {
+    "ENVIRONMENT": "production",
+    "SITE_ORIGIN": "https://ugc.tahastudiolabs.com",
+    "TAHA_EMAIL": "hej@tahastudiolabs.com",
+    "ADMIN_EMAILS": "hej@tahastudiolabs.com,agborkak@gmail.com",
+    "MAIL_FROM_NAME": "TAHA Studio Labs",
+    "MAIL_PROVIDER": "resend",
+    "PRIVACY_URL": "https://tahastudiolabs.com/privacy.html",
+    "LOGIN_TOKEN_TTL_MINUTES": "15",
+    "SESSION_DAYS": "14",
+    "SUBMITS_PER_IP_HOUR": "6",
+    "LINK_REQUESTS_PER_EMAIL_HOUR": "4"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ugc-brief-db",
+      "database_id": "REPLACE-AT-DEPLOY-NOT-A-REAL-ID"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "FILES",
+      "bucket_name": "ugc-brief-files",
+      "jurisdiction": "eu"
+    }
+  ],
+  "triggers": { "crons": ["*/15 * * * *"] },
+  "observability": { "enabled": true }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "ugc-brief",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "TAHA Studio Labs AI UGC: Share Your Brief dashboard (Cloudflare Worker, D1, R2). One hub for brief, hook and script approval, delivery and revisions.",
+  "scripts": {
+    "dev": "wrangler dev --local --port 8799",
+    "deploy": "wrangler deploy",
+    "test": "node test/no-dashes.test.mjs && node test/run-all.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.40.0"
+  }
+}

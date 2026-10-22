@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Share Your Brief handover</title>
+<style>body{font:16px/1.6 system-ui,sans-serif;max-width:760px;margin:2rem auto;padding:0 1rem;color:#14161C}code,pre{background:#F0EADF;border-radius:6px;padding:2px 6px}pre{padding:12px;overflow:auto}h2{margin-top:2rem}</style></head>
+<body>
+<h1>Share Your Brief: handover</h1>
+<p>Worker <code>ugc-brief</code> on ugc.tahastudiolabs.com. One hub for the brief, hook and script approval, delivery and revisions. Folder: <code>workers/ugc-brief</code>.</p>
+<h2>What it does</h2>
+<ul>
+<li><b>/brief/</b> intake form, then each client's private dashboard (link emailed once, from hej@tahastudiolabs.com).</li>
+<li><b>/brief/studio</b> hidden studio for you. Magic link sign-in, only for addresses in ADMIN_EMAILS. No public page links to it.</li>
+<li>Production stays locked until the client approves one hook and confirms the script (enforced on the server).</li>
+<li>Two included change rounds before production (you can add an extra round). 7 day revision window after delivery, limited by package.</li>
+<li>Brief alert with all answers goes to hej@tahastudiolabs.com. Client emails carry only a link. Other client emails go out only when you tick "Notify client".</li>
+<li>Em dashes are stripped from everything saved or sent.</li>
+</ul>
+<h2>Deploy (after you approve the staging preview)</h2>
+<pre>cd workers/ugc-brief
+npm install
+npx wrangler d1 create ugc-brief-db        (put the printed id into wrangler.json)
+npx wrangler r2 bucket create ugc-brief-files --jurisdiction eu
+npx wrangler secret put LINK_SECRET         (any long random string)
+npx wrangler secret put RESEND_API_KEY      (same key as brain-vault)
+npx wrangler deploy</pre>
+<h2>Local test</h2>
+<pre>copy .dev.vars.example to .dev.vars
+npm test</pre>
+<h2>Assumptions to confirm</h2>
+<ul>
+<li>Revision rounds per package (src/config.js): Starter 1, Growth 2, Scale 2, Retainer 3 (priority). Your brief did not say which package gets which.</li>
+<li>The live site shows "Single video" and "Content pack"; the brief and this dashboard use Starter, Growth, Scale, Retainer.</li>
+<li>Files over 95 MB: paste a delivery link instead.</li>
+</ul>
+<h2>Go-live of the button</h2>
+<p>Change the "Work with me" link from <code>#contact</code> to <code>/brief/</code> and the label to "Share Your Brief". If the site source is only in Cloudflare Pages, the Worker can also rewrite that one link at the edge.</p>
+</body></html>

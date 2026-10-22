@@ -1,0 +1,6 @@
+ENVIRONMENT=development
+SITE_ORIGIN=http://ugc.tahastudiolabs.com
+MAIL_PROVIDER=log
+LINK_SECRET=any-long-random-string-for-local-testing-only
+ADMIN_EMAILS=hej@tahastudiolabs.com
+SUBMITS_PER_IP_HOUR=100
