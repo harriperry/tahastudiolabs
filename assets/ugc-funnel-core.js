@@ -232,13 +232,40 @@
 
   /* ------------------------------------------------------------------ parsing */
 
+  /* Models sometimes return almost-JSON: a raw line break or an unescaped double quote inside a
+     text value, or a trailing comma. This walks the text once and repairs those three things.
+     A quote inside a string counts as the end of the string only when the next character is one
+     of , } ] or :, otherwise it is treated as part of the text and escaped. */
+  function looseRepair(s) {
+    var out = [], inStr = false, i, ch, j, nx;
+    for (i = 0; i < s.length; i++) {
+      ch = s[i];
+      if (!inStr) { out.push(ch); if (ch === "\"") inStr = true; continue; }
+      if (ch === "\\") { out.push(ch); if (i + 1 < s.length) out.push(s[++i]); continue; }
+      if (ch === "\"") {
+        j = i + 1; while (j < s.length && /\s/.test(s[j])) j++;
+        nx = s[j];
+        if (nx === undefined || nx === "," || nx === "}" || nx === "]" || nx === ":") { out.push(ch); inStr = false; }
+        else out.push("\\\"");
+        continue;
+      }
+      if (ch === "\n") { out.push("\\n"); continue; }
+      if (ch === "\r") { continue; }
+      if (ch === "\t") { out.push(" "); continue; }
+      out.push(ch);
+    }
+    return out.join("").replace(/,\s*([}\]])/g, "$1");
+  }
+
   function extractJson(text) {
     var s = String(text || "").trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
     var a = s.indexOf("{"), b = s.lastIndexOf("}");
     if (a < 0 || b < a) throw new Error("The model did not return JSON.");
     var body = s.slice(a, b + 1);
-    try { return JSON.parse(body); } catch (e) {
-      return JSON.parse(body.replace(/,\s*([}\]])/g, "$1"));
+    try { return JSON.parse(body); } catch (e1) {
+      try { return JSON.parse(looseRepair(body)); } catch (e2) {
+        throw new Error("The model returned JSON that could not be read (" + e1.message + ").");
+      }
     }
   }
 
@@ -502,7 +529,14 @@
   async function generateKit(ctx, callModel, opts) {
     var p = buildKitPrompt(ctx), est = estimateRun(ctx);
     var text = await callModel({ system: p.system, user: p.user, max_tokens: kitMaxTokens(est), purpose: "kit" });
-    var kit = normalizeKit(ctx, extractJson(text));
+    var parsed;
+    try { parsed = extractJson(text); } catch (firstErr) {
+      /* One retry, and only when the reply could not be read at all. */
+      text = await callModel({ system: p.system, user: p.user + "\n\nYour previous reply was not valid JSON. Return the complete JSON again. Do not use double quote characters inside text values and put no line breaks inside them.",
+        max_tokens: kitMaxTokens(est), purpose: "kit-retry" });
+      parsed = extractJson(text);
+    }
+    var kit = normalizeKit(ctx, parsed);
     var res = await repairKit(ctx, kit, callModel, opts || {});
     var extra = res.report.warnings.slice();
     if (ctx.hasProduct && !ctx.inputs.details) extra.push("No product details were given, so the scripts describe actions only. Add the real features for richer scripts.");

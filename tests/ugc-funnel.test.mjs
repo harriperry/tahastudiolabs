@@ -517,3 +517,26 @@ test("pivot examples are given as a list and must not be copied", () => {
   assert.ok(p.system.includes("Now look at this piece."));
   assert.ok(p.system.includes("never copy an example word for word"));
 });
+
+/* ---------------------------------------------------------------- v4: almost-JSON from models */
+
+test("extractJson repairs raw line breaks and unescaped inner quotes", () => {
+  const nl = "{\"a\":\"line one\nline two\",\"b\":[\"x\"]}";
+  assert.equal(Core.extractJson(nl).a, "line one\nline two");
+  const q = "{\"spoken\":\"She said \"wow\" at the door\",\"visual\":[{\"t\":\"0:00 to 0:03\",\"type\":\"b_roll\",\"shot\":\"Door\"}]}";
+  const out = Core.extractJson(q);
+  assert.equal(out.spoken, "She said \"wow\" at the door");
+  assert.equal(out.visual.length, 1);
+  assert.throws(() => Core.extractJson("{\"a\": oops}"));
+});
+
+test("generateKit retries once when the reply cannot be read, and not otherwise", async () => {
+  const ctx = ctxOf();
+  let n = 0;
+  const res = await Core.generateKit(ctx, async (r) => { n++; return n === 1 ? "{\"hooks\": [oops" : JSON.stringify(goodRaw(ctx)); });
+  assert.equal(n, 2);
+  assert.deepEqual(res.report.failing, []);
+  let m = 0;
+  await assert.rejects(Core.generateKit(ctx, async () => { m++; return "not json"; }));
+  assert.equal(m, 2);
+});

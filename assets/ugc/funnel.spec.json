@@ -1,6 +1,6 @@
 {
   "name": "ScriptForge AI UGC Funnel spec",
-  "version": "ugc-funnel-3",
+  "version": "ugc-funnel-4",
   "notes": "Single source of truth for the AI UGC Funnel. Read by assets/ugc-funnel-core.js in the browser and in the tests, and by the Claude skill in skills/ugc-funnel-prompt/. Edit wording, caps and lists here, never in the code. The builder injects only the length row, archetypes and rules that apply to a run, which keeps the prompt short. Placeholders look like {{name}}. No em dashes or en dashes anywhere, in this file or in any output. Every scene is one video clip of at most limits.maxSceneSeconds, because most video generators stop at 10 seconds. Word ranges assume about 2 words per second of English with room for pauses.",
   "wordFactor": {
     "en": 1,
@@ -355,7 +355,8 @@
   "prompt": {
     "role": [
       "You write direct-response UGC scripts for vertical video, {{length}} seconds long.",
-      "Return valid JSON only. No commentary, no code fences."
+      "Return valid JSON only. No commentary, no code fences.",
+      "Inside text values never use double quote characters, use single quotes or none. Never put a line break inside a text value."
     ],
     "scenePlanIntro": "Scene plan. Word ranges count the spoken text only, in {{language}} words: Each scene is rendered as one video clip, so never write more words than its range.",
     "jobs": {

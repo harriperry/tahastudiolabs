@@ -136,7 +136,12 @@
     try {
       var p = Core.buildAutofillPrompt(spec, { category: val("ugcCategory"), product_name: (val("ugcBrand") + " " + product).trim(), description: val("ugcWhat"), language: val("ugcLang") });
       var text = await callModel({ system: p.system, user: p.user, max_tokens: p.max_tokens });
-      var out = Core.parseAutofill(spec, val("ugcCategory"), Core.extractJson(text));
+      var parsedAf;
+      try { parsedAf = Core.extractJson(text); } catch (parseErr) {
+        text = await callModel({ system: p.system, user: p.user + "\n\nYour previous reply was not valid JSON. Return it again with no double quote characters inside text values.", max_tokens: p.max_tokens });
+        parsedAf = Core.extractJson(text);
+      }
+      var out = Core.parseAutofill(spec, val("ugcCategory"), parsedAf);
       if (out.pain_points.length) $("ugcPain").value = out.pain_points.join("\n");
       if (out.audience && !val("ugcAudience")) $("ugcAudience").value = out.audience;
       if (out.benefits.length) { $("ugcBenefit").value = out.benefits[0]; $("ugcBenefitSuggest").textContent = "Other suggestions: " + out.benefits.slice(1).join(" | "); }
