@@ -107,9 +107,9 @@
       resultTypes: strict ? ["ui_zoom"] : ["before_after", "ui_zoom"],
       hasProduct: !!product,
       inputs: { category: cat.id, product_name: product, benefit: benefit, pain_point: str(input.pain_point),
-        audience: str(input.audience), language: lang, tone: tone.id }
+        audience: str(input.audience), details: str(input.details), language: lang, tone: tone.id }
     };
-    ctx.inputText = [product, benefit, ctx.inputs.pain_point, ctx.inputs.audience].join(" ").toLowerCase();
+    ctx.inputText = [product, benefit, ctx.inputs.pain_point, ctx.inputs.audience, ctx.inputs.details].join(" ").toLowerCase();
     return ctx;
   }
 
@@ -126,6 +126,7 @@
       "benefit: " + (i.benefit || "none"),
       "pain_point: " + (i.pain_point || "none"),
       "audience: " + (i.audience || "general"),
+      "details: " + (i.details || "none"),
       "language: " + ctx.langName,
       "tone: " + ctx.tone.label
     ];
@@ -152,6 +153,7 @@
     var p = ctx.spec.prompt;
     var out = p.voice.map(function (l) { return fill(l, { language: ctx.langName, tone: ctx.tone.label }); });
     if (ctx.strict) out = out.concat(p.voiceStrict);
+    if (ctx.hasSolution) out = out.concat(p.voiceSolution);
     return out;
   }
 
@@ -172,6 +174,7 @@
     p.ctaRules.forEach(function (l) { L.push(l); });
     if (ctx.hasProduct) L.push(fill(p.ctaProduct, vars));
     if (!ctx.inputs.benefit) L.push(p.noBenefit);
+    L.push(ctx.inputs.details ? p.detailsRule : p.noDetails);
     L.push("");
     visualRules(ctx, ctx.hasSolution ? ["problem", "solution"] : ["problem"]).forEach(function (l) { L.push(l); });
     L.push("");
@@ -388,7 +391,7 @@
     if (k.kind === "solution") {
       if (!unit.visual.some(function (s) { return s.type === ctx.demoType; })) issues.push({ code: "demo", message: "The SOLUTION needs a demo shot of type " + ctx.demoType + "." });
       if (!unit.visual.some(function (s) { return ctx.resultTypes.indexOf(s.type) >= 0; })) issues.push({ code: "result", message: "The SOLUTION needs a result shot of type " + ctx.resultTypes.join(" or ") + "." });
-      if (ctx.strict && new RegExp(spec.firstPerson, "i").test(unit.spoken)) issues.push({ code: "firstperson", message: "The SOLUTION must not use first person (I, my, me). Describe the product in use in neutral words." });
+      if (new RegExp(spec.firstPerson, "i").test(unit.spoken)) issues.push({ code: "firstperson", message: "The SOLUTION must not use first person (I, my, me). Describe the product in use in neutral words." });
       if (ctx.hasProduct && unit.spoken.toLowerCase().indexOf(ctx.inputs.product_name.toLowerCase()) < 0) issues.push({ code: "product", message: "The SOLUTION must name " + ctx.inputs.product_name + "." });
     }
     if (k.kind === "cta" && ctx.hasProduct && unit.type === "direct" && unit.spoken.toLowerCase().indexOf(ctx.inputs.product_name.toLowerCase()) < 0) {
@@ -462,7 +465,9 @@
     var text = await callModel({ system: p.system, user: p.user, max_tokens: kitMaxTokens(est), purpose: "kit" });
     var kit = normalizeKit(ctx, extractJson(text));
     var res = await repairKit(ctx, kit, callModel, opts || {});
-    res.kit.flags = unique(res.kit.flags.concat(res.report.warnings));
+    var extra = res.report.warnings.slice();
+    if (ctx.hasProduct && !ctx.inputs.details) extra.push("No product details were given, so the scripts describe actions only. Add the real features for richer scripts.");
+    res.kit.flags = unique(res.kit.flags.concat(extra));
     return res;
   }
 

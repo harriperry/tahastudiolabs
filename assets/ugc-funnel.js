@@ -100,7 +100,7 @@
     if (cat && cat.profile === "strict" && !confirmed) benefit = "";
     return {
       category: val("ugcCategory"), product_name: val("ugcProduct"), benefit: benefit,
-      pain_point: painOverride != null ? painOverride : val("ugcPain").split("\n")[0].trim(), audience: val("ugcAudience"),
+      pain_point: painOverride != null ? painOverride : val("ugcPain").split("\n")[0].trim(), audience: val("ugcAudience"), details: val("ugcWhat"),
       language: val("ugcLang"), length: Number(val("ugcLength")), tone: val("ugcTone"),
       hook_count: Number(val("ugcHooks")), cta_count: Number(val("ugcCtas")), archetypes: archetypes
     };
@@ -317,7 +317,7 @@
         h("h4", { text: "Brief" }),
         field("Category", select("ugcCategory", cats, "general")),
         field("Product name (optional)", h("input", { id: "ugcProduct", type: "text", placeholder: "Leave empty for a category-level kit" })),
-        field("What it is, in a few words (optional)", h("input", { id: "ugcWhat", type: "text", placeholder: "Used only to improve Auto-fill" })),
+        field("Product details (true features only)", h("input", { id: "ugcWhat", type: "text", placeholder: "For example: multicolored dress, long sleeves" }), "Scripts describe only what you list here, so nothing is invented."),
         h("button", { id: "ugcAutofill", class: "btn-copy ugc-gold", text: "Auto-fill pain points, audience and benefits", onclick: autofill }),
         field("Pain points, one per line (each becomes a kit)", h("textarea", { id: "ugcPain", rows: "4", placeholder: "One per line, up to " + spec.limits.maxPainsPerBatch })),
         field("Audience", h("input", { id: "ugcAudience", type: "text" })),

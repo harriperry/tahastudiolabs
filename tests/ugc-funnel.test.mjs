@@ -38,7 +38,7 @@ function goodRaw(ctx) {
   if (ctx.hasSolution) {
     const sol = shots(S.solution, [ctx.demoType, "product_in_use"]);
     sol[sol.length - 1].type = "ui_zoom";
-    let spoken = words(mid(S.solution) - 2, 5);
+    let spoken = words(mid(S.solution) - (product ? 4 : 0), 5);
     if (product) spoken = product + " " + spoken + " now";
     raw.body.solution = { spoken, visual: sol };
   }
@@ -104,6 +104,20 @@ test("extractJson handles fences and trailing commas", () => {
 
 /* ---------------------------------------------------------------- prompt */
 
+test("spec: every scene is one clip of at most 10 seconds", () => {
+  assert.equal(spec.limits.maxSceneSeconds, 10);
+  for (const len of Object.keys(spec.lengths)) {
+    spec.lengths[len].forEach((s) => assert.ok(s.end - s.start <= spec.limits.maxSceneSeconds, len + " " + s.key));
+  }
+  assert.deepEqual(Object.keys(spec.lengths).map(Number).sort((a, b) => a - b), [12, 15, 30]);
+});
+
+test("spec: word ranges stay below about 2.6 words per second", () => {
+  for (const len of Object.keys(spec.lengths)) {
+    spec.lengths[len].forEach((s) => assert.ok(s.max / (s.end - s.start) <= 2.7, len + " " + s.key + " " + s.max / (s.end - s.start)));
+  }
+});
+
 test("kit prompt: only the chosen length is sent, has no dashes, strict rules only for strict", () => {
   const strict = Core.buildKitPrompt(ctxOf());
   assert.ok(strict.system.includes("30 seconds"));
@@ -111,7 +125,8 @@ test("kit prompt: only the chosen length is sent, has no dashes, strict rules on
   assert.ok(!/[\u2012-\u2015]/.test(strict.system + strict.user));
   assert.ok(strict.system.includes("never uses first person"));
   const std = Core.buildKitPrompt(ctxOf({ category: "food", product_name: "" }));
-  assert.ok(!std.system.includes("never uses first person"));
+  assert.ok(std.system.includes("never uses first person"));
+  assert.ok(!std.system.includes("Never use words like cure"));
   assert.ok(std.system.includes("no product is named"));
 });
 
@@ -161,7 +176,7 @@ test("validator: word count too high and too low", () => {
 test("validator: shot tiling gaps, overruns and bad lengths", () => {
   const ctx = ctxOf();
   let kit = kitOf(ctx);
-  kit.body.problem.visual[1].t = "0:07 to 0:10";
+  kit.body.problem.visual[1].t = "0:08 to 0:10";
   assert.ok(failCodes(ctx, kit, "problem").includes("tiling"));
   kit = kitOf(ctx);
   kit.hooks[0].visual = [{ t: "0:00 to 0:01", type: "talking_head", shot: "x" }, { t: "0:01 to 0:03", type: "punch_in", shot: "y" }];
@@ -235,15 +250,15 @@ test("validator: invented numbers fail, numbers from the brief pass", () => {
   assert.ok(!failCodes(ctx2, kit, "problem").includes("numbers"));
 });
 
-test("validator: strict solution bans first person, standard allows it", () => {
+test("validator: the solution bans first person in every category", () => {
   const ctx = ctxOf();
   let kit = kitOf(ctx);
   kit.body.solution.spoken = "Calm Barrier Cream and my " + words(mid(ctx.byKey.solution) - 4, 1);
   assert.ok(failCodes(ctx, kit, "solution").includes("firstperson"));
-  const std = ctxOf({ category: "home", product_name: "Tidy Box" });
+  const std = ctxOf({ category: "fashion", product_name: "Torghu" });
   kit = kitOf(std);
-  kit.body.solution.spoken = "Tidy Box and my " + words(mid(std.byKey.solution) - 4, 1);
-  assert.ok(!failCodes(std, kit, "solution").includes("firstperson"));
+  kit.body.solution.spoken = "Until I found Torghu " + words(mid(std.byKey.solution) - 5, 1);
+  assert.ok(failCodes(std, kit, "solution").includes("firstperson"));
 });
 
 test("validator: before_after is blocked for strict and allowed for standard", () => {
@@ -403,4 +418,42 @@ test("autofill prompt: small, has no dashes, names the language", () => {
   assert.ok(p.system.includes("Swedish"));
   assert.ok(!/[\u2012-\u2015]/.test(p.system + p.user));
   assert.ok(Core.estimateTokens(p.system + p.user) < 400);
+});
+
+/* ---------------------------------------------------------------- v2 rules */
+
+test("speed promises are blocked in every profile, unless the user typed them", () => {
+  for (const category of ["skincare", "fashion"]) {
+    const ctx = ctxOf({ category, product_name: "Torghu" });
+    const kit = kitOf(ctx);
+    kit.hooks[0].spoken = "It comes together in seconds " + words(ctx.byKey.hook.min - 2, 0);
+    assert.ok(failCodes(ctx, kit, "hook:0").includes("claims"), category);
+  }
+  const ctx = ctxOf({ category: "fashion", product_name: "Torghu", benefit: "ready in seconds" });
+  const kit = kitOf(ctx);
+  kit.hooks[0].spoken = "Ready in seconds " + words(ctx.byKey.hook.min - 2, 0);
+  assert.ok(!failCodes(ctx, kit, "hook:0").includes("claims"));
+});
+
+test("product details: sent to the model, with the no-invention rule", () => {
+  const withD = Core.buildKitPrompt(ctxOf({ category: "fashion", product_name: "Torghu", details: "multicolored dress" }));
+  assert.ok(withD.user.includes("details: multicolored dress"));
+  assert.ok(withD.system.includes("only with the features listed"));
+  const without = Core.buildKitPrompt(ctxOf({ category: "fashion", product_name: "Torghu" }));
+  assert.ok(without.user.includes("details: none"));
+  assert.ok(without.system.includes("No product details were given"));
+});
+
+test("product details: a missing description is flagged on the kit", async () => {
+  const ctx = ctxOf({ category: "fashion", product_name: "Torghu" });
+  const res = await Core.generateKit(ctx, async () => JSON.stringify(goodRaw(ctx)));
+  assert.ok(res.kit.flags.some((f) => f.includes("No product details")));
+  const ctx2 = ctxOf({ category: "fashion", product_name: "Torghu", details: "multicolored dress" });
+  const res2 = await Core.generateKit(ctx2, async () => JSON.stringify(goodRaw(ctx2)));
+  assert.ok(!res2.kit.flags.some((f) => f.includes("No product details")));
+});
+
+test("pivot examples are neutral, never first person", () => {
+  const re = new RegExp(spec.firstPerson, "i");
+  spec.categories.forEach((c) => assert.ok(!re.test(c.pivot), c.id));
 });
