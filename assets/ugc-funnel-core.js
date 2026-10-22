@@ -84,6 +84,9 @@
     var ctaCount = clamp(input.cta_count == null ? 2 : input.cta_count, 1, 3);
     var product = str(input.product_name);
     if (/^none$/i.test(product)) product = "";
+    var brand = str(input.brand);
+    if (/^none$/i.test(brand)) brand = "";
+    var nameToUse = (brand && product && product.toLowerCase().indexOf(brand.toLowerCase()) < 0) ? brand + " " + product : (product || brand);
     var benefit = str(input.benefit);
     if (/^none$/i.test(benefit)) benefit = "";
     var wanted = (input.archetypes || []).filter(function (id) { return spec.archetypes.some(function (a) { return a.id === id; }); });
@@ -105,8 +108,8 @@
       allowedTypes: allowed,
       demoType: cat.kind === "app" ? "screen_recording" : "product_in_use",
       resultTypes: strict ? ["ui_zoom"] : ["before_after", "ui_zoom"],
-      hasProduct: !!product,
-      inputs: { category: cat.id, product_name: product, benefit: benefit, pain_point: str(input.pain_point),
+      hasProduct: !!nameToUse, nameToUse: nameToUse, mustName: product || brand,
+      inputs: { category: cat.id, product_name: product, brand: brand, benefit: benefit, pain_point: str(input.pain_point),
         audience: str(input.audience), details: str(input.details), language: lang, tone: tone.id }
     };
     ctx.inputText = [product, benefit, ctx.inputs.pain_point, ctx.inputs.audience, ctx.inputs.details].join(" ").toLowerCase();
@@ -122,7 +125,7 @@
     var i = ctx.inputs;
     return [
       "category: " + ctx.cat.label,
-      "product_name: " + (i.product_name || "none"),
+      "name_to_use: " + (ctx.nameToUse || "none"),
       "benefit: " + (i.benefit || "none"),
       "pain_point: " + (i.pain_point || "none"),
       "audience: " + (i.audience || "general"),
@@ -157,9 +160,11 @@
     return out;
   }
 
+  function pivotText(ctx) { return ctx.cat.pivots.map(function (p) { return "\"" + p + "\""; }).join(", "); }
+
   function buildKitPrompt(ctx) {
     var p = ctx.spec.prompt, L = [], vars = { length: ctx.length, language: ctx.langName, hook_count: ctx.hookCount,
-      cta_count: ctx.ctaCount, product_name: ctx.inputs.product_name, pivot: ctx.cat.pivot };
+      cta_count: ctx.ctaCount, product_name: ctx.nameToUse, pivot: pivotText(ctx) };
     p.role.forEach(function (l) { L.push(fill(l, vars)); });
     L.push("", fill(p.scenePlanIntro, vars));
     ctx.scenes.forEach(function (s) { L.push(sceneLine(s)); });
@@ -188,7 +193,7 @@
 
   function buildRepairPrompt(ctx, key, current, issues, note, neighbour) {
     var spec = ctx.spec, p = spec.prompt, k = splitKey(key), scene = ctx.byKey[k.kind];
-    var vars = { language: ctx.langName, hook_count: 1, cta_count: 1, product_name: ctx.inputs.product_name, pivot: ctx.cat.pivot };
+    var vars = { language: ctx.langName, hook_count: 1, cta_count: 1, product_name: ctx.nameToUse, pivot: pivotText(ctx) };
     var L = [spec.repair.role, unitShape(k.kind), "", "Scene: " + sceneLine(scene)];
     if (k.kind === "hook") {
       var a = ctx.plan[k.index];
@@ -369,6 +374,28 @@
     });
   }
 
+  function contentWords(spec, text) {
+    var o = spec.overlap, stop = {}, seen = {}, out = [];
+    o.stopwords.forEach(function (w) { stop[w] = 1; });
+    (String(text).toLowerCase().match(/[\p{L}\p{N}]+/gu) || []).forEach(function (w) {
+      if (w.length >= o.minLetters && !stop[w] && !seen[w]) { seen[w] = 1; out.push(w); }
+    });
+    return out;
+  }
+  function overlapWith(spec, hook, problem) {
+    var hw = contentWords(spec, hook), pw = contentWords(spec, problem).join(" ");
+    var pset = {}; contentWords(spec, problem).forEach(function (w) { pset[w] = 1; });
+    var shared = hw.filter(function (w) { return pset[w]; });
+    return (shared.length >= spec.overlap.minShared && hw.length && shared.length / hw.length >= spec.overlap.minRatio) ? shared : null;
+  }
+  function featureStems(details) {
+    var out = [];
+    String(details).toLowerCase().split(/[,;\n]+/).forEach(function (part) {
+      (part.match(/[\p{L}\p{N}]+/gu) || []).forEach(function (w) { if (w.length >= 4) out.push(w.slice(0, 6)); });
+    });
+    return out;
+  }
+
   function checkUnit(ctx, kit, key) {
     var k = splitKey(key), scene = ctx.byKey[k.kind], unit = unitRef(kit, key), spec = ctx.spec;
     var issues = [], warnings = [];
@@ -392,10 +419,21 @@
       if (!unit.visual.some(function (s) { return s.type === ctx.demoType; })) issues.push({ code: "demo", message: "The SOLUTION needs a demo shot of type " + ctx.demoType + "." });
       if (!unit.visual.some(function (s) { return ctx.resultTypes.indexOf(s.type) >= 0; })) issues.push({ code: "result", message: "The SOLUTION needs a result shot of type " + ctx.resultTypes.join(" or ") + "." });
       if (new RegExp(spec.firstPerson, "i").test(unit.spoken)) issues.push({ code: "firstperson", message: "The SOLUTION must not use first person (I, my, me). Describe the product in use in neutral words." });
-      if (ctx.hasProduct && unit.spoken.toLowerCase().indexOf(ctx.inputs.product_name.toLowerCase()) < 0) issues.push({ code: "product", message: "The SOLUTION must name " + ctx.inputs.product_name + "." });
+      if (ctx.hasProduct && unit.spoken.toLowerCase().indexOf(ctx.mustName.toLowerCase()) < 0) issues.push({ code: "product", message: "The SOLUTION must name " + ctx.nameToUse + "." });
     }
-    if (k.kind === "cta" && ctx.hasProduct && unit.type === "direct" && unit.spoken.toLowerCase().indexOf(ctx.inputs.product_name.toLowerCase()) < 0) {
-      issues.push({ code: "product", message: "A direct CTA must name " + ctx.inputs.product_name + "." });
+    if (k.kind === "solution" && ctx.inputs.details) {
+      var feats = featureStems(ctx.inputs.details);
+      var hay = allTexts(unit).join(" ").toLowerCase();
+      if (feats.length && !feats.some(function (f) { return hay.indexOf(f) >= 0; })) {
+        issues.push({ code: "feature", message: "The SOLUTION must show at least one listed feature: " + ctx.inputs.details + "." });
+      }
+    }
+    if (k.kind === "hook") {
+      var ov = overlapWith(ctx.spec, unit.spoken, kit.body.problem.spoken);
+      if (ov) issues.push({ code: "overlap", message: "The hook repeats the problem's words (" + ov.join(", ") + "). Open from a different angle." });
+    }
+    if (k.kind === "cta" && ctx.hasProduct && unit.type === "direct" && unit.spoken.toLowerCase().indexOf(ctx.mustName.toLowerCase()) < 0) {
+      issues.push({ code: "product", message: "A direct CTA must name " + ctx.nameToUse + "." });
     }
     if (dashRegex(ctx).test(allTexts(unit).join(" "))) issues.push({ code: "dashes", message: "Remove every em dash and en dash." });
     scanText(ctx, unit, issues, warnings);
@@ -420,6 +458,7 @@
   function neighbourNote(kit, key) {
     var k = splitKey(key);
     if (k.kind === "solution") return "Problem scene, for the pivot: " + kit.body.problem.spoken;
+    if (k.kind === "hook") return "Problem scene, do not reuse its words: " + kit.body.problem.spoken;
     if (k.kind === "problem" && kit.body.solution) return "Solution scene, so the pair still connects: " + kit.body.solution.spoken;
     return "";
   }
@@ -476,7 +515,7 @@
   var CHECK_MAP = {
     words: "words", tiling: "shots", shotType: "shots", textpop: "shots", broll: "shots", demo: "shots", result: "shots",
     dashes: "dashes", claims: "compliance", firstperson: "compliance", blockedType: "compliance",
-    numbers: "numbers", product: "swap"
+    numbers: "numbers", product: "swap", overlap: "swap", feature: "swap"
   };
 
   function buildChecks(ctx, report, log) {
@@ -486,7 +525,7 @@
       { id: "dashes", title: "No em dashes or en dashes", ok: "Scanned spoken text, shot text and on-screen words." },
       { id: "compliance", title: "Compliance profile: " + ctx.cat.label + " (" + ctx.profile + ")", ok: "No medical or curative wording, no fear framing, no blocked shot types." },
       { id: "numbers", title: "No invented numbers or claims", ok: "No numbers, reviews or awards that are not in your brief." },
-      { id: "swap", title: "Hooks and CTAs are swappable", ok: ctx.hasProduct ? "The direct CTA and the solution name the product." : "No product is named, so none is required." }
+      { id: "swap", title: "Hooks and CTAs are swappable", ok: (ctx.hasProduct ? "The direct CTA and the solution name the product. " : "No product is named, so none is required. ") + "Hooks do not repeat the problem." }
     ];
     var remaining = {};
     report.failing.forEach(function (k) {

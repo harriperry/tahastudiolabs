@@ -99,7 +99,7 @@
     var benefit = val("ugcBenefit");
     if (cat && cat.profile === "strict" && !confirmed) benefit = "";
     return {
-      category: val("ugcCategory"), product_name: val("ugcProduct"), benefit: benefit,
+      category: val("ugcCategory"), product_name: val("ugcProduct"), brand: val("ugcBrand"), benefit: benefit,
       pain_point: painOverride != null ? painOverride : val("ugcPain").split("\n")[0].trim(), audience: val("ugcAudience"), details: val("ugcWhat"),
       language: val("ugcLang"), length: Number(val("ugcLength")), tone: val("ugcTone"),
       hook_count: Number(val("ugcHooks")), cta_count: Number(val("ugcCtas")), archetypes: archetypes
@@ -134,7 +134,7 @@
     var product = val("ugcProduct");
     btn.disabled = true; status("Suggesting pain points, an audience and benefits...");
     try {
-      var p = Core.buildAutofillPrompt(spec, { category: val("ugcCategory"), product_name: product, description: val("ugcWhat"), language: val("ugcLang") });
+      var p = Core.buildAutofillPrompt(spec, { category: val("ugcCategory"), product_name: (val("ugcBrand") + " " + product).trim(), description: val("ugcWhat"), language: val("ugcLang") });
       var text = await callModel({ system: p.system, user: p.user, max_tokens: p.max_tokens });
       var out = Core.parseAutofill(spec, val("ugcCategory"), Core.extractJson(text));
       if (out.pain_points.length) $("ugcPain").value = out.pain_points.join("\n");
@@ -316,7 +316,8 @@
       h("section", { class: "ugc-card" }, [
         h("h4", { text: "Brief" }),
         field("Category", select("ugcCategory", cats, "general")),
-        field("Product name (optional)", h("input", { id: "ugcProduct", type: "text", placeholder: "Leave empty for a category-level kit" })),
+        field("Brand (optional)", h("input", { id: "ugcBrand", type: "text", placeholder: "For example: TORGHU" })),
+        field("Product name (optional)", h("input", { id: "ugcProduct", type: "text", placeholder: "For example: Grassfield Gown. Empty for a category-level kit" })),
         field("Product details (true features only)", h("input", { id: "ugcWhat", type: "text", placeholder: "For example: multicolored dress, long sleeves" }), "Scripts describe only what you list here, so nothing is invented."),
         h("button", { id: "ugcAutofill", class: "btn-copy ugc-gold", text: "Auto-fill pain points, audience and benefits", onclick: autofill }),
         field("Pain points, one per line (each becomes a kit)", h("textarea", { id: "ugcPain", rows: "4", placeholder: "One per line, up to " + spec.limits.maxPainsPerBatch })),

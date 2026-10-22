@@ -1,6 +1,6 @@
 {
   "name": "ScriptForge AI UGC Funnel spec",
-  "version": "ugc-funnel-2",
+  "version": "ugc-funnel-3",
   "notes": "Single source of truth for the AI UGC Funnel. Read by assets/ugc-funnel-core.js in the browser and in the tests, and by the Claude skill in skills/ugc-funnel-prompt/. Edit wording, caps and lists here, never in the code. The builder injects only the length row, archetypes and rules that apply to a run, which keeps the prompt short. Placeholders look like {{name}}. No em dashes or en dashes anywhere, in this file or in any output. Every scene is one video clip of at most limits.maxSceneSeconds, because most video generators stop at 10 seconds. Word ranges assume about 2 words per second of English with room for pauses.",
   "wordFactor": {
     "en": 1,
@@ -167,7 +167,11 @@
       "profile": "strict",
       "kind": "physical",
       "tone": "warm_honest",
-      "pivot": "That is where this comes in."
+      "pivots": [
+        "That is where this comes in.",
+        "Here is another way to do it.",
+        "Now look at this instead."
+      ]
     },
     {
       "id": "haircare",
@@ -175,7 +179,11 @@
       "profile": "strict",
       "kind": "physical",
       "tone": "warm_honest",
-      "pivot": "That is where this comes in."
+      "pivots": [
+        "That is where this comes in.",
+        "Here is another way to do it.",
+        "Now look at this instead."
+      ]
     },
     {
       "id": "supplements",
@@ -183,7 +191,11 @@
       "profile": "strict",
       "kind": "physical",
       "tone": "calm_dry",
-      "pivot": "That is where this comes in."
+      "pivots": [
+        "That is where this comes in.",
+        "Here is another way to do it.",
+        "Now look at this instead."
+      ]
     },
     {
       "id": "wellness",
@@ -191,7 +203,11 @@
       "profile": "strict",
       "kind": "physical",
       "tone": "warm_honest",
-      "pivot": "That is where this comes in."
+      "pivots": [
+        "That is where this comes in.",
+        "Here is another way to do it.",
+        "Now look at this instead."
+      ]
     },
     {
       "id": "apps",
@@ -199,7 +215,11 @@
       "profile": "standard",
       "kind": "app",
       "tone": "high_energy",
-      "pivot": "That is where this app comes in."
+      "pivots": [
+        "This is where the app steps in.",
+        "Here is another way to do it.",
+        "Now watch this screen."
+      ]
     },
     {
       "id": "food",
@@ -207,7 +227,11 @@
       "profile": "standard",
       "kind": "physical",
       "tone": "playful",
-      "pivot": "That is where this comes in."
+      "pivots": [
+        "That is where this comes in.",
+        "Here is another way to do it.",
+        "Now look at this instead."
+      ]
     },
     {
       "id": "fashion",
@@ -215,7 +239,11 @@
       "profile": "standard",
       "kind": "physical",
       "tone": "confident",
-      "pivot": "That is where this comes in."
+      "pivots": [
+        "Now look at this piece.",
+        "Here is another way to wear it.",
+        "This is where the piece steps in."
+      ]
     },
     {
       "id": "home",
@@ -223,7 +251,11 @@
       "profile": "standard",
       "kind": "physical",
       "tone": "calm_dry",
-      "pivot": "That is where this comes in."
+      "pivots": [
+        "That is where this comes in.",
+        "Here is another way to do it.",
+        "Now look at this instead."
+      ]
     },
     {
       "id": "general",
@@ -231,7 +263,11 @@
       "profile": "standard",
       "kind": "physical",
       "tone": "warm_honest",
-      "pivot": "That is where this comes in."
+      "pivots": [
+        "That is where this comes in.",
+        "Here is another way to do it.",
+        "Now look at this instead."
+      ]
     }
   ],
   "shots": {
@@ -279,8 +315,8 @@
         "strict",
         "standard"
       ],
-      "pattern": "\\b(guaranteed|100 ?%|miracle|risk-?free|no risk|instantly|immediately|right away|in seconds|in no time|overnight)\\b",
-      "reason": "unprovable promise or speed claim"
+      "pattern": "\\b(guaranteed|100 ?%|miracle|risk-?free|no risk|instantly|immediately|right away|in seconds|in no time|overnight|effortless(ly)?|(zero|no|without)( extra| any)? effort|easier every time|for any (event|occasion|day)|ready for any\\w*)\\b",
+      "reason": "unprovable promise, speed claim or ease claim"
     },
     "proof": {
       "profiles": [
@@ -331,10 +367,10 @@
     },
     "archetypesIntro": "Hook archetypes, one per hook:",
     "body": [
-      "PROBLEM and SOLUTION are one body written as a pair. The SOLUTION opens with a short pivot that jumps straight from the pain to the fix, for example \"{{pivot}}\". No dead transitions."
+      "PROBLEM and SOLUTION are one body written as a pair. The SOLUTION opens with a short pivot that jumps straight from the pain to the fix. Example pivots: {{pivot}}. Write your own wording and never copy an example word for word. No dead transitions."
     ],
     "body12": "In this length the body is the PROBLEM alone.",
-    "isolation": "Hooks and CTAs are swappable because the code combines every hook with the body and every CTA. No hook refers to the body. The body has no greeting, no introduction, no callback to the hook and no call to action. CTAs start fresh and do not repeat the problem or the solution.",
+    "isolation": "Hooks and CTAs are swappable because the code combines every hook with the body and every CTA. No hook refers to the body. The body has no greeting, no introduction, no callback to the hook and no call to action. CTAs start fresh and do not repeat the problem or the solution. Each hook attacks the pain from a different angle than the body. A hook never reuses the body's key words, and the body never repeats a hook.",
     "ctaRules": [
       "With 2 or more CTAs the first is soft (follow, save or comment) and the rest are direct (buy, claim or tap the link). A single CTA is direct. Each CTA has exactly one action."
     ],
@@ -353,7 +389,7 @@
     "voice": [
       "Write in {{language}}, in a natural spoken creator voice. Tone: {{tone}}. Write for continuous speech with no dead air.",
       "Never use em dashes or en dashes. No filler. Every sentence earns its place inside the word range.",
-      "Never invent numbers, hours, percentages, reviews, testimonials, awards or statistics. Use a number only if it appears in the inputs. Never promise speed, such as instantly, in seconds, right away or overnight.",
+      "Never invent numbers, hours, percentages, reviews, testimonials, awards or statistics. Use a number only if it appears in the inputs. Never promise speed, such as instantly, in seconds, right away or overnight. Never promise ease or fit for every occasion, such as effortless, zero effort or ready for any event.",
       "No medical, curative or unprovable claims."
     ],
     "voiceStrict": [
@@ -362,8 +398,8 @@
     "flags": "If an input forces a claim like that, soften it and add a short note to \"flags\".",
     "shapeIntro": "Output shape:",
     "shapeSolutionNote": "Leave out \"solution\" in this length.",
-    "detailsRule": "Describe the product only with the features listed under details. Never add materials, colours, patterns, fits, sizes or functions that are not listed.",
-    "noDetails": "No product details were given. Describe actions and framing only, and never invent materials, colours, patterns, fits or functions.",
+    "detailsRule": "Name the product exactly as name_to_use and never use any other name for it. Describe it only with the features listed under details, and when there is a SOLUTION scene, name at least one listed feature there. Never add materials, colours, patterns, fits, sizes or functions that are not listed.",
+    "noDetails": "Name the product exactly as name_to_use and never use any other name for it. No product details were given, so describe actions and framing only, and never invent materials, colours, patterns, fits or functions.",
     "voiceSolution": [
       "The SOLUTION never uses first person (I, my, me) and never says what the presenter found, tried or felt. It shows the product in use and what is visible, in neutral words or addressed to \"you\". First person is only for the PROBLEM, the hooks and the CTAs."
     ]
@@ -388,5 +424,58 @@
     "maxPainsPerBatch": 8,
     "savedKitsCap": 50,
     "maxSceneSeconds": 10
+  },
+  "overlap": {
+    "minShared": 3,
+    "minRatio": 0.5,
+    "minLetters": 4,
+    "stopwords": [
+      "that",
+      "this",
+      "with",
+      "from",
+      "have",
+      "your",
+      "they",
+      "them",
+      "then",
+      "than",
+      "when",
+      "what",
+      "were",
+      "been",
+      "into",
+      "just",
+      "like",
+      "more",
+      "some",
+      "very",
+      "will",
+      "about",
+      "there",
+      "their",
+      "here",
+      "because",
+      "would",
+      "could",
+      "should",
+      "also",
+      "only",
+      "inte",
+      "men",
+      "som",
+      "och",
+      "att",
+      "det",
+      "från",
+      "samma",
+      "också",
+      "med",
+      "har",
+      "den",
+      "ett",
+      "till",
+      "var"
+    ]
   }
 }

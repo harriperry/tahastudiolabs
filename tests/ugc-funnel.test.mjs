@@ -12,6 +12,12 @@ const spec = require("../assets/ugc/funnel.spec.json");
 /* ---------------------------------------------------------------- helpers */
 
 const FILLER = ["soft", "morning", "light", "hands", "table", "small", "jar", "quiet", "kitchen", "glass", "window", "slow"];
+const HOOKW = ["bright", "corner", "ticket", "ocean", "paper", "engine", "button", "garden", "river", "pocket", "signal", "market"];
+function hookWords(n, seed) {
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(HOOKW[(i + (seed || 0)) % HOOKW.length]);
+  return out.join(" ");
+}
 function words(n, seed) {
   const out = [];
   for (let i = 0; i < n; i++) out.push(FILLER[(i + (seed || 0)) % FILLER.length]);
@@ -32,7 +38,7 @@ function goodRaw(ctx) {
   const product = ctx.inputs.product_name;
   const raw = { hooks: [], body: {}, ctas: [], flags: [] };
   for (let i = 0; i < ctx.hookCount; i++) {
-    raw.hooks.push({ spoken: words(mid(S.hook), i), visual: shots(S.hook, ["talking_head", "punch_in"]) });
+    raw.hooks.push({ spoken: hookWords(mid(S.hook), i), visual: shots(S.hook, ["talking_head", "punch_in"]) });
   }
   raw.body.problem = { spoken: words(mid(S.problem), 3), visual: shots(S.problem, ["b_roll"]) };
   if (ctx.hasSolution) {
@@ -212,7 +218,7 @@ test("validator: dashes are fixed automatically, not sent back to the model", ()
   const ctx = ctxOf();
   const kit = kitOf(ctx);
   const dash = String.fromCharCode(0x2014);
-  kit.hooks[0].spoken = words(5, 0) + " " + dash + " " + words(1, 2);
+  kit.hooks[0].spoken = hookWords(5, 0) + " " + dash + " " + hookWords(1, 2);
   const rep = Core.validateKit(ctx, kit);
   assert.ok(!/[\u2012-\u2015]/.test(kit.hooks[0].spoken));
   assert.ok(rep.fixes.some((f) => f.key === "hook:0"));
@@ -222,18 +228,18 @@ test("validator: dashes are fixed automatically, not sent back to the model", ()
 test("validator: medical wording fails for strict but not for standard", () => {
   const strict = ctxOf();
   let kit = kitOf(strict);
-  kit.hooks[0].spoken = "This will cure " + words(5, 0);
+  kit.hooks[0].spoken = "This will cure " + hookWords(5, 0);
   assert.ok(failCodes(strict, kit, "hook:0").includes("claims"));
   const std = ctxOf({ category: "food", product_name: "" });
   kit = kitOf(std);
-  kit.hooks[0].spoken = "This will cure " + words(5, 0);
+  kit.hooks[0].spoken = "This will cure " + hookWords(5, 0);
   assert.ok(!failCodes(std, kit, "hook:0").includes("claims"));
 });
 
 test("validator: a risky word typed by the user becomes a warning, not a failure", () => {
   const ctx = ctxOf({ category: "food", product_name: "", benefit: "award winning taste" });
   const kit = kitOf(ctx);
-  kit.hooks[0].spoken = "Award winning " + words(4, 0);
+  kit.hooks[0].spoken = "Award winning " + hookWords(4, 0);
   const rep = Core.validateKit(ctx, kit);
   assert.ok(!rep.units["hook:0"].issues.some((i) => i.code === "claims"));
   assert.ok(rep.warnings.length >= 1);
@@ -426,12 +432,12 @@ test("speed promises are blocked in every profile, unless the user typed them", 
   for (const category of ["skincare", "fashion"]) {
     const ctx = ctxOf({ category, product_name: "Torghu" });
     const kit = kitOf(ctx);
-    kit.hooks[0].spoken = "It comes together in seconds " + words(ctx.byKey.hook.min - 2, 0);
+    kit.hooks[0].spoken = "It comes together in seconds " + hookWords(ctx.byKey.hook.min - 2, 0);
     assert.ok(failCodes(ctx, kit, "hook:0").includes("claims"), category);
   }
   const ctx = ctxOf({ category: "fashion", product_name: "Torghu", benefit: "ready in seconds" });
   const kit = kitOf(ctx);
-  kit.hooks[0].spoken = "Ready in seconds " + words(ctx.byKey.hook.min - 2, 0);
+  kit.hooks[0].spoken = "Ready in seconds " + hookWords(ctx.byKey.hook.min - 2, 0);
   assert.ok(!failCodes(ctx, kit, "hook:0").includes("claims"));
 });
 
@@ -455,5 +461,59 @@ test("product details: a missing description is flagged on the kit", async () =>
 
 test("pivot examples are neutral, never first person", () => {
   const re = new RegExp(spec.firstPerson, "i");
-  spec.categories.forEach((c) => assert.ok(!re.test(c.pivot), c.id));
+  spec.categories.forEach((c) => { assert.ok(c.pivots.length >= 3, c.id); c.pivots.forEach((pv) => assert.ok(!re.test(pv), c.id + " " + pv)); });
+});
+
+/* ---------------------------------------------------------------- v3 rules */
+
+test("brand and product: one exact name is sent and checked", () => {
+  const ctx = ctxOf({ category: "fashion", brand: "TORGHU", product_name: "Grassfield Gown" });
+  assert.equal(ctx.nameToUse, "TORGHU Grassfield Gown");
+  const p = Core.buildKitPrompt(ctx);
+  assert.ok(p.user.includes("name_to_use: TORGHU Grassfield Gown"));
+  assert.ok(p.system.includes("exactly as name_to_use"));
+  const kit = kitOf(ctx);
+  assert.deepEqual(Core.validateKit(ctx, kit).failing, []);
+  kit.body.solution.spoken = words(mid(ctx.byKey.solution), 0);
+  assert.ok(failCodes(ctx, kit, "solution").includes("product"));
+  assert.equal(ctxOf({ category: "fashion", brand: "TORGHU", product_name: "" }).nameToUse, "TORGHU");
+  assert.equal(ctxOf({ category: "fashion", brand: "TORGHU", product_name: "TORGHU Gown" }).nameToUse, "TORGHU Gown");
+});
+
+test("hooks that repeat the problem are failed and sent back with the problem text", async () => {
+  const ctx = ctxOf();
+  const kit = kitOf(ctx);
+  kit.body.problem.spoken = "Same safe dress before every event and nothing else feels right " + words(ctx.byKey.problem.min - 11, 0);
+  kit.hooks[0].spoken = "Same dress again every single event";
+  assert.ok(failCodes(ctx, kit, "hook:0").includes("overlap"));
+  kit.hooks[1].spoken = hookWords(ctx.byKey.hook.min, 3);
+  assert.ok(!failCodes(ctx, kit, "hook:1").includes("overlap"));
+  const reqs = [];
+  await Core.repairKit(ctx, kit, async (r) => { reqs.push(r); return JSON.stringify({ spoken: hookWords(ctx.byKey.hook.min, 5), visual: kit.hooks[0].visual }); });
+  assert.ok(reqs[0].user.includes("do not reuse its words"));
+});
+
+test("effort and ease claims are blocked", () => {
+  for (const phrase of ["zero extra effort", "so effortless", "ready for any event", "for any occasion", "no effort at all"]) {
+    const ctx = ctxOf({ category: "fashion", product_name: "Torghu" });
+    const kit = kitOf(ctx);
+    kit.hooks[0].spoken = phrase + " " + hookWords(ctx.byKey.hook.min - 2, 0);
+    assert.ok(failCodes(ctx, kit, "hook:0").includes("claims"), phrase);
+  }
+});
+
+test("solution must show a listed feature when details are given", () => {
+  const ctx = ctxOf({ category: "fashion", product_name: "Torghu", details: "multicolored dress, long sleeves" });
+  const kit = kitOf(ctx);
+  assert.ok(failCodes(ctx, kit, "solution").includes("feature"));
+  kit.body.solution.spoken = "Torghu with long sleeves " + words(mid(ctx.byKey.solution) - 6, 1);
+  assert.ok(!failCodes(ctx, kit, "solution").includes("feature"));
+  const noDetails = ctxOf({ category: "fashion", product_name: "Torghu" });
+  assert.ok(!failCodes(noDetails, kitOf(noDetails), "solution").includes("feature"));
+});
+
+test("pivot examples are given as a list and must not be copied", () => {
+  const p = Core.buildKitPrompt(ctxOf({ category: "fashion", product_name: "Torghu" }));
+  assert.ok(p.system.includes("Now look at this piece."));
+  assert.ok(p.system.includes("never copy an example word for word"));
 });

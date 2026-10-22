@@ -9,7 +9,7 @@ The funnel's rules live in one file: `assets/ugc/funnel.spec.json`. The prompt s
 
 ## What the spec controls
 - `lengths`: scenes per video length (12, 15 and 30 seconds), with start, end and word range. Scenes must tile 0 to the full length with no gaps, and every scene is one clip of at most `limits.maxSceneSeconds` (10), because most video generators stop at 10 seconds.
-- `archetypes`, `tones`, `categories` (strict or standard compliance profile).
+- `archetypes`, `tones`, `categories` (strict or standard compliance profile, with example `pivots`), and `overlap` (the hook versus problem repetition check).
 - `shots`: allowed types, 2 or 3 second shots, text_pop maximum 5 words, types blocked for strict categories.
 - `scans`: regex checks for medical, fear, hype and proof wording. A word the user typed in the brief becomes a warning, not a failure.
 - `prompt`: the text blocks. Placeholders look like {{language}}.
@@ -19,7 +19,7 @@ The funnel's rules live in one file: `assets/ugc/funnel.spec.json`. The prompt s
 1. No em dashes or en dashes anywhere, in the spec, the prompt or the output.
 2. Word counts, shot timing and claims are validated in code. Never ask the model to count.
 3. One kit call returns 3 hooks, 1 body and 2 CTAs. Only a failing scene is regenerated, at most twice.
-4. Strict categories: no before_after shots, no curative wording. Every category: no first person in the SOLUTION, no speed promises (instantly, in seconds), and product features come only from the details field.
+4. Strict categories: no before_after shots, no curative wording. Every category: no first person in the SOLUTION, no speed promises (instantly, in seconds), product features come only from the details field (and the SOLUTION must show one), no ease claims (effortless, zero effort), and a hook never repeats the problem's key words.
 5. Never invent numbers, reviews, awards or results.
 
 ## After any change
