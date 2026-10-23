@@ -607,3 +607,139 @@ test("shame wording is blocked in every category", () => {
     }
   }
 });
+
+/* ---------------------------------------------------------------- v7: UGC Production Standard guardrails */
+
+const NEG = "no readable text, no gibberish text, no ui, no player controls, no timeline, no watermark, no logo, no split screen, no stacked or tiled frames, no borders, no collage, no extra people, no face change, no morphing, no extra fingers";
+
+test("v7: the spec is version 7 and carries the generator rules the model must follow", () => {
+  assert.equal(spec.version, "ugc-funnel-7");
+  const prompt = Core.buildKitPrompt(ctxOf()).system;
+  assert.ok(prompt.includes("cannot render readable text, app screens, documents, logos, clocks or keyboards"));
+  assert.ok(prompt.includes("Every b_roll shot has a job"));
+  assert.ok(prompt.includes("never extra people"));
+});
+
+test("v7: shots a generator would draw cannot ask for clocks, keyboards, readable text or app screens", () => {
+  for (const category of ["skincare", "apps", "fashion"]) {
+    for (const phrase of ["Close up of a wall clock ticking", "Hands typing on a keyboard", "A laptop screen shows the dashboard", "Close up of a phone screen with an app", "Handwritten note on the table"]) {
+      const ctx = ctxOf({ category });
+      const kit = kitOf(ctx);
+      kit.body.problem.visual[0].type = "b_roll";
+      kit.body.problem.visual[0].shot = phrase;
+      assert.ok(failCodes(ctx, kit, "problem").includes("render"), category + " " + phrase);
+    }
+  }
+});
+
+test("v7: render scan skips talking shots, real app footage and words the brief itself uses", () => {
+  const ctx = ctxOf({ category: "apps" });
+  const kit = kitOf(ctx);
+  kit.body.problem.visual[0].type = "b_roll";
+  kit.body.problem.visual[0].shot = "Hands wrap around a warm mug";
+  kit.hooks[0].visual[0].type = "talking_head";
+  kit.hooks[0].visual[0].shot = "She glances at the clock then looks into the camera";
+  const sol = kit.body.solution.visual[kit.body.solution.visual.length - 1];
+  assert.equal(sol.type, "ui_zoom");
+  sol.shot = "Slow push in on the dashboard";
+  assert.ok(!failCodes(ctx, kit, "problem").includes("render"));
+  assert.ok(!failCodes(ctx, kit, "hook:0").includes("render"));
+  assert.ok(!failCodes(ctx, kit, "solution").includes("render"));
+  const clockCtx = ctxOf({ category: "home", product_name: "Oak Wall Clock", details: "silent clock" });
+  const clockKit = kitOf(clockCtx);
+  clockKit.body.problem.visual[0].type = "b_roll";
+  clockKit.body.problem.visual[0].shot = "Close up of the clock on the wall";
+  const rep = Core.validateKit(clockCtx, clockKit).units.problem;
+  assert.ok(!rep.issues.some((i) => i.code === "render"));
+});
+
+test("v7: render problems show on the shots row of the report", () => {
+  const ctx = ctxOf();
+  const kit = kitOf(ctx);
+  kit.body.problem.visual[0].type = "b_roll";
+  kit.body.problem.visual[0].shot = "Close up of a wall clock";
+  const report = Core.validateKit(ctx, kit);
+  const checks = Core.buildChecks(ctx, report, []);
+  assert.equal(checks.length, 7);
+  assert.equal(checks.find((c) => c.id === "shots").state, "fail");
+});
+
+test("v7: autofill is not affected by the shot only scan", () => {
+  const out = Core.parseAutofill(spec, "apps", { pain_points: ["I check the clock again and again"], audience: "busy parents", benefits: ["Feels calmer"] });
+  assert.equal(out.pain_points.length, 1);
+});
+
+test("v7: every T2I and I2V line, and the T2I list, carries the negative block", () => {
+  const ctx = ctxOf();
+  const kit = kitOf(ctx);
+  kit.body.problem.visual.forEach((s) => { s.type = "b_roll"; });
+  const v = Core.makeVariants(kit)[0];
+  const pack = Core.productionPack(ctx, kit, v, "Ultra realistic woman.");
+  const lines = pack.split("\n").filter((l) => /^ {2}(T2I|I2V): /.test(l));
+  assert.ok(lines.length > 0);
+  lines.forEach((l) => assert.ok(l.toLowerCase().includes(NEG), l.slice(0, 60)));
+  const list = Core.t2iPrompts(ctx, kit, "Ultra realistic woman.", Core.makeVariants(kit));
+  assert.ok(list.toLowerCase().includes(NEG));
+  assert.ok(list.includes("no text or captions in the image"));
+});
+
+test("v7: for apps, screen recordings and UI zooms are real footage and never generated", () => {
+  const ctx = ctxOf({ category: "apps", product_name: "Scriptly" });
+  const kit = kitOf(ctx);
+  const sol = kit.body.solution.visual;
+  sol[0].type = "screen_recording"; sol[0].shot = "Tap Generate and the script fills the page";
+  sol[sol.length - 1].type = "ui_zoom"; sol[sol.length - 1].shot = "Push in on the finished script";
+  const pack = Core.productionPack(ctx, kit, Core.makeVariants(kit)[0], "");
+  const solPart = pack.split("SOLUTION")[1].split("SCENE 4")[0];
+  assert.equal((solPart.match(/REAL FOOTAGE NEEDED/g) || []).length, 2);
+  assert.ok(!/ {2}T2I: Push in on the finished script/.test(solPart));
+  assert.ok(solPart.includes("Never generate this shot with an image or video model"));
+  const list = Core.t2iPrompts(ctx, kit, "", Core.makeVariants(kit));
+  assert.ok(!list.includes("Push in on the finished script"));
+});
+
+test("v7: for physical products a UI zoom is still a detail shot made with the image model", () => {
+  const ctx = ctxOf();
+  const kit = kitOf(ctx);
+  const sol = kit.body.solution.visual;
+  sol[sol.length - 1].type = "ui_zoom"; sol[sol.length - 1].shot = "Slow push in on the jar lid";
+  const pack = Core.productionPack(ctx, kit, Core.makeVariants(kit)[0], "");
+  assert.ok(/ {2}T2I: .*Slow push in on the jar lid/.test(pack));
+  assert.ok(!pack.includes("REAL FOOTAGE NEEDED"));
+});
+
+test("v7: every pack closes with post notes for captions, brand tag, end card, presenter and export", () => {
+  const ctx = ctxOf();
+  const kit = kitOf(ctx);
+  const pack = Core.productionPack(ctx, kit, Core.makeVariants(kit)[0], "Ultra realistic woman.");
+  const notes = pack.split("POST NOTES")[1];
+  assert.ok(notes, "post notes missing");
+  assert.ok(pack.trim().endsWith(notes.trim()));
+  ["CAPTIONS: burned in on every spoken line", "BRAND TAG: show Calm Barrier Cream", "END CARD: last 2 seconds", "Never end on a black frame",
+    "PRESENTER: use the same avatar", "EXPORT: 1080x1920", "CHECK: pause on every screen shot"].forEach((t) => assert.ok(notes.includes(t), t));
+  assert.ok(!notes.includes("PRESENTER ANCHOR: none selected"));
+  assert.equal((pack.match(/^TTS: /gm) || []).length, 4);
+  assert.ok(!/[\u2012-\u2015]/.test(pack));
+});
+
+test("v7: post notes warn when no presenter anchor is chosen and skip the brand tag with no product", () => {
+  const ctx = ctxOf({ product_name: "none", brand: "" });
+  const kit = kitOf(ctx);
+  const pack = Core.productionPack(ctx, kit, Core.makeVariants(kit)[0], "");
+  assert.ok(pack.includes("PRESENTER ANCHOR: none selected"));
+  assert.ok(!pack.includes("BRAND TAG"));
+  const twelve = ctxOf({ length: 12 });
+  const k12 = kitOf(twelve);
+  const p12 = Core.productionPack(twelve, k12, Core.makeVariants(k12)[0], "");
+  assert.ok(!p12.includes("SOLUTION"));
+  assert.ok(p12.includes("POST NOTES"));
+});
+
+test("v7: the no screens rule lists only the shot types a generator draws for this category", () => {
+  const rule = (ctx) => Core.buildKitPrompt(ctx).system.split("\n").find((l) => l.startsWith("Image and video models cannot render"));
+  assert.ok(!rule(ctxOf({ category: "apps" })).includes("ui_zoom"));
+  assert.ok(rule(ctxOf({ category: "apps" })).includes("b_roll"));
+  assert.ok(rule(ctxOf({ category: "skincare" })).includes("ui_zoom"));
+  assert.ok(!rule(ctxOf({ category: "skincare" })).includes("before_after"));
+  assert.ok(!rule(ctxOf({ category: "skincare" })).includes("{{"));
+});

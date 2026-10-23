@@ -12,7 +12,7 @@
   "use strict";
   if (!window.UGCFunnelCore) return;
   var Core = window.UGCFunnelCore;
-  var SPEC_URL = "/assets/ugc/funnel.spec.json?v=1";
+  var SPEC_URL = "/assets/ugc/funnel.spec.json?v=2";
   var LS_KEY = "sf_ugc_kits_v1";
   var spec = null, overlay = null, state = null;
 
