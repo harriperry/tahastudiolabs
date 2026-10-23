@@ -540,3 +540,37 @@ test("generateKit retries once when the reply cannot be read, and not otherwise"
   await assert.rejects(Core.generateKit(ctx, async () => { m++; return "not json"; }));
   assert.equal(m, 2);
 });
+
+/* ---------------------------------------------------------------- v5: production pack */
+
+test("production pack: TTS, T2I and I2V together, per scene and per shot", () => {
+  const ctx = ctxOf();
+  const kit = kitOf(ctx);
+  const v = Core.makeVariants(kit)[0];
+  kit.body.problem.visual[0].type = "b_roll";
+  kit.hooks[0].visual[0].type = "talking_head";
+  const pack = Core.productionPack(ctx, kit, v, "Ultra realistic woman, warm brown skin.");
+  assert.ok(pack.includes("[H1 + B1 + C1] 30s, 9:16"));
+  ["HOOK", "PROBLEM", "SOLUTION", "CTA"].forEach((n) => assert.ok(pack.includes(" " + n + " | "), n));
+  assert.equal((pack.match(/^TTS: /gm) || []).length, 4);
+  assert.ok(pack.includes("TTS: " + kit.hooks[0].spoken));
+  assert.ok(pack.includes("TTS: " + kit.ctas[0].spoken));
+  const t2i = (pack.match(/^ {2}T2I: /gm) || []).length, i2v = (pack.match(/^ {2}I2V: /gm) || []).length;
+  assert.ok(t2i > 0 && t2i === i2v);
+  assert.ok(pack.includes("Ultra realistic woman"));
+  assert.ok(pack.includes("AVATAR: the presenter says the TTS line"));
+  assert.ok(/I2V: Animate the still image for \d seconds/.test(pack));
+  assert.ok(!/[\u2012-\u2015]/.test(pack));
+});
+
+test("production pack: talking shots get no image prompts and 12s has no solution", () => {
+  const ctx = ctxOf({ length: 12 });
+  const kit = kitOf(ctx);
+  kit.hooks[0].visual.forEach((s) => { s.type = "talking_head"; });
+  const pack = Core.productionPack(ctx, kit, Core.makeVariants(kit)[0], "");
+  assert.ok(!pack.includes("SOLUTION"));
+  const hookPart = pack.split("SCENE 2")[0];
+  assert.ok(!hookPart.includes("T2I:") && !hookPart.includes("I2V:"));
+  const all = Core.productionPackAll(ctx, kit, Core.makeVariants(kit), "");
+  assert.equal((all.match(/^\[H\d \+ B1 \+ C\d\]/gm) || []).length, 6);
+});

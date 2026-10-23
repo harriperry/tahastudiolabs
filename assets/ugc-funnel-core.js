@@ -608,6 +608,42 @@
     return rows.join("\n");
   }
 
+  /* One block per variant: for every scene the TTS line, then every shot with what to do for
+     it. Shots that need an image get a T2I prompt and an I2V prompt, both built in code from the
+     shot text, so this costs no extra model call. */
+  function shotLines(ctx, s, anchor) {
+    var pk = ctx.spec.pack, secs = 0, r = parseRange(s.t), out = [];
+    if (r) secs = r[1] - r[0];
+    var head = "SHOT " + s.t + " | " + s.type;
+    if (ctx.spec.shots.t2iTypes.indexOf(s.type) >= 0) {
+      out.push(head);
+      out.push("  T2I: " + [str(anchor), s.shot.replace(/[.\s]+$/, "") + ".", pk.t2iSuffix].filter(Boolean).join(" "));
+      out.push("  I2V: " + fill(pk.i2vTemplate, { seconds: secs, shot: s.shot, motion: pk.motions[s.type] || pk.motions.b_roll }));
+    } else {
+      var tpl = s.type === "text_pop" ? pk.textLine : s.type === "screen_recording" ? pk.screenLine : s.type === "punch_in" ? pk.punchLine : pk.avatarLine;
+      out.push(head);
+      out.push("  " + fill(tpl, { shot: s.shot }));
+    }
+    return out;
+  }
+
+  function productionPack(ctx, kit, v, anchor) {
+    var L = ["[" + v.label + "] " + ctx.length + "s, 9:16", ""];
+    var scenes = [["HOOK", kit.hooks[v.hookIndex], ctx.byKey.hook], ["PROBLEM", kit.body.problem, ctx.byKey.problem]];
+    if (kit.body.solution) scenes.push(["SOLUTION", kit.body.solution, ctx.byKey.solution]);
+    scenes.push(["CTA", kit.ctas[v.ctaIndex], ctx.byKey.cta]);
+    scenes.forEach(function (sc, i) {
+      L.push("SCENE " + (i + 1) + " " + sc[0] + " | " + fmtTime(sc[2].start) + " to " + fmtTime(sc[2].end));
+      L.push("TTS: " + sc[1].spoken);
+      sc[1].visual.forEach(function (s) { shotLines(ctx, s, anchor).forEach(function (x) { L.push(x); }); });
+      L.push("");
+    });
+    return L.join("\n").trim();
+  }
+  function productionPackAll(ctx, kit, variants, anchor) {
+    return variants.map(function (v) { return productionPack(ctx, kit, v, anchor); }).join("\n\n----------------------------------------\n\n");
+  }
+
   function t2iPrompts(ctx, kit, anchor, variants) {
     var hooks = {}, ctas = {};
     variants.forEach(function (v) { hooks[v.hookIndex] = true; ctas[v.ctaIndex] = true; });
@@ -689,7 +725,7 @@
     extractJson: extractJson, normalizeKit: normalizeKit, unitKeys: unitKeys, unitRef: unitRef, unitLabel: unitLabel,
     validateKit: validateKit, checkUnit: checkUnit, repairKit: repairKit, regenerateUnit: regenerateUnit, generateKit: generateKit,
     buildChecks: buildChecks, makeVariants: makeVariants, variantScript: variantScript, variantWords: variantWords,
-    variantsCsv: variantsCsv, t2iPrompts: t2iPrompts, estimateRun: estimateRun, kitMaxTokens: kitMaxTokens,
+    variantsCsv: variantsCsv, t2iPrompts: t2iPrompts, productionPack: productionPack, productionPackAll: productionPackAll, estimateRun: estimateRun, kitMaxTokens: kitMaxTokens,
     parseAutofill: parseAutofill
   };
 });

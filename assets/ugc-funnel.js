@@ -252,6 +252,8 @@
         copy(k.variants.map(function (v) { return "[" + v.label + "]\n" + Core.variantScript(kit, v); }).join("\n\n"), e.target); } }),
       h("button", { class: "btn-copy", text: "Download CSV", onclick: function () { download("ugc-variants.csv", Core.variantsCsv(kit, k.variants), "text/csv"); } }),
       h("button", { class: "btn-copy", text: "Download kit JSON", onclick: function () { download("ugc-kit.json", JSON.stringify({ input: ctx.inputs, length: ctx.length, kit: kit }, null, 2), "application/json"); } }),
+      h("button", { class: "btn-copy ugc-gold", text: "Copy production pack (TTS + T2I + I2V)", onclick: function (e) { copy(Core.productionPackAll(ctx, kit, k.variants, state.anchor || ""), e.target); } }),
+      h("button", { class: "btn-copy", text: "Download pack (.txt)", onclick: function () { download("ugc-production-pack.txt", Core.productionPackAll(ctx, kit, k.variants, state.anchor || ""), "text/plain"); } }),
       h("button", { class: "btn-copy", text: "Copy T2I prompts", onclick: function (e) { copy(Core.t2iPrompts(ctx, kit, state.anchor || "", k.variants), e.target); } })
     ]);
     box.appendChild(row);

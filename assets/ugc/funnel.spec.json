@@ -1,6 +1,6 @@
 {
   "name": "ScriptForge AI UGC Funnel spec",
-  "version": "ugc-funnel-4",
+  "version": "ugc-funnel-5",
   "notes": "Single source of truth for the AI UGC Funnel. Read by assets/ugc-funnel-core.js in the browser and in the tests, and by the Claude skill in skills/ugc-funnel-prompt/. Edit wording, caps and lists here, never in the code. The builder injects only the length row, archetypes and rules that apply to a run, which keeps the prompt short. Placeholders look like {{name}}. No em dashes or en dashes anywhere, in this file or in any output. Every scene is one video clip of at most limits.maxSceneSeconds, because most video generators stop at 10 seconds. Word ranges assume about 2 words per second of English with room for pauses.",
   "wordFactor": {
     "en": 1,
@@ -478,5 +478,19 @@
       "till",
       "var"
     ]
+  },
+  "pack": {
+    "t2iSuffix": "Vertical 9:16, no text or captions in the image.",
+    "i2vTemplate": "Animate the still image for {{seconds}} seconds. Action: {{shot}}. Motion: {{motion}}. Keep the same look, no cuts, no text overlays, no captions.",
+    "motions": {
+      "b_roll": "natural movement, slow handheld drift",
+      "product_in_use": "hands move naturally while using it, gentle handheld",
+      "ui_zoom": "slow push in on the detail",
+      "before_after": "smooth change from the first state to the second"
+    },
+    "avatarLine": "AVATAR: the presenter says the TTS line above on camera. Framing: {{shot}}.",
+    "punchLine": "AVATAR PUNCH IN: the presenter keeps talking, the frame pushes in. Framing: {{shot}}.",
+    "textLine": "ON-SCREEN TEXT: {{shot}}",
+    "screenLine": "SCREEN RECORDING: {{shot}}"
   }
 }
