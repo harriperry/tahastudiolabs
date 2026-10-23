@@ -574,3 +574,36 @@ test("production pack: talking shots get no image prompts and 12s has no solutio
   const all = Core.productionPackAll(ctx, kit, Core.makeVariants(kit), "");
   assert.equal((all.match(/^\[H\d \+ B1 \+ C\d\]/gm) || []).length, 6);
 });
+
+/* ---------------------------------------------------------------- v6: stock pivots and shame wording */
+
+test("a solution that opens with a stock pivot fails, even with words changed", () => {
+  const ctx = ctxOf({ category: "haircare", brand: "", product_name: "Dreadlocks" });
+  const kit = kitOf(ctx);
+  const tail = " " + words(mid(ctx.byKey.solution) - 14, 2);
+  for (const opener of ["Here's another way to approach it.", "That's where Dreadlocks comes in.", "Here is another way to do it.", "Now look at this instead."]) {
+    kit.body.solution.spoken = opener + " Dreadlocks" + tail;
+    assert.ok(failCodes(ctx, kit, "solution").includes("pivotcopy"), opener);
+  }
+  kit.body.solution.spoken = "Small sections at the roots, taken slowly. Dreadlocks" + tail;
+  assert.ok(!failCodes(ctx, kit, "solution").includes("pivotcopy"));
+});
+
+test("pivot check shows as its own row in the report", async () => {
+  const ctx = ctxOf();
+  const res = await Core.generateKit(ctx, async () => JSON.stringify(goodRaw(ctx)));
+  const checks = Core.buildChecks(ctx, res.report, res.log);
+  assert.equal(checks.length, 7);
+  assert.equal(checks.find((c) => c.id === "pivot").state, "pass");
+});
+
+test("shame wording is blocked in every category", () => {
+  for (const category of ["haircare", "fashion"]) {
+    for (const phrase of ["you failed", "so embarrassing and ugly", "feel ashamed", "total failure"]) {
+      const ctx = ctxOf({ category, product_name: "Torghu" });
+      const kit = kitOf(ctx);
+      kit.hooks[0].spoken = phrase + " " + hookWords(ctx.byKey.hook.min - 1, 0);
+      assert.ok(failCodes(ctx, kit, "hook:0").includes("claims"), category + " " + phrase);
+    }
+  }
+});

@@ -1,6 +1,6 @@
 {
   "name": "ScriptForge AI UGC Funnel spec",
-  "version": "ugc-funnel-5",
+  "version": "ugc-funnel-6",
   "notes": "Single source of truth for the AI UGC Funnel. Read by assets/ugc-funnel-core.js in the browser and in the tests, and by the Claude skill in skills/ugc-funnel-prompt/. Edit wording, caps and lists here, never in the code. The builder injects only the length row, archetypes and rules that apply to a run, which keeps the prompt short. Placeholders look like {{name}}. No em dashes or en dashes anywhere, in this file or in any output. Every scene is one video clip of at most limits.maxSceneSeconds, because most video generators stop at 10 seconds. Word ranges assume about 2 words per second of English with room for pauses.",
   "wordFactor": {
     "en": 1,
@@ -307,7 +307,7 @@
         "strict",
         "standard"
       ],
-      "pattern": "\\b(scams?|rip-?offs?|toxic|poison|poisonous|dangerous|harmful chemicals?|they don'?t want you to know|doesn'?t want you to know|don'?t want you knowing|big pharma|big beauty|liars?|disgusting)\\b",
+      "pattern": "\\b(scams?|rip-?offs?|toxic|poison|poisonous|dangerous|harmful chemicals?|they don'?t want you to know|doesn'?t want you to know|don'?t want you knowing|big pharma|big beauty|liars?|disgusting|fail(ed|ure|ing)?|ashamed|shame|embarrass(ed|ing|ment)|ugly|worthless|pathetic)\\b",
       "reason": "fear, shame or hidden-truth framing is not allowed"
     },
     "hype": {
@@ -492,5 +492,8 @@
     "punchLine": "AVATAR PUNCH IN: the presenter keeps talking, the frame pushes in. Framing: {{shot}}.",
     "textLine": "ON-SCREEN TEXT: {{shot}}",
     "screenLine": "SCREEN RECORDING: {{shot}}"
+  },
+  "pivotCopy": {
+    "minSimilarity": 0.6
   }
 }

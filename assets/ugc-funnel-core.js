@@ -423,6 +423,34 @@
     return out;
   }
 
+  /* The first sentence of the solution is compared with every example pivot in the spec, after
+     contractions are expanded and the product name is removed. Word-set similarity, so a line
+     with two words changed still counts as a copy. */
+  function pivotWords(ctx, text) {
+    var s = String(text).toLowerCase().replace(/\u2019/g, "'").replace(/(\w)'s\b/g, "$1 is");
+    (ctx.nameToUse || "").toLowerCase().split(/\s+/).filter(Boolean).forEach(function (w) { s = s.split(w).join(" "); });
+    var seen = {}, out = [];
+    (s.match(/[\p{L}\p{N}]+/gu) || []).forEach(function (w) { if (!seen[w]) { seen[w] = 1; out.push(w); } });
+    return out;
+  }
+  function pivotCopy(ctx, spoken) {
+    var first = String(spoken).split(/(?<=[.!?])\s+/)[0] || "";
+    var fw = pivotWords(ctx, first);
+    if (!fw.length) return null;
+    var hit = null;
+    ctx.spec.categories.forEach(function (c) {
+      (c.pivots || []).forEach(function (pv) {
+        if (hit) return;
+        var pw = pivotWords(ctx, pv), set = {}, inter = 0;
+        pw.forEach(function (w) { set[w] = 1; });
+        fw.forEach(function (w) { if (set[w]) inter++; });
+        var union = fw.length + pw.length - inter;
+        if (union && inter / union >= ctx.spec.pivotCopy.minSimilarity) hit = pv;
+      });
+    });
+    return hit;
+  }
+
   function checkUnit(ctx, kit, key) {
     var k = splitKey(key), scene = ctx.byKey[k.kind], unit = unitRef(kit, key), spec = ctx.spec;
     var issues = [], warnings = [];
@@ -447,6 +475,10 @@
       if (!unit.visual.some(function (s) { return ctx.resultTypes.indexOf(s.type) >= 0; })) issues.push({ code: "result", message: "The SOLUTION needs a result shot of type " + ctx.resultTypes.join(" or ") + "." });
       if (new RegExp(spec.firstPerson, "i").test(unit.spoken)) issues.push({ code: "firstperson", message: "The SOLUTION must not use first person (I, my, me). Describe the product in use in neutral words." });
       if (ctx.hasProduct && unit.spoken.toLowerCase().indexOf(ctx.mustName.toLowerCase()) < 0) issues.push({ code: "product", message: "The SOLUTION must name " + ctx.nameToUse + "." });
+    }
+    if (k.kind === "solution") {
+      var stock = pivotCopy(ctx, unit.spoken);
+      if (stock) issues.push({ code: "pivotcopy", message: "The SOLUTION opens with a stock pivot (\"" + stock + "\"). Open with a different line in your own words." });
     }
     if (k.kind === "solution" && ctx.inputs.details) {
       var feats = featureStems(ctx.inputs.details);
@@ -549,7 +581,7 @@
   var CHECK_MAP = {
     words: "words", tiling: "shots", shotType: "shots", textpop: "shots", broll: "shots", demo: "shots", result: "shots",
     dashes: "dashes", claims: "compliance", firstperson: "compliance", blockedType: "compliance",
-    numbers: "numbers", product: "swap", overlap: "swap", feature: "swap"
+    numbers: "numbers", product: "swap", overlap: "swap", feature: "swap", pivotcopy: "pivot"
   };
 
   function buildChecks(ctx, report, log) {
@@ -559,6 +591,7 @@
       { id: "dashes", title: "No em dashes or en dashes", ok: "Scanned spoken text, shot text and on-screen words." },
       { id: "compliance", title: "Compliance profile: " + ctx.cat.label + " (" + ctx.profile + ")", ok: "No medical or curative wording, no fear framing, no blocked shot types." },
       { id: "numbers", title: "No invented numbers or claims", ok: "No numbers, reviews or awards that are not in your brief." },
+      { id: "pivot", title: "Solution opens in its own words", ok: ctx.hasSolution ? "The pivot is not a stock line." : "This length has no solution scene." },
       { id: "swap", title: "Hooks and CTAs are swappable", ok: (ctx.hasProduct ? "The direct CTA and the solution name the product. " : "No product is named, so none is required. ") + "Hooks do not repeat the problem." }
     ];
     var remaining = {};
