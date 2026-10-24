@@ -467,7 +467,43 @@
     });
   }
 
-  var runCache = new WeakMap();
+  /* Saved voiceovers: memory first, then IndexedDB. Every call is wrapped by the caller because
+     storage can be blocked or full. Keeps the newest few runs only. */
+  var memRuns = {};
+  var KEEP_RUNS = 8;
+  function strHash(str) { var x = 5381; for (var i = 0; i < str.length; i++) x = ((x << 5) + x + str.charCodeAt(i)) | 0; return (x >>> 0).toString(36); }
+  function openStore() {
+    return new Promise(function (res, rej) {
+      try {
+        var r = indexedDB.open("vp_voiceovers", 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore("runs"); };
+        r.onsuccess = function () { res(r.result); };
+        r.onerror = function () { rej(r.error); };
+      } catch (e) { rej(e); }
+    });
+  }
+  function reqDone(tx) { return new Promise(function (res, rej) { tx.oncomplete = function () { res(); }; tx.onerror = tx.onabort = function () { rej(tx.error); }; }); }
+  async function storeGet(key) {
+    var db = await openStore();
+    return new Promise(function (res, rej) { var q = db.transaction("runs").objectStore("runs").get(key); q.onsuccess = function () { res(q.result || null); }; q.onerror = function () { rej(q.error); }; });
+  }
+  async function storePut(key, val) {
+    var db = await openStore(), tx = db.transaction("runs", "readwrite");
+    tx.objectStore("runs").put(val, key); await reqDone(tx);
+    var rows = await new Promise(function (res, rej) {
+      var all = [], c = db.transaction("runs").objectStore("runs").openCursor();
+      c.onsuccess = function () { var cur = c.result; if (cur) { all.push([cur.key, (cur.value && cur.value.savedAt) || 0]); cur.continue(); } else res(all); };
+      c.onerror = function () { rej(c.error); };
+    });
+    if (rows.length > KEEP_RUNS) {
+      rows.sort(function (x, y) { return y[1] - x[1]; });
+      var tx2 = db.transaction("runs", "readwrite");
+      rows.slice(KEEP_RUNS).forEach(function (r) { tx2.objectStore("runs").delete(r[0]); });
+      await reqDone(tx2);
+    }
+  }
+  async function storeClear() { var db = await openStore(), tx = db.transaction("runs", "readwrite"); tx.objectStore("runs").clear(); await reqDone(tx); }
+
   function mountFunnelPanel(box, o) {
     var card = h("section", { class: "ugc-card vp-funnel" }, [h("h4", { text: "Voiceover with a locked voice" })]);
     box.appendChild(card);
@@ -492,26 +528,43 @@
     card.appendChild(progress);
     card.appendChild(out);
 
-    /* Finished runs are kept in memory per kit, variant and passport version. The funnel redraws its
-       results whenever a scene is rewritten, the presenter changes or a kit is switched, and that used
-       to wipe the audio. Now the card rebuilds itself from the kept run. */
-    var kept = runCache.get(o.ctx); if (!kept) { kept = {}; runCache.set(o.ctx, kept); }
-    function slot() { return p.character_id + "|" + sel.value; }
+    /* Finished runs are kept in memory and in this browser (IndexedDB), keyed by voice, model and the
+       exact scene text. A redraw, a reload, a closed window or a regenerated kit with the same text all
+       restore the same clips without calling ElevenLabs again. */
     var urls = [];
     function releaseUrls() { urls.forEach(function (u) { URL.revokeObjectURL(u); }); urls = []; }
-    function showKept() {
+    function current() {
+      var v = o.variants[Number(sel.value)], scenes = funnelScenes(o.core, o.ctx, o.kit, v);
+      var key = p.character_id + "|" + p.elevenlabs_voice_id + "|" + p.model_id + "|" + strHash(JSON.stringify(scenes.map(function (x) { return [x.id, x.text]; })));
+      return { v: v, scenes: scenes, key: key };
+    }
+    function describe(k) {
+      setStatus(progress, k.run.ready ? "ok" : "err", (k.run.ready ? "All clips passed the voice checks. Ready for the renderer." : k.run.metrics.needs_review + " clip(s) need a manual listen before use. They are marked below.") + " Saved in this browser.");
+    }
+    var showToken = 0;
+    async function showKept() {
+      var token = ++showToken, cur = current();
       releaseUrls(); out.textContent = "";
-      var k = kept[slot()];
+      var k = memRuns[cur.key];
+      if (!k) { try { k = await storeGet(cur.key); } catch (e) { k = null; } if (k) memRuns[cur.key] = k; }
+      if (token !== showToken || !document.body.contains(card)) return;
       if (!k) { progress.textContent = ""; return; }
       showResults(out, k.run, p, k.scenes, urls, k.variant);
-      setStatus(progress, k.run.ready ? "ok" : "err", k.run.ready ? "All clips passed the voice checks. Ready for the renderer." : k.run.metrics.needs_review + " clip(s) need a manual listen before use. They are marked below.");
+      describe(k);
     }
     sel.addEventListener("change", showKept);
+    var clear = h("button", { type: "button", class: "btn-copy", text: "Clear saved voiceovers" });
+    clear.addEventListener("click", async function () {
+      if (!window.confirm("Remove all saved voiceover clips from this browser? Downloaded files are not affected.")) return;
+      Object.keys(memRuns).forEach(function (k) { delete memRuns[k]; });
+      try { await storeClear(); } catch (e) { /* nothing to clear */ }
+      showKept();
+    });
+    card.querySelector(".vp-actions").appendChild(clear);
     go.addEventListener("click", async function () {
       if (!getKey()) { setStatus(progress, "err", NEED_KEY); return; }
-      var v = o.variants[Number(sel.value)], scenes = funnelScenes(o.core, o.ctx, o.kit, v), jobs = VP.buildJobs(scenes);
-      var mySlot = slot();
-      go.disabled = true; out.textContent = ""; releaseUrls();
+      var cur = current(), jobs = VP.buildJobs(cur.scenes);
+      go.disabled = true; out.textContent = ""; releaseUrls(); showToken++;
       setStatus(progress, "info", "Generating " + jobs.length + " clip(s)...");
       try {
         var run = await VP.runVoiceover({
@@ -519,8 +572,10 @@
           tts: ttsPcm(function (r) { setStatus(progress, "info", "ElevenLabs is busy, retrying in " + Math.round(r.delayMs / 1000) + " s..."); }),
           onProgress: function (e) { setStatus(progress, "info", "Scene " + (e.index + 1) + " of " + e.total + " (" + e.job + "), attempt " + e.attempt + (e.pass ? ": passed" : ": checking again")); }
         });
-        kept[mySlot] = { run: run, scenes: scenes, variant: v };
-        if (document.body.contains(card)) { if (slot() === mySlot) showKept(); }
+        var k = { savedAt: Date.now(), run: run, scenes: cur.scenes, variant: cur.v };
+        memRuns[cur.key] = k;
+        try { await storePut(cur.key, k); } catch (e) { /* storage full or blocked: clips still show this session */ }
+        if (document.body.contains(card) && current().key === cur.key) showKept();
       } catch (e) {
         setStatus(progress, "err", e.voiceGone ? "ElevenLabs says the locked voice " + p.elevenlabs_voice_id + " is invalid or deleted. Lock a new voice version for this character. No other voice was used." : e.message);
       } finally { go.disabled = false; }
