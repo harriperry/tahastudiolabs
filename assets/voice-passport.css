@@ -1,0 +1,27 @@
+/* Voice Passport screens. Uses the same tokens as the rest of ScriptForge, so light and dark both work. */
+.vp-panel{margin:8px 0 14px;padding:12px;border:1px solid var(--border);border-left:3px solid var(--gold,#E3A21A);border-radius:10px;background:var(--panel2,var(--panel))}
+.vp-head{margin-bottom:8px;font-size:.92rem}
+.vp-sub{font-size:.74rem;color:var(--muted);line-height:1.5}
+.vp-note{margin-top:6px}
+.vp-line{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:4px}
+.vp-badge{font:700 .66rem "JetBrains Mono",ui-monospace,monospace;letter-spacing:.8px;padding:2px 8px;border-radius:999px;border:1px solid var(--gold,#E3A21A);color:var(--accent2)}
+.vp-okb{border-color:var(--ok);color:var(--ok)}
+.vp-badb{border-color:var(--err);color:var(--err)}
+.vp-bad{color:var(--err)}
+.vp-tabs,.vp-actions,.vp-versions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.vp-on{border-color:var(--gold,#E3A21A)!important;color:var(--accent2)!important;font-weight:600}
+.vp-pane{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.vp-pane select,.vp-pane input[type=text],.vp-pane textarea,.vp-adv input[type=text],.vp-adv select{width:100%}
+.vp-audio{width:100%;max-width:420px;margin:4px 0}
+.vp-cand{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--panel)}
+.vp-adv{margin-top:10px;font-size:.82rem}
+.vp-adv summary{cursor:pointer;color:var(--muted);font-size:.78rem}
+.vp-slider{display:grid;grid-template-columns:130px 1fr 40px;gap:8px;align-items:center;margin:6px 0}
+.vp-val{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.74rem;color:var(--muted)}
+.vp-check{display:flex;gap:8px;align-items:flex-start;font-size:.8rem}
+.vp-funnel .vp-variant{max-width:260px}
+.vp-results{margin-top:10px}
+.vp-row{border:1px solid var(--border);border-left:3px solid var(--ok);border-radius:8px;padding:8px 10px;margin-bottom:8px;background:var(--panel)}
+.vp-row.vp-warn{border-left-color:var(--err)}
+#vpStatus{margin-top:8px}
+@media (max-width:640px){.vp-slider{grid-template-columns:1fr 40px}.vp-slider label{grid-column:1 / -1}}

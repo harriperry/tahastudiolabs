@@ -147,7 +147,8 @@
 
   function visualRules(ctx, keys) {
     var p = ctx.spec.prompt, out = [];
-    p.visuals.forEach(function (l) { out.push(fill(l, { shot_types: ctx.allowedTypes.join(", ") })); });
+    var drawn = ctx.spec.shots.t2iTypes.filter(function (t) { return isT2i(ctx, t) && ctx.allowedTypes.indexOf(t) >= 0; }).join(", ");
+    p.visuals.forEach(function (l) { out.push(fill(l, { shot_types: ctx.allowedTypes.join(", "), drawn_types: drawn })); });
     if (keys.indexOf("problem") >= 0) out.push(p.visualsProblem);
     if (keys.indexOf("solution") >= 0) out.push(fill(p.visualsSolution, { demo_type: ctx.demoType, result_types: ctx.resultTypes.join(" or ") }));
     return out;
@@ -376,7 +377,8 @@
       var sc = spec.scans[name];
       if (sc.profiles.indexOf(ctx.profile) < 0) return;
       var re = new RegExp(sc.pattern, "i");
-      texts.forEach(function (t) {
+      var pool = sc.scope === "t2iShots" ? unit.visual.filter(function (s) { return isT2i(ctx, s.type); }).map(function (s) { return s.shot; }) : texts;
+      pool.forEach(function (t) {
         var m = re.exec(t);
         if (!m) return;
         var w = m[0].toLowerCase();
@@ -385,7 +387,7 @@
         if (ctx.inputText.indexOf(w) >= 0) {
           warnings.push("\"" + w + "\" comes from your brief. Check it is allowed for your market.");
         } else {
-          issues.push({ code: "claims", scan: name, message: "\"" + w + "\" is not allowed: " + sc.reason + "." });
+          issues.push({ code: sc.scope === "t2iShots" ? "render" : "claims", scan: name, message: "\"" + w + "\" is not allowed: " + sc.reason + "." });
         }
       });
     });
@@ -579,7 +581,7 @@
   /* ------------------------------------------------------------------ report for the UI */
 
   var CHECK_MAP = {
-    words: "words", tiling: "shots", shotType: "shots", textpop: "shots", broll: "shots", demo: "shots", result: "shots",
+    words: "words", tiling: "shots", shotType: "shots", textpop: "shots", render: "shots", broll: "shots", demo: "shots", result: "shots",
     dashes: "dashes", claims: "compliance", firstperson: "compliance", blockedType: "compliance",
     numbers: "numbers", product: "swap", overlap: "swap", feature: "swap", pivotcopy: "pivot"
   };
@@ -587,7 +589,7 @@
   function buildChecks(ctx, report, log) {
     var defs = [
       { id: "words", title: "Word counts in every scene", ok: "Counted in code against the " + ctx.length + "s ranges." },
-      { id: "shots", title: "Shot times tile each scene exactly", ok: "No gaps, no overlaps, every shot 2 or 3 seconds, problem shots mostly b_roll." },
+      { id: "shots", title: "Shot times tile each scene exactly", ok: "No gaps, no overlaps, every shot 2 or 3 seconds, problem shots mostly b_roll, nothing a video model cannot draw (clocks, keyboards, readable text, app screens)." },
       { id: "dashes", title: "No em dashes or en dashes", ok: "Scanned spoken text, shot text and on-screen words." },
       { id: "compliance", title: "Compliance profile: " + ctx.cat.label + " (" + ctx.profile + ")", ok: "No medical or curative wording, no fear framing, no blocked shot types." },
       { id: "numbers", title: "No invented numbers or claims", ok: "No numbers, reviews or awards that are not in your brief." },
@@ -648,16 +650,36 @@
     var pk = ctx.spec.pack, secs = 0, r = parseRange(s.t), out = [];
     if (r) secs = r[1] - r[0];
     var head = "SHOT " + s.t + " | " + s.type;
-    if (ctx.spec.shots.t2iTypes.indexOf(s.type) >= 0) {
+    if (isT2i(ctx, s.type)) {
       out.push(head);
       out.push("  T2I: " + [str(anchor), s.shot.replace(/[.\s]+$/, "") + ".", pk.t2iSuffix].filter(Boolean).join(" "));
       out.push("  I2V: " + fill(pk.i2vTemplate, { seconds: secs, shot: s.shot, motion: pk.motions[s.type] || pk.motions.b_roll }));
     } else {
-      var tpl = s.type === "text_pop" ? pk.textLine : s.type === "screen_recording" ? pk.screenLine : s.type === "punch_in" ? pk.punchLine : pk.avatarLine;
+      var real = ctx.cat.kind === "app" && ((ctx.spec.shots.appRealFootageTypes || []).indexOf(s.type) >= 0 || s.type === "screen_recording");
+      var tpl = s.type === "text_pop" ? pk.textLine : real ? pk.realFootageLine : s.type === "punch_in" ? pk.punchLine : pk.avatarLine;
       out.push(head);
-      out.push("  " + fill(tpl, { shot: s.shot }));
+      out.push("  " + fill(tpl, { shot: s.shot.replace(/[.\s]+$/, "") + "." }));
     }
     return out;
+  }
+
+  function isT2i(ctx, type) {
+    var sh = ctx.spec.shots;
+    if (sh.t2iTypes.indexOf(type) < 0) return false;
+    if (ctx.cat.kind === "app" && (sh.appRealFootageTypes || []).indexOf(type) >= 0) return false;
+    return true;
+  }
+
+  /* Post notes close every production pack. They cover what a generator must never draw
+     (captions, brand tag, end card) and the rules that keep one presenter and one export spec. */
+  function postNotes(ctx, anchor) {
+    var pn = ctx.spec.pack.postNotes, L = [ctx.spec.pack.postNotesTitle, "- " + pn.captions];
+    if (ctx.hasProduct) L.push("- " + fill(pn.brandTag, { name: ctx.nameToUse }));
+    L.push("- " + fill(pn.endCard, { nameClause: ctx.hasProduct ? ", " + ctx.nameToUse : "" }));
+    L.push("- " + pn.presenter);
+    if (!str(anchor)) L.push("- " + pn.noAnchor);
+    L.push("- " + pn.export, "- " + pn.check);
+    return L.join("\n");
   }
 
   function productionPack(ctx, kit, v, anchor) {
@@ -671,6 +693,7 @@
       sc[1].visual.forEach(function (s) { shotLines(ctx, s, anchor).forEach(function (x) { L.push(x); }); });
       L.push("");
     });
+    L.push(postNotes(ctx, anchor));
     return L.join("\n").trim();
   }
   function productionPackAll(ctx, kit, variants, anchor) {
@@ -688,8 +711,8 @@
     var out = [];
     units.forEach(function (pair) {
       pair[1].visual.forEach(function (s) {
-        if (ctx.spec.shots.t2iTypes.indexOf(s.type) < 0) return;
-        out.push(pair[0] + " | " + s.t + " | " + s.type + "\n" + [str(anchor), s.shot, "Vertical 9:16."].filter(Boolean).join(" "));
+        if (!isT2i(ctx, s.type)) return;
+        out.push(pair[0] + " | " + s.t + " | " + s.type + "\n" + [str(anchor), s.shot.replace(/[.\s]+$/, "") + ".", ctx.spec.pack.t2iSuffix].filter(Boolean).join(" "));
       });
     });
     return out.join("\n\n");
@@ -739,7 +762,7 @@
       if (new RegExp(spec.dashes).test(s)) s = s.replace(new RegExp(spec.dashes, "g"), ", ");
       var bad = Object.keys(spec.scans).some(function (n) {
         var sc = spec.scans[n];
-        return sc.profiles.indexOf(cat.profile) >= 0 && new RegExp(sc.pattern, "i").test(s);
+        return !sc.scope && sc.profiles.indexOf(cat.profile) >= 0 && new RegExp(sc.pattern, "i").test(s);
       }) || /\d/.test(s);
       if (bad) removed++;
       return !bad;
