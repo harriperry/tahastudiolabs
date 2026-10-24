@@ -371,6 +371,26 @@
     if (problems.length) issues.push({ code: "tiling", message: problems.join(" ") });
   }
 
+  /* A number in the brief counts however it is written: "33 Export" and "Three Three Export" are the
+     same number, as are "7" and "seven". Without this, a brand written one way fails when the model
+     writes it the other way. */
+  var DIGIT_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+  var TEEN_WORDS = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+  var TENS_WORDS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+  function numberInBrief(text, token) {
+    if (/^\d+$/.test(token)) {
+      var v = Number(token), forms = [token.split("").map(function (d) { return DIGIT_WORDS[Number(d)]; }).join(" ")];
+      if (v < 10) forms.push(DIGIT_WORDS[v]);
+      else if (v < 20) forms.push(TEEN_WORDS[v - 10]);
+      else if (v < 100) { var t = TENS_WORDS[Math.floor(v / 10)], o = v % 10; forms.push(o ? t + "-" + DIGIT_WORDS[o] : t); if (o) forms.push(t + " " + DIGIT_WORDS[o]); }
+      return forms.some(function (f) { return new RegExp("\\b" + f + "\\b").test(text); });
+    }
+    var n = DIGIT_WORDS.indexOf(token), t = TENS_WORDS.indexOf(token), e = TEEN_WORDS.indexOf(token);
+    if (n >= 0) return text.indexOf(String(n)) >= 0;
+    if (t >= 2) return text.indexOf(String(t)) >= 0;
+    return e >= 0 && new RegExp("(^|[^0-9.,])" + (e + 10) + "([^0-9]|$)").test(text);
+  }
+
   function scanText(ctx, unit, issues, warnings) {
     var spec = ctx.spec, texts = allTexts(unit), seen = {};
     Object.keys(spec.scans).forEach(function (name) {
@@ -396,7 +416,7 @@
       var found = (t.match(numRe) || []).concat(t.match(wordRe) || []);
       found.forEach(function (n) {
         var low = n.toLowerCase();
-        if (nseen[low] || ctx.inputText.indexOf(low) >= 0) return;
+        if (nseen[low] || ctx.inputText.indexOf(low) >= 0 || numberInBrief(ctx.inputText, low)) return;
         nseen[low] = true;
         issues.push({ code: "numbers", message: "\"" + n + "\" is a number that is not in the brief. Remove it." });
       });

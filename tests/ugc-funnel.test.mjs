@@ -256,6 +256,27 @@ test("validator: invented numbers fail, numbers from the brief pass", () => {
   assert.ok(!failCodes(ctx2, kit, "problem").includes("numbers"));
 });
 
+test("validator: a number in the brief counts whether it is written in digits or words", () => {
+  // "Three Three Export" in the brief, "33" in the script, and the reverse
+  const a = ctxOf({ product_name: "Three Three Export" });
+  let kit = kitOf(a);
+  kit.body.problem.spoken = words(a.byKey.problem.min + 1, 0) + " 33";
+  assert.ok(!failCodes(a, kit, "problem").includes("numbers"));
+  const b = ctxOf({ product_name: "33 Export" });
+  kit = kitOf(b);
+  kit.body.problem.spoken = words(b.byKey.problem.min + 1, 0) + " thirty-three";
+  assert.ok(!failCodes(b, kit, "problem").includes("numbers"));
+  const c = ctxOf({ benefit: "ready in 3 minutes" });
+  kit = kitOf(c);
+  kit.body.problem.spoken = words(c.byKey.problem.min + 1, 0) + " three";
+  assert.ok(!failCodes(c, kit, "problem").includes("numbers"));
+  // an unrelated number is still caught
+  const d = ctxOf({ product_name: "Three Three Export" });
+  kit = kitOf(d);
+  kit.body.problem.spoken = words(d.byKey.problem.min + 1, 0) + " 34";
+  assert.ok(failCodes(d, kit, "problem").includes("numbers"));
+});
+
 test("validator: the solution bans first person in every category", () => {
   const ctx = ctxOf();
   let kit = kitOf(ctx);
