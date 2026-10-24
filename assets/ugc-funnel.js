@@ -164,10 +164,11 @@
         var ctx = Core.makeCtx(spec, readInput(list[i]));
         var res = await Core.generateKit(ctx, callModel, {});
         state.kits.push({ ctx: ctx, kit: res.kit, report: res.report, log: res.log, pain: list[i], variants: Core.makeVariants(res.kit) });
-        state.current = state.kits.length - 1;
-        renderResults();
+        /* Show the first kit as soon as it is ready and keep showing it. Later kits only join the kit
+           picker, so a kit being listened to or voiced is never replaced under the user's hands. */
+        if (i === 0) { state.current = 0; renderResults(); } else refreshKitPicker();
       }
-      status("Done. " + state.kits.length + " kit(s) ready.");
+      status("Done. " + state.kits.length + " kit(s) ready." + (state.kits.length > 1 ? " Use the kit picker above the results to switch." : ""));
       persistKits();
     } catch (e) {
       status(String(e.message || e), true);
@@ -206,6 +207,22 @@
       h("p", { class: "ugc-spoken", text: unit.spoken }),
       shotRows(unit)
     ]);
+  }
+
+  /* Adds new kits to the picker without redrawing the results below it. */
+  function refreshKitPicker() {
+    var box = $("ugcResults"); if (!box || state.kits.length < 2) return;
+    var sel = $("ugcKitSel");
+    if (!sel) {
+      sel = select("ugcKitSel", [], String(state.current));
+      sel.addEventListener("change", function () { state.current = Number(sel.value); renderResults(); });
+      box.insertBefore(h("div", { class: "ugc-pick" }, [sel]), box.firstChild);
+    }
+    sel.textContent = "";
+    state.kits.forEach(function (x, i) {
+      sel.appendChild(h("option", { value: String(i), text: "Kit " + (i + 1) + (x.pain ? ": " + x.pain.slice(0, 48) : "") }));
+    });
+    sel.value = String(state.current);
   }
 
   function renderResults() {
