@@ -467,6 +467,7 @@
     });
   }
 
+  var runCache = new WeakMap();
   function mountFunnelPanel(box, o) {
     var card = h("section", { class: "ugc-card vp-funnel" }, [h("h4", { text: "Voiceover with a locked voice" })]);
     box.appendChild(card);
@@ -491,11 +492,26 @@
     card.appendChild(progress);
     card.appendChild(out);
 
+    /* Finished runs are kept in memory per kit, variant and passport version. The funnel redraws its
+       results whenever a scene is rewritten, the presenter changes or a kit is switched, and that used
+       to wipe the audio. Now the card rebuilds itself from the kept run. */
+    var kept = runCache.get(o.ctx); if (!kept) { kept = {}; runCache.set(o.ctx, kept); }
+    function slot() { return p.character_id + "|" + sel.value; }
     var urls = [];
+    function releaseUrls() { urls.forEach(function (u) { URL.revokeObjectURL(u); }); urls = []; }
+    function showKept() {
+      releaseUrls(); out.textContent = "";
+      var k = kept[slot()];
+      if (!k) { progress.textContent = ""; return; }
+      showResults(out, k.run, p, k.scenes, urls, k.variant);
+      setStatus(progress, k.run.ready ? "ok" : "err", k.run.ready ? "All clips passed the voice checks. Ready for the renderer." : k.run.metrics.needs_review + " clip(s) need a manual listen before use. They are marked below.");
+    }
+    sel.addEventListener("change", showKept);
     go.addEventListener("click", async function () {
       if (!getKey()) { setStatus(progress, "err", NEED_KEY); return; }
       var v = o.variants[Number(sel.value)], scenes = funnelScenes(o.core, o.ctx, o.kit, v), jobs = VP.buildJobs(scenes);
-      go.disabled = true; out.textContent = ""; urls.forEach(function (u) { URL.revokeObjectURL(u); }); urls = [];
+      var mySlot = slot();
+      go.disabled = true; out.textContent = ""; releaseUrls();
       setStatus(progress, "info", "Generating " + jobs.length + " clip(s)...");
       try {
         var run = await VP.runVoiceover({
@@ -503,12 +519,13 @@
           tts: ttsPcm(function (r) { setStatus(progress, "info", "ElevenLabs is busy, retrying in " + Math.round(r.delayMs / 1000) + " s..."); }),
           onProgress: function (e) { setStatus(progress, "info", "Scene " + (e.index + 1) + " of " + e.total + " (" + e.job + "), attempt " + e.attempt + (e.pass ? ": passed" : ": checking again")); }
         });
-        showResults(out, run, p, scenes, urls, v);
-        setStatus(progress, run.ready ? "ok" : "err", run.ready ? "All clips passed the voice checks. Ready for the renderer." : run.metrics.needs_review + " clip(s) need a manual listen before use. They are marked below.");
+        kept[mySlot] = { run: run, scenes: scenes, variant: v };
+        if (document.body.contains(card)) { if (slot() === mySlot) showKept(); }
       } catch (e) {
         setStatus(progress, "err", e.voiceGone ? "ElevenLabs says the locked voice " + p.elevenlabs_voice_id + " is invalid or deleted. Lock a new voice version for this character. No other voice was used." : e.message);
       } finally { go.disabled = false; }
     });
+    showKept();
   }
 
   function showResults(out, run, p, scenes, urls, variant) {
