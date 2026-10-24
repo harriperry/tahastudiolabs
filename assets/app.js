@@ -1475,6 +1475,7 @@ function readDraftFromForm() {
     hair: els.charHair.value.trim(),
     tone: els.charTone.value.trim(),
     elevenLabsVoiceId: els.charElevenVoiceId.value.trim(),
+    ...(charDraft && charDraft.voicePassport ? { voicePassport: charDraft.voicePassport } : {}), // Voice Passport (assets/voice-passport-ui.js)
     referenceImages: (charDraft && charDraft.referenceImages) || {},
     outfitOverride,
     activeOutfitKey: "default",

@@ -257,6 +257,7 @@
       h("button", { class: "btn-copy", text: "Copy T2I prompts", onclick: function (e) { copy(Core.t2iPrompts(ctx, kit, state.anchor || "", k.variants), e.target); } })
     ]);
     box.appendChild(row);
+    if (window.VoicePassportUI) window.VoicePassportUI.mountFunnelPanel(box, { core: Core, ctx: ctx, kit: kit, variants: k.variants, character: state.char || null });
 
     box.appendChild(h("h3", { text: "Validator report" }));
     checks.forEach(function (c) {
@@ -307,6 +308,8 @@
       sel.onchange = function () {
         var c = list.filter(function (x) { return x.id === sel.value; })[0];
         state.anchor = c ? buildAnchorPhrase(c) : "";
+        state.char = c || null;
+        if (state.kits && state.kits.length) renderResults();
       };
     } catch (e) { /* no characters yet */ }
   }
@@ -314,7 +317,7 @@
   /* ---------------------------------------------------------------- build the screen */
 
   function build() {
-    state = { kits: [], current: 0, anchor: "" };
+    state = { kits: [], current: 0, anchor: "", char: null };
     var cats = spec.categories.map(function (c) { return [c.id, c.label]; });
     var lengths = Object.keys(spec.lengths).map(function (l) { return [l, l + " seconds"]; });
     var tones = spec.tones.map(function (t) { return [t.id, t.label]; });
