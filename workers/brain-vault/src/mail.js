@@ -98,6 +98,19 @@ const COPY = {
       en: "The link works once and is valid for {min} minutes. Has it expired? Request a new link here: {signin}"
     }
   },
+  /* The strategy (Business Brain) is ready. No business content: only that it is ready, and where. */
+  brain_ready: {
+    subject: { sv: "Din strategi är klar", en: "Your strategy is ready" },
+    intro: {
+      sv: "Hej {name}! Din marknadsstrategi är klar. Du ser status och nästa steg i portalen, och vi går vidare med dina kampanjer.",
+      en: "Hi {name}! Your marketing strategy is ready. You can see the status and the next step in the portal, and we are moving on to your campaigns."
+    },
+    button: { sv: "Öppna portalen", en: "Open the portal" },
+    note: {
+      sv: "Är du inte inloggad? Ange din e-postadress i portalen så får du en inloggningslänk.",
+      en: "Not signed in? Enter your email address in the portal and you will get a login link."
+    }
+  },
   /* V2 phase G2a. No campaign content: only that photos are wanted, and where. */
   photos: {
     subject: { sv: "Vi behöver några bilder från dig", en: "We need a few photos from you" },
@@ -364,4 +377,9 @@ export function composeResultsNotice(cfg, { company, month, link }) {
     "<p><b>" + escapeHtml(company) + "</b> has reported results for " + escapeHtml(mon("en-GB")) + ".</p>" +
     '<p><a href="' + escapeHtml(link) + '">' + escapeHtml(link) + "</a></p></body></html>";
   return { subject, text, html };
+}
+
+/* The client is told their strategy (Business Brain) is ready. Name and link only. */
+export function composeBrainReadyEmail(cfg, { name, language, link }) {
+  return composeEmail("brain_ready", cfg, { link, name, language, signinUrl: link });
 }

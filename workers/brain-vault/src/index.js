@@ -344,7 +344,7 @@ async function handle(request, env, ctx) {
     const seen = path.match(/^\/admin\/clients\/(cl_[a-z0-9]{4,32})\/seen$/);
     if (seen && method === "POST") return respond(await markSeen(request, env, seen[1]));
     const br = path.match(/^\/admin\/brain\/(cl_[a-z0-9]{4,32})(?:\/([0-9]{1,6}))?$/);
-    if (br && method === "POST" && !br[2]) return respond(await saveBrain(request, env, br[1]));
+    if (br && method === "POST" && !br[2]) return respond(await saveBrain(request, env, br[1], cfg, ctx));
     if (br && method === "GET" && !br[2]) return respond(await getBrains(env, br[1]));
     if (br && method === "GET" && br[2]) return respond(await getBrainVersion(env, br[1], parseInt(br[2], 10)));
     const cpl = path.match(/^\/admin\/campaigns\/(cl_[a-z0-9]{4,32})$/);

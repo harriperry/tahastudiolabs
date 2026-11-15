@@ -3,13 +3,15 @@
    posts the finished JSON here. The Vault never sees the key or the prompt: it only checks the
    document against brain.schema.json, gives it the next version number and stores it.
 
-   POST /admin/brain/:clientId          {brain}  saves version N+1, status becomes Brain ready
+   POST /admin/brain/:clientId          {brain}  saves version N+1, status becomes Brain ready,
+                                       and the client gets a "strategy is ready" email the first time
    GET  /admin/brain/:clientId                   latest brain plus the list of versions
    GET  /admin/brain/:clientId/:version          one saved version (older versions stay readable) */
 import { STATUS_LABELS } from "./config.js";
 import { SCHEMAS } from "./schemas.js";
 import { validate } from "./validate.js";
 import { json, nowIso, readJson } from "./util.js";
+import { composeBrainReadyEmail, sendMail } from "./mail.js";
 
 const M = {
   badRequest: { sv: "Ogiltig förfrågan.", en: "Bad request." },
@@ -53,8 +55,8 @@ function versionRow(r) {
   };
 }
 
-export async function saveBrain(request, env, clientId) {
-  const client = await env.DB.prepare("SELECT id, status FROM clients WHERE id = ?").bind(clientId).first();
+export async function saveBrain(request, env, clientId, cfg, ctx) {
+  const client = await env.DB.prepare("SELECT id, name, email, language, status FROM clients WHERE id = ?").bind(clientId).first();
   if (!client) return json({ error: "not_found", message: M.notFound }, 404);
   const b = await readJson(request, 512 * 1024);
   if (!b || !b.brain || typeof b.brain !== "object" || Array.isArray(b.brain)) return json({ error: "bad_request", message: M.badRequest }, 400);
@@ -86,6 +88,12 @@ export async function saveBrain(request, env, clientId) {
     }
   }
   await env.DB.batch(stmts);
+  /* Tell the client once, the first time their strategy becomes ready. Re-saves and new
+     versions do not email again. A failed email never blocks the save. */
+  if (client.status !== "brain_ready" && status === "brain_ready" && cfg && ctx) {
+    const mail = composeBrainReadyEmail(cfg, { name: client.name, language: client.language, link: cfg.siteOrigin + cfg.clientHome });
+    ctx.waitUntil(sendMail(cfg, env, { to: client.email, ...mail }).catch((e) => console.error("brain ready email failed: " + e.message)));
+  }
   return json({ ok: true, brainVersion: version, createdAt: t, status, statusLabel: STATUS_LABELS[status], brain: doc }, 201);
 }
 
