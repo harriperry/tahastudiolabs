@@ -2,6 +2,9 @@ import { json, db, sbAuth, sbAdmin, openSession, authCookieHeaders, validEmail }
 export async function onRequestPost(context) {
   const { request, env } = context;
   let b; try { b = await request.json(); } catch (e) { return json({ error: "Bad request." }, 400); }
+  /* Honeypot: the sign-up form carries a hidden "website" field that people never see or fill.
+     A bot that fills it gets a normal-looking success reply but no account is created. */
+  if (typeof b.website === "string" && b.website.trim() !== "") return json({ ok: true, autoLogin: false });
   if (!validEmail(b.email)) return json({ error: "Enter a valid email address." }, 400);
   if (typeof b.password !== "string" || b.password.length < 8) return json({ error: "Password must be at least 8 characters." }, 400);
 

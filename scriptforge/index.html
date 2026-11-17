@@ -14,13 +14,13 @@
 <meta property="og:title" content="ScriptForge | AI Video Script Splitter and Prompt Generator">
 <meta property="og:description" content="Turn one idea into a timed video script. ScriptForge writes TTS text, B-roll prompts and camera notes per segment for Veo 3.1 and HeyGen. Free mock test.">
 <meta property="og:url" content="https://www.tahastudiolabs.com/scriptforge/">
-<meta property="og:image" content="https://www.tahastudiolabs.com/assets/brand/og-scriptforge.png">
+<meta property="og:image" content="https://www.tahastudiolabs.com/assets/brand/og-scriptforge.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="ScriptForge | AI Video Script Splitter and Prompt Generator">
 <meta name="twitter:description" content="Turn one idea into a timed video script. ScriptForge writes TTS text, B-roll prompts and camera notes per segment for Veo 3.1 and HeyGen. Free mock test.">
-<meta name="twitter:image" content="https://www.tahastudiolabs.com/assets/brand/og-scriptforge.png">
+<meta name="twitter:image" content="https://www.tahastudiolabs.com/assets/brand/og-scriptforge.jpg">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -61,7 +61,7 @@
   </div>
   <div class="card">
     <h2>1 · Production Type</h2>
-    <label>Script type <span style="color:var(--muted);font-weight:400">(drives the recommendation below - provider, video and voice tips are all keyed off this)</span></label>
+    <label for="scriptType">Script type <span style="color:var(--muted);font-weight:400">(drives the recommendation below - provider, video and voice tips are all keyed off this)</span></label>
     <select id="scriptType">
       <option value="">None / generic</option>
       <option value="Short Movie Script">Short Movie Script</option>
@@ -109,7 +109,7 @@
   </div>
   <div class="card">
     <h2>2 · API Configuration <span style="color:var(--muted);font-weight:400;font-size:.8rem" id="apiConfigAutoNote"></span></h2>
-    <label>Provider <span style="color:var(--muted);font-weight:400">(pick whichever you have a key for - all four work the same way)</span></label>
+    <label for="formatProvider">Provider <span style="color:var(--muted);font-weight:400">(pick whichever you have a key for - all four work the same way)</span></label>
     <select id="formatProvider">
       <option value="anthropic" selected>Anthropic Claude</option>
       <option value="gemini">Google Gemini (free tier available)</option>
@@ -117,14 +117,14 @@
       <option value="deepseek">DeepSeek (signup credit, not a permanent free tier)</option>
     </select>
     <div id="anthropicFormatOptions">
-      <label style="margin-top:12px">Anthropic API Key <span style="color:var(--muted);font-weight:400"> - console.anthropic.com/settings/keys</span></label>
+      <label for="apiKey" style="margin-top:12px">Anthropic API Key <span style="color:var(--muted);font-weight:400"> - console.anthropic.com/settings/keys</span></label>
       <input type="password" id="apiKey" placeholder="sk-ant-YOUR_KEY_HERE" autocomplete="off">
       <div class="row" style="margin-top:8px;align-items:center">
         <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer">
           <input type="checkbox" id="rememberKey" style="width:auto"> Remember key on this device
         </label>
       </div>
-      <label>Model</label>
+      <label for="model">Model</label>
       <select id="model">
         <option value="claude-sonnet-5">claude-sonnet-5 (recommended)</option>
         <option value="claude-haiku-4-5-20251001">claude-haiku-4-5 (fast/cheap)</option>
@@ -132,14 +132,14 @@
       </select>
     </div>
     <div id="geminiFormatOptions" style="display:none">
-      <label style="margin-top:12px">Google Gemini API Key <span style="color:var(--muted);font-weight:400"> - free, no card required, at aistudio.google.com/apikey</span></label>
+      <label for="apiKeyGemini" style="margin-top:12px">Google Gemini API Key <span style="color:var(--muted);font-weight:400"> - free, no card required, at aistudio.google.com/apikey</span></label>
       <input type="password" id="apiKeyGemini" placeholder="AIza... or AQ... (both work)" autocomplete="off">
       <div class="row" style="margin-top:8px;align-items:center">
         <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer">
           <input type="checkbox" id="rememberKeyGemini" style="width:auto"> Remember key on this device
         </label>
       </div>
-      <label>Model</label>
+      <label for="modelGemini">Model</label>
       <select id="modelGemini">
         <option value="gemini-2.5-flash" selected>gemini-2.5-flash (recommended, stable free tier)</option>
         <option value="gemini-3.6-flash">gemini-3.6-flash (newest - if this errors on quota/billing, switch back to 2.5-flash)</option>
@@ -147,28 +147,28 @@
       <p style="color:var(--muted);font-size:.72rem;margin-top:6px">If you already created a Gemini key for Veo 3.1 video generation below, that same key works here too.</p>
     </div>
     <div id="groqFormatOptions" style="display:none">
-      <label style="margin-top:12px">Groq API Key <span style="color:var(--muted);font-weight:400"> - free, no card required, at console.groq.com/keys</span></label>
+      <label for="apiKeyGroq" style="margin-top:12px">Groq API Key <span style="color:var(--muted);font-weight:400"> - free, no card required, at console.groq.com/keys</span></label>
       <input type="password" id="apiKeyGroq" placeholder="gsk_..." autocomplete="off">
       <div class="row" style="margin-top:8px;align-items:center">
         <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer">
           <input type="checkbox" id="rememberKeyGroq" style="width:auto"> Remember key on this device
         </label>
       </div>
-      <label>Model</label>
+      <label for="modelGroq">Model</label>
       <select id="modelGroq">
         <option value="llama-3.3-70b-versatile" selected>llama-3.3-70b-versatile (recommended)</option>
         <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (larger, reasoning)</option>
       </select>
     </div>
     <div id="deepseekFormatOptions" style="display:none">
-      <label style="margin-top:12px">DeepSeek API Key <span style="color:var(--muted);font-weight:400"> - platform.deepseek.com/api_keys</span></label>
+      <label for="apiKeyDeepseek" style="margin-top:12px">DeepSeek API Key <span style="color:var(--muted);font-weight:400"> - platform.deepseek.com/api_keys</span></label>
       <input type="password" id="apiKeyDeepseek" placeholder="sk-..." autocomplete="off">
       <div class="row" style="margin-top:8px;align-items:center">
         <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer">
           <input type="checkbox" id="rememberKeyDeepseek" style="width:auto"> Remember key on this device
         </label>
       </div>
-      <label>Model</label>
+      <label for="modelDeepseek">Model</label>
       <select id="modelDeepseek">
         <option value="deepseek-v4-flash" selected>deepseek-v4-flash (recommended)</option>
         <option value="deepseek-v4-pro">deepseek-v4-pro (slower, stronger reasoning)</option>
@@ -178,7 +178,7 @@
   </div>
   <div class="card">
     <h2>3 · Output Length</h2>
-    <label>Number of segments (10s each for segments 1&ndash;3, then 15s each from segment 4 onward)</label>
+    <label for="segCount">Number of segments (10s each for segments 1&ndash;3, then 15s each from segment 4 onward)</label>
     <select id="segCount">
       <option value="1">1 segment - 10 s (10s total)</option>
       <option value="2">2 segments - 20 s (20s total)</option>
@@ -209,7 +209,7 @@
       <input type="checkbox" id="allowBRoll" checked style="width:auto">
       Allow B-Roll segments <span style="color:var(--muted);font-weight:400">(uncheck for HeyGen-only/on-camera output with no cutaway shots)</span>
     </label>
-    <label>Ratio (video aspect ratio - included at top of output)</label>
+    <label for="ratio">Ratio (video aspect ratio - included at top of output)</label>
     <select id="ratio">
       <option value="16:9" selected>16:9 - widescreen / YouTube / TV</option>
       <option value="9:16">9:16 - vertical / Shorts / Reels / TikTok</option>
@@ -217,12 +217,12 @@
       <option value="4:5">4:5 - portrait / Instagram feed</option>
       <option value="21:9">21:9 - cinematic widescreen</option>
     </select>
-    <label>Additional technical specs (optional - resolution, ratio, captions…)</label>
+    <label for="techSpecs">Additional technical specs (optional - resolution, ratio, captions…)</label>
     <textarea id="techSpecs" rows="2">1080p · SRT captions · flux-realism for B-roll</textarea>
   </div>
   <div class="card">
     <h2>5 · Paste Full Script</h2>
-    <textarea id="script" rows="12" placeholder="[PASTE YOUR FULL SCRIPT HERE]"></textarea>
+    <textarea aria-label="Script to format" id="script" rows="12" placeholder="[PASTE YOUR FULL SCRIPT HERE]"></textarea>
     <div class="wordmeter" id="wordMeter">0 words · target ≈ 66–84 words for 00:30</div>
     <div style="display:flex;gap:10px;margin-top:12px">
       <button class="btn-primary" id="btnFormat" style="flex:2">Format into 3 Segments (00:30)</button>
@@ -237,24 +237,24 @@
       Once your script is formatted, each segment below gets a "Generate clip" option. Your key is relayed
       through our server for that single request only - never stored or logged (see Privacy Policy).
     </p>
-    <label>Google Gemini API key (for Veo 3.1) - aistudio.google.com/apikey</label>
+    <label for="videoKeyVeo">Google Gemini API key (for Veo 3.1) - aistudio.google.com/apikey</label>
     <input type="password" id="videoKeyVeo" placeholder="AIza... or AQ... (both work)">
     <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
       <input type="checkbox" id="rememberVideoKeyVeo" style="width:auto"> Remember on this device
     </label>
-    <label style="margin-top:12px">HeyGen API key (for HeyGen Video Agent) - app.heygen.com Settings → API</label>
+    <label for="videoKeyHeygen" style="margin-top:12px">HeyGen API key (for HeyGen Video Agent) - app.heygen.com Settings → API</label>
     <input type="password" id="videoKeyHeygen" placeholder="your HeyGen key">
-<label style="margin-top:12px">HeyGen Avatar ID <span style="color:var(--muted);font-weight:400">(optional - only needed for ElevenLabs audio-driven voice matching, see section 6 below)</span></label>
+<label for="heygenAvatarId" style="margin-top:12px">HeyGen Avatar ID <span style="color:var(--muted);font-weight:400">(optional - only needed for ElevenLabs audio-driven voice matching, see section 6 below)</span></label>
 <input type="text" id="heygenAvatarId" placeholder="e.g. Josh_lite3_20230714">
     <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
       <input type="checkbox" id="rememberVideoKeyHeygen" style="width:auto"> Remember on this device
     </label>
-    <label style="margin-top:14px">Aspect ratio <span style="color:var(--muted);font-weight:400">(Veo 3.1)</span></label>
+    <label for="vidAspectRatio" style="margin-top:14px">Aspect ratio <span style="color:var(--muted);font-weight:400">(Veo 3.1)</span></label>
     <select id="vidAspectRatio">
       <option value="16:9" selected>16:9 - landscape</option>
       <option value="9:16">9:16 - portrait</option>
     </select>
-    <label style="margin-top:12px">Resolution <span style="color:var(--muted);font-weight:400">(Veo 3.1)</span></label>
+    <label for="vidResolution" style="margin-top:12px">Resolution <span style="color:var(--muted);font-weight:400">(Veo 3.1)</span></label>
     <select id="vidResolution">
       <option value="720p" selected>720p</option>
       <option value="1080p">1080p (Veo: forces 8s duration)</option>
@@ -277,14 +277,14 @@
 this exact voice, for genuine lip-synced consistency across segments. For <b>Veo</b>: it does not accept
 external audio, so the narration is generated alongside each clip as a downloadable file to mux in your own editor
 instead. The Voice ID is also still written into your script's TECHNICAL SPECS block as before.</p>
-    <label>ElevenLabs API key <span style="color:var(--muted);font-weight:400"> - elevenlabs.io → Profile → API Keys</span></label>
+    <label for="elevenLabsKey">ElevenLabs API key <span style="color:var(--muted);font-weight:400"> - elevenlabs.io → Profile → API Keys</span></label>
     <input type="password" id="elevenLabsKey" placeholder="sk_...">
     <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem">
       <input type="checkbox" id="rememberElevenLabsKey" style="width:auto"> Remember on this device
     </label>
     <button class="btn-ghost" id="btnFetchVoices" style="width:100%;margin-top:10px">Fetch my voices</button>
     <div class="status" id="elevenLabsStatus"></div>
-    <label style="margin-top:12px">Voice</label>
+    <label for="elevenLabsVoice" style="margin-top:12px">Voice</label>
     <select id="elevenLabsVoice">
       <option value="">Fetch voices to choose one</option>
     </select>
@@ -310,7 +310,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     <button class="btn-copy" id="btnLibrary">Library</button>
   </div>
   <div id="output"><div class="empty">Formatted segments will appear here.<br><br>Paste your script, pick your settings, and hit <b>Format</b>.</div></div>
-  <textarea id="rawOut" readonly></textarea>
+  <textarea aria-label="Raw output" id="rawOut" readonly></textarea>
 </div>
 </main>
 <section id="aboutSection" style="max-width:1200px;margin:0 auto 32px;padding:0 24px">
@@ -379,7 +379,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
          auto-create them - see the block comment above buildAnchorPhrase()). -->
     <div id="charImportView" style="display:none">
       <button class="btn-ghost" id="btnCharImportBack" style="margin-bottom:12px">← Back to list</button>
-      <label>Paste a character brief <span style="color:var(--muted);font-weight:400">(expects roughly: "CHARACTER 1: NAME (type)", then numbered sections - Reference Images/Image Description, Additional Named Looks, Voice/Tone, Default Outfit, Hair, Anchor Phrase)</span></label>
+      <label for="charImportText">Paste a character brief <span style="color:var(--muted);font-weight:400">(expects roughly: "CHARACTER 1: NAME (type)", then numbered sections - Reference Images/Image Description, Additional Named Looks, Voice/Tone, Default Outfit, Hair, Anchor Phrase)</span></label>
       <textarea id="charImportText" rows="10" placeholder="Paste your character brief here…"></textarea>
       <div class="row" style="margin-top:10px">
         <button class="btn-primary" id="btnCharImportParse">Parse characters</button>
@@ -392,11 +392,11 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     <div id="charFormView" style="display:none">
       <button class="btn-ghost" id="btnCharBack" style="margin-bottom:12px">← Back to list</button>
       <input type="hidden" id="charId">
-      <label>Display name</label>
+      <label for="charDisplayName">Display name</label>
       <input type="text" id="charDisplayName" placeholder="e.g. Grandma Rosa">
       <div class="row" style="gap:10px">
         <div style="flex:1">
-          <label>Character type <span style="color:var(--muted);font-weight:400">(free text - e.g. Father, Mother, protagonist)</span></label>
+          <label for="charType">Character type <span style="color:var(--muted);font-weight:400">(free text - e.g. Father, Mother, protagonist)</span></label>
           <input type="text" id="charType" list="charTypeList" placeholder="e.g. Father">
           <datalist id="charTypeList">
             <option value="narrator"><option value="host"><option value="protagonist">
@@ -404,7 +404,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
           </datalist>
         </div>
         <div style="flex:1">
-          <label>Age</label>
+          <label for="charAge">Age</label>
           <input type="text" id="charAge" placeholder="e.g. 70s or 54 years old">
         </div>
       </div>
@@ -416,15 +416,15 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
         <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:400;cursor:pointer"><input type="checkbox" value="Podcast" class="char-prodtype" style="width:auto"> Podcast</label>
         <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:400;cursor:pointer"><input type="checkbox" value="Public Address" class="char-prodtype" style="width:auto"> Public Address</label>
       </div>
-      <label>Appearance <span style="color:var(--muted);font-weight:400">(optional - skin tone, height, build, face shape, eyes; anything beyond hair/outfit)</span></label>
+      <label for="charAppearance">Appearance <span style="color:var(--muted);font-weight:400">(optional - skin tone, height, build, face shape, eyes; anything beyond hair/outfit)</span></label>
       <textarea id="charAppearance" rows="2" placeholder="e.g. dark chocolate skin, 6'0&quot;, lean but strong build, oval face, intelligent dark brown eyes"></textarea>
-      <label>Hair</label>
+      <label for="charHair">Hair</label>
       <textarea id="charHair" rows="2" placeholder="e.g. silver, tied in a low bun"></textarea>
-      <label>Tone / voice</label>
+      <label for="charTone">Tone / voice</label>
       <input type="text" id="charTone" placeholder="e.g. warm, slow speech, slight rasp">
-      <label>ElevenLabs Voice ID <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+      <label for="charElevenVoiceId">ElevenLabs Voice ID <span style="color:var(--muted);font-weight:400">(optional)</span></label>
       <input type="text" id="charElevenVoiceId" placeholder="voice ID from elevenlabs.io">
-      <label>Default outfit</label>
+      <label for="charOutfitDefault">Default outfit</label>
       <input type="text" id="charOutfitDefault" placeholder="e.g. faded floral housedress, shawl">
       <label>Additional named looks <span style="color:var(--muted);font-weight:400">(optional - e.g. for a flashback or a different scene)</span></label>
       <div id="charOutfitExtra"></div>
@@ -444,7 +444,7 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
           <label for="charImgProfile" style="cursor:pointer;display:block"><img id="charImgProfilePrev" style="max-width:100%;border-radius:6px;display:none;margin-bottom:4px"><span class="btn-ghost" style="display:block;padding:6px">Profile</span></label>
         </div>
       </div>
-      <label>Anchor phrase <span style="color:var(--muted);font-weight:400">(editable - auto-fills as you edit the fields above, or write/paste your own to override)</span></label>
+      <label for="charAnchorPreview">Anchor phrase <span style="color:var(--muted);font-weight:400">(editable - auto-fills as you edit the fields above, or write/paste your own to override)</span></label>
       <textarea id="charAnchorPreview" rows="3"></textarea>
       <div class="row" style="margin-top:14px">
         <button class="btn-primary" id="btnCharSave">Save character</button>
@@ -466,10 +466,10 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     </div>
     <div id="longformNewView" style="display:none">
       <button class="btn-ghost" id="btnLongformNewCancel" style="margin-bottom:12px">← Back</button>
-      <label>Idea / synopsis</label>
+      <label for="longformIdea">Idea / synopsis</label>
       <textarea id="longformIdea" rows="6" placeholder="Paste the idea, premise, or synopsis for the full production…"></textarea>
       <p style="color:var(--muted);font-size:.72rem;margin-top:6px">Uses the Script Type, Ratio, B-Roll, Technical Specs, and Provider/Model already selected in sections 1-4 on the left.</p>
-      <label style="margin-top:12px">Target runtime (minutes)</label>
+      <label for="longformTargetMinutes" style="margin-top:12px">Target runtime (minutes)</label>
       <input type="number" id="longformTargetMinutes" min="1" max="30" step="1" value="10">
       <div id="longformTargetPreview" style="color:var(--muted);font-size:.72rem;margin-top:4px">≈ 10 min target</div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:12px">
@@ -486,10 +486,11 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
     <h2><span id="authTitle">Account</span> <button class="btn-copy" id="btnAuthClose">Close</button></h2>
     <div id="upsell" class="lib-note" style="display:none"></div>
     <div id="viewSignedOut">
-      <label>Email</label>
+      <label for="authEmail">Email</label>
       <input type="email" id="authEmail" autocomplete="email" placeholder="you@example.com">
-      <label>Password</label>
+      <label for="authPass">Password</label>
       <input type="password" id="authPass" autocomplete="current-password" placeholder="••••••••">
+      <input type="text" id="authWebsite" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
       <div class="row" style="margin-top:12px">
         <button class="btn-primary" id="btnLogin">Sign in</button>
         <button class="btn-ghost" id="btnSignup">Create account</button>
@@ -510,12 +511,12 @@ instead. The Voice ID is also still written into your script's TECHNICAL SPECS b
         <button class="btn-ghost" id="btnDeleteAcct" style="color:var(--err);border-color:var(--err)">Delete account</button>
       </div>
       <div id="changePwBox" style="display:none;margin-top:10px">
-        <label>New password (min 8 characters)</label>
+        <label for="newPw">New password (min 8 characters)</label>
         <input type="password" id="newPw" autocomplete="new-password" placeholder="••••••••">
         <button class="btn-primary" id="btnSetNewPw" style="width:100%;margin-top:8px">Set new password</button>
       </div>
       <div id="deleteConfirm" style="display:none;margin-top:10px">
-        <label>Confirm your password to permanently delete your account</label>
+        <label for="delPass">Confirm your password to permanently delete your account</label>
         <input type="password" id="delPass" autocomplete="current-password">
         <button class="btn-ghost" id="btnDeleteFinal" style="width:100%;margin-top:8px;color:var(--err);border-color:var(--err)">Permanently delete my account and data</button>
       </div>
