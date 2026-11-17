@@ -5,6 +5,23 @@ export async function onRequestPost(context) {
   /* Honeypot: the sign-up form carries a hidden "website" field that people never see or fill.
      A bot that fills it gets a normal-looking success reply but no account is created. */
   if (typeof b.website === "string" && b.website.trim() !== "") return json({ ok: true, autoLogin: false });
+  /* Cloudflare Turnstile bot check. Enforced only once the TURNSTILE_SECRET_KEY secret exists in the
+     Pages environment, so sign-up keeps working until it is configured. */
+  if (env.TURNSTILE_SECRET_KEY) {
+    const token = typeof b.turnstile === "string" ? b.turnstile : "";
+    let human = false;
+    if (token) {
+      try {
+        const form = new URLSearchParams({ secret: env.TURNSTILE_SECRET_KEY, response: token });
+        const ip = request.headers.get("CF-Connecting-IP");
+        if (ip) form.set("remoteip", ip);
+        const v = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
+        const out = await v.json();
+        human = !!(out && out.success);
+      } catch (e) { human = false; }
+    }
+    if (!human) return json({ error: "Security check failed. Refresh the page and try again." }, 400);
+  }
   if (!validEmail(b.email)) return json({ error: "Enter a valid email address." }, 400);
   if (typeof b.password !== "string" || b.password.length < 8) return json({ error: "Password must be at least 8 characters." }, 400);
 
