@@ -1882,12 +1882,43 @@ async function refreshMe(){
   document.dispatchEvent(new CustomEvent("scriptforge:auth"));
 }
 
+/* Cloudflare Turnstile: bot check for sign-up. The site key is public by design; the secret
+   lives only in the server environment (TURNSTILE_SECRET_KEY). The script loads only when the
+   account window opens, so it costs nothing for visitors who never sign up. */
+const TURNSTILE_SITE_KEY = "0x4AAAAAAGFzhb2coui4oCBA";
+let tsWidgetId = null, tsToken = "", tsLoading = false;
+function ensureTurnstile(){
+  const box = document.getElementById("authTurnstile");
+  if (!box || tsWidgetId !== null || tsLoading) return;
+  const render = () => {
+    tsLoading = false;
+    if (!window.turnstile || tsWidgetId !== null) return;
+    tsWidgetId = window.turnstile.render(box, {
+      sitekey: TURNSTILE_SITE_KEY, theme: "auto",
+      callback: t => { tsToken = t; },
+      "expired-callback": () => { tsToken = ""; },
+      "error-callback": () => { tsToken = ""; }
+    });
+  };
+  if (window.turnstile) { render(); return; }
+  tsLoading = true;
+  const s = document.createElement("script");
+  s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+  s.async = true; s.defer = true; s.onload = render; s.onerror = () => { tsLoading = false; };
+  document.head.appendChild(s);
+}
+function resetTurnstile(){
+  tsToken = "";
+  try { if (window.turnstile && tsWidgetId !== null) window.turnstile.reset(tsWidgetId); } catch (e) {}
+}
+
 function showUpgrade(msg){
   els2.upsell.textContent = msg + " Sign in or create a FREE account to unlock it.";
   els2.upsell.style.display = "block";
   els2.authOverlay.classList.add("open");
+  ensureTurnstile();
 }
-function openAccount(){ els2.upsell.style.display = "none"; els2.authOverlay.classList.add("open"); }
+function openAccount(){ els2.upsell.style.display = "none"; els2.authOverlay.classList.add("open"); ensureTurnstile(); }
 
 els2.btnAccount.addEventListener("click", openAccount);
 els2.btnAuthClose.addEventListener("click", () => els2.authOverlay.classList.remove("open"));
@@ -1905,9 +1936,11 @@ els2.btnSignup.addEventListener("click", async () => {
   const emailVal = els2.authEmail.value.trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailVal)) { setAuthStatus(els2.authStatus, "err", "Enter a valid email address."); els2.authEmail.focus(); return; }
   if (els2.authPass.value.length < 8) { setAuthStatus(els2.authStatus, "err", "Password must be at least 8 characters."); els2.authPass.focus(); return; }
+  if (tsWidgetId !== null && !tsToken) { setAuthStatus(els2.authStatus, "err", "Please wait for the security check to finish, then try again."); return; }
   setAuthStatus(els2.authStatus, "info", '<span class="spin"></span>Creating account…');
   const hpEl = document.getElementById("authWebsite"); /* honeypot: real people never fill it */
-  const r = await api("signup", { email: emailVal, password: els2.authPass.value, website: hpEl ? hpEl.value : "" });
+  const r = await api("signup", { email: emailVal, password: els2.authPass.value, website: hpEl ? hpEl.value : "", turnstile: tsToken });
+  resetTurnstile(); /* a token can only be used once */
   /* No email step at all: the backend confirms the address and signs the user in with the
      password they just chose in the same request. autoLogin:false only happens in the rare
      case that couldn't complete (network hiccup etc.) - fall back to asking them to sign in. */

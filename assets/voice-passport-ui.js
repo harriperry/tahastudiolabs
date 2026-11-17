@@ -297,14 +297,14 @@
 
   /* ---- library ---- */
   function libraryPane() {
-    var sel = h("select", { id: "vpVoiceSel" }, [h("option", { value: "", text: ui.voices ? "Choose a voice" : "Load your voices first" })]);
+    var sel = h("select", { id: "vpVoiceSel", "aria-label": "Voice" }, [h("option", { value: "", text: ui.voices ? "Choose a voice" : "Load your voices first" })]);
     (ui.voices || []).forEach(function (v) {
       var o = h("option", { value: v.voice_id, text: v.name + (v.category ? " (" + v.category + ")" : "") });
       if (v.voice_id === ui.pickedVoiceId) o.selected = true;
       sel.appendChild(o);
     });
     sel.addEventListener("change", function () { ui.pickedVoiceId = sel.value; ui.pickedVoiceName = sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : ""; var m = $("vpVoiceId"); if (m) m.value = sel.value; });
-    var manual = h("input", { type: "text", id: "vpVoiceId", placeholder: "or paste a voice ID", value: ui.pickedVoiceId });
+    var manual = h("input", { type: "text", id: "vpVoiceId", "aria-label": "Voice ID", placeholder: "or paste a voice ID", value: ui.pickedVoiceId });
     manual.addEventListener("input", function () { ui.pickedVoiceId = manual.value.trim(); });
     return h("div", { class: "vp-pane" }, [
       h("div", { class: "vp-sub", text: "Premade voices work on every ElevenLabs plan. Hear a voice before you lock it." }),
