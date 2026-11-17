@@ -1894,14 +1894,20 @@ els2.btnAuthClose.addEventListener("click", () => els2.authOverlay.classList.rem
 els2.authOverlay.addEventListener("click", e => { if (e.target === els2.authOverlay) els2.authOverlay.classList.remove("open"); });
 
 els2.btnLogin.addEventListener("click", async () => {
+  if (!els2.authEmail.value.trim() || !els2.authPass.value) { setAuthStatus(els2.authStatus, "err", "Enter your email and password."); return; }
   setAuthStatus(els2.authStatus, "info", '<span class="spin"></span>Signing in…');
   const r = await api("login", { email: els2.authEmail.value.trim(), password: els2.authPass.value });
   if (r.ok) { setAuthStatus(els2.authStatus, "ok", "✓ Signed in."); els2.authPass.value = ""; await refreshMe(); }
   else setAuthStatus(els2.authStatus, "err", (r.data && r.data.error) || (r.status === 0 ? "Backend unreachable - accounts need the tahastudiolabs.com deployment." : "Sign-in failed. Check email and password."));
 });
 els2.btnSignup.addEventListener("click", async () => {
+  /* Client-side checks first so people get instant feedback (the server re-validates). */
+  const emailVal = els2.authEmail.value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailVal)) { setAuthStatus(els2.authStatus, "err", "Enter a valid email address."); els2.authEmail.focus(); return; }
+  if (els2.authPass.value.length < 8) { setAuthStatus(els2.authStatus, "err", "Password must be at least 8 characters."); els2.authPass.focus(); return; }
   setAuthStatus(els2.authStatus, "info", '<span class="spin"></span>Creating account…');
-  const r = await api("signup", { email: els2.authEmail.value.trim(), password: els2.authPass.value });
+  const hpEl = document.getElementById("authWebsite"); /* honeypot: real people never fill it */
+  const r = await api("signup", { email: emailVal, password: els2.authPass.value, website: hpEl ? hpEl.value : "" });
   /* No email step at all: the backend confirms the address and signs the user in with the
      password they just chose in the same request. autoLogin:false only happens in the rare
      case that couldn't complete (network hiccup etc.) - fall back to asking them to sign in. */
