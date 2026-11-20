@@ -15,6 +15,9 @@
     "SITE_ORIGIN": "https://tahastudiolabs.com",
     "SOCIAL_CONSENT_VERSION": "s-1",
     "SOCIAL_CONNECTORS": "",
+    "META_APP_ID": "29597448696547555",
+    "META_CONFIG_ID": "1811497369998432",
+    "META_GRAPH_VERSION": "v25.0",
     "SOCIAL_MAX_ATTEMPTS": "3",
     "SOCIAL_STUCK_MINUTES": "10",
     "ADMIN_EMAILS": "agborkak@gmail.com,hej@tahastudiolabs.com"
