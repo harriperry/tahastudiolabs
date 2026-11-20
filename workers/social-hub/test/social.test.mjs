@@ -56,7 +56,7 @@ async function enable(env, admin, clientId) {
   const g = spawnSync("git", ["diff", "--stat", "HEAD", "--", "../brain-vault"], { cwd: new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"), encoding: "utf8" });
   ok(g.status !== 0 || g.stdout.trim() === "", "workers/brain-vault has no changes against HEAD");
 }
-function MIG_COUNT() { return 1; }
+function MIG_COUNT() { return 2; }
 
 /* 2. Session parity and auth */
 {

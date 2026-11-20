@@ -96,5 +96,15 @@ export const MIGRATIONS = [
       )`,
       `CREATE INDEX IF NOT EXISTS idx_social_audit_client ON social_audit (client_id, at)`
     ]
+  },
+  {
+    id: 2,
+    name: "social-meta-columns",
+    statements: [
+      `ALTER TABLE social_versions ADD COLUMN media_url TEXT`,
+      `ALTER TABLE social_versions ADD COLUMN link_url TEXT`,
+      `ALTER TABLE social_accounts ADD COLUMN provider_user_id TEXT`,
+      `CREATE INDEX IF NOT EXISTS idx_social_accounts_provider ON social_accounts (provider_user_id)`
+    ]
   }
 ];

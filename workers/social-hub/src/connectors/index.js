@@ -1,8 +1,9 @@
-/* Connector registry. Phase 1 ships only the mock. Real connectors (Meta, LinkedIn, TikTok...)
-   arrive in later approved phases and are listed in SOCIAL_CONNECTORS once enabled. */
+/* Connector registry. The mock is for tests. Meta (meta, facebook, instagram) arrives in Phase 2; LinkedIn and
+   TikTok follow in later approved phases. A connector runs only when listed in SOCIAL_CONNECTORS. */
+import { metaConnect, metaFacebook, metaInstagram } from "./meta.js";
 import { mock } from "./mock.js";
 
-const ALL = { mock };
+const ALL = { mock, meta: metaConnect, facebook: metaFacebook, instagram: metaInstagram };
 
 export function getConnector(env, platform) {
   const enabled = String(env.SOCIAL_CONNECTORS || "").split(",").map((s) => s.trim()).filter(Boolean);

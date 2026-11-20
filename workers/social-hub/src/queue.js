@@ -82,6 +82,12 @@ export async function processJob(env, jobId, now = nowMs()) {
   if (!job) return "missing";
   const gate = await canPublish(env, job.client_id);
   if (!gate.ok) return "held:" + gate.reason;
+  /* Our own daily cap per connected account, kept below the platform limits. */
+  const cap = intVar(env.SOCIAL_DAILY_CAP, 25);
+  const used = await env.DB.prepare(
+    "SELECT COUNT(*) AS n FROM social_publications p JOIN social_jobs j ON j.id = p.job_id WHERE j.account_id = ? AND p.published_at > ?"
+  ).bind(job.account_id, new Date(now - 86400000).toISOString()).first();
+  if (used && used.n >= cap) return "held:daily_cap";
   const claim = await env.DB.prepare(
     "UPDATE social_jobs SET status = 'publishing', attempts = attempts + 1, claimed_at = ?, updated_at = ? WHERE id = ? AND status = 'scheduled' AND run_at <= ?"
   ).bind(now, nowIso(), jobId, now).run();
@@ -97,7 +103,7 @@ export async function processJob(env, jobId, now = nowMs()) {
     "SELECT external_ref, token_enc, status FROM social_accounts WHERE id = ? AND client_id = ?"
   ).bind(job.account_id, job.client_id).first();
   const ver = await env.DB.prepare(
-    "SELECT body, status FROM social_versions WHERE id = ? AND client_id = ?"
+    "SELECT body, status, media_url, link_url FROM social_versions WHERE id = ? AND client_id = ?"
   ).bind(job.version_id, job.client_id).first();
   const connector = getConnector(env, job.platform);
   if (!acc || acc.status !== "active") return finish("failed", "account not active");
@@ -107,9 +113,16 @@ export async function processJob(env, jobId, now = nowMs()) {
   try {
     const accessToken = await decryptToken(env, acc.token_enc);
     outcome = await connector.publish({
-      accessToken, body: ver.body, idempotencyKey: job.idempotency_key, externalRef: acc.external_ref
+      accessToken, body: ver.body, link: ver.link_url, mediaUrl: ver.media_url,
+      idempotencyKey: job.idempotency_key, externalRef: acc.external_ref, env
     });
   } catch (e) {
+    /* The platform may or may not have the post: never guess, never resend, never call it failed. */
+    if (e && e.unknown === true) return finish("needs_check", safeError(e));
+    if (e && e.tokenInvalid === true) {
+      await env.DB.prepare("UPDATE social_accounts SET status = 'expired', updated_at = ? WHERE id = ?").bind(nowIso(), job.account_id).run();
+      return finish("failed", "account needs to be reconnected");
+    }
     const max = intVar(env.SOCIAL_MAX_ATTEMPTS, 3);
     if (e && e.retryable === true && attempts < max) {
       const backoff = 60000 * Math.pow(2, attempts - 1);

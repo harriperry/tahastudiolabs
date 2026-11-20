@@ -8,6 +8,8 @@ import { hasTokenKey } from "./crypto.js";
 import { ensureSchema } from "./db.js";
 import { getSwitches, setClientFlags, setGlobalPause } from "./killswitch.js";
 import { completeOAuth, revokeAccount, startOAuth } from "./oauth.js";
+import { parseSignedRequest } from "./connectors/meta.js";
+import { PANEL_CSS, PANEL_HEADERS, PANEL_HTML, PANEL_JS } from "./panel.js";
 import { cancelJob, createJob, processJob, tick } from "./queue.js";
 import { json, newId, nowIso } from "./util.js";
 
@@ -36,7 +38,33 @@ export async function handle(request, env) {
     return json({ ok: true, service: "social-hub", tokenKey: hasTokenKey(env) });
   }
 
+  /* Static panel files: no data, no session needed (the page itself calls the API with the cookie). */
+  const panelFiles = {
+    "/panel": [PANEL_HTML, "text/html; charset=utf-8"],
+    "/panel.js": [PANEL_JS, "application/javascript; charset=utf-8"],
+    "/panel.css": [PANEL_CSS, "text/css; charset=utf-8"]
+  };
+  if (method === "GET" && panelFiles[path]) {
+    return new Response(panelFiles[path][0], { headers: { ...PANEL_HEADERS, "Content-Type": panelFiles[path][1] } });
+  }
+
   await ensureSchema(env);
+
+  /* Meta calls these without a session; the signed_request proves it is Meta. */
+  if ((path === "/meta/data-deletion" || path === "/meta/deauthorize") && method === "POST") {
+    let signed = "";
+    try { signed = String((await request.formData()).get("signed_request") || ""); } catch (e) {}
+    const sr = await parseSignedRequest(signed, env.META_APP_SECRET);
+    if (!sr) return json({ error: "bad_signature" }, 400);
+    const rows = await env.DB.prepare("SELECT id, client_id FROM social_accounts WHERE provider_user_id = ?").bind(sr.userId).all();
+    for (const r of rows.results || []) {
+      await revokeAccount(env, { clientId: r.client_id, accountId: r.id, actor: "meta" });
+    }
+    const code = newId("del");
+    await audit(env, { clientId: null, actor: "meta", action: path === "/meta/data-deletion" ? "data_deletion_request" : "deauthorized", detail: { code, accounts: (rows.results || []).length } });
+    return json({ url: (env.SITE_ORIGIN || "https://tahastudiolabs.com") + BASE + "/panel?deletion=" + code, confirmation_code: code });
+  }
+
   const auth = await getAuth(request, env);
   if (!auth) return json({ error: "unauthorized" }, 401);
   if (method !== "GET" && !originOk(request, env)) return json({ error: "bad_origin" }, 403);
@@ -69,7 +97,12 @@ export async function handle(request, env) {
     const jobs = await env.DB.prepare(
       "SELECT id, platform, run_at, status, attempts, last_error FROM social_jobs WHERE client_id = ? ORDER BY run_at DESC LIMIT 50"
     ).bind(clientId).all();
+    const versions = await env.DB.prepare(
+      "SELECT id, platform, body, status, media_url, link_url FROM social_versions WHERE client_id = ? ORDER BY created_at DESC LIMIT 30"
+    ).bind(clientId).all();
     return json({
+      role: auth.role,
+      versions: versions.results || [],
       consentVersion: currentVersion(env),
       consented: await hasConsent(env, clientId),
       switches: await getSwitches(env, clientId),
@@ -99,8 +132,13 @@ export async function handle(request, env) {
       state: url.searchParams.get("state"), code: url.searchParams.get("code"), platform,
       sessionHash: auth.sessionHash, redirectUri: redirectUriFor(env, platform)
     });
+    const wantsJson = (request.headers.get("Accept") || "").includes("application/json");
+    if (!wantsJson) {
+      const to = BASE + "/panel?" + (r.error ? "error=" + encodeURIComponent(r.error) : "connected=" + r.count);
+      return new Response(null, { status: 302, headers: { Location: to } });
+    }
     if (r.error) return json({ error: r.error }, 400);
-    return json({ ok: true, accountId: r.accountId, displayName: r.displayName });
+    return json({ ok: true, accountId: r.accountId, count: r.count, displayName: r.displayName });
   }
 
   if (path === "/accounts/revoke" && method === "POST") {
@@ -112,10 +150,18 @@ export async function handle(request, env) {
     const text = typeof body.body === "string" ? body.body.trim() : "";
     const platform = String(body.platform || "");
     if (!text || text.length > 5000 || !platform) return json({ error: "bad_request" }, 400);
+    const httpsUrl = (v) => {
+      if (v === undefined || v === null || v === "") return null;
+      try { const u = new URL(String(v)); return u.protocol === "https:" && String(v).length <= 2000 ? u.toString() : false; } catch (e) { return false; }
+    };
+    const linkUrl = httpsUrl(body.linkUrl);
+    const mediaUrl = httpsUrl(body.mediaUrl);
+    if (linkUrl === false || mediaUrl === false) return json({ error: "bad_url" }, 400);
+    if (platform === "instagram" && !mediaUrl) return json({ error: "media_required" }, 400);
     const id = newId("sv");
     await env.DB.prepare(
-      "INSERT INTO social_versions (id, client_id, platform, body, status, created_by, created_at) VALUES (?, ?, ?, ?, 'draft', ?, ?)"
-    ).bind(id, clientId, platform, text, auth.email, nowIso()).run();
+      "INSERT INTO social_versions (id, client_id, platform, body, status, created_by, created_at, media_url, link_url) VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?)"
+    ).bind(id, clientId, platform, text, auth.email, nowIso(), mediaUrl, linkUrl).run();
     await audit(env, { clientId, actor: auth.email, action: "version_created", detail: { versionId: id } });
     return json({ versionId: id });
   }

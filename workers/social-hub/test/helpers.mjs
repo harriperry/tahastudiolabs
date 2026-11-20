@@ -65,8 +65,8 @@ export async function makeSession(env, { role, clientId = null, email, expiresAt
   return "__Host-tv_session=" + token;
 }
 
-export async function call(env, method, path, { cookie, body, origin = "https://tahastudiolabs.com" } = {}) {
-  const headers = {};
+export async function call(env, method, path, { cookie, body, origin = "https://tahastudiolabs.com", accept = "application/json" } = {}) {
+  const headers = { Accept: accept };
   if (cookie) headers.Cookie = cookie;
   if (method !== "GET") { headers.Origin = origin; headers["Content-Type"] = "application/json"; }
   const res = await handle(new Request("https://tahastudiolabs.com/api/vault/social" + path, {

@@ -1,4 +1,8 @@
-/* node test/run-all.mjs : runs the social-hub suite. No network, no wrangler. */
+/* node test/run-all.mjs : runs the social-hub suites. No network, no wrangler. */
 import { spawnSync } from "node:child_process";
-const r = spawnSync(process.execPath, ["--no-warnings", "test/social.test.mjs"], { stdio: "inherit" });
-process.exit(r.status === null ? 1 : r.status);
+let code = 0;
+for (const f of ["test/social.test.mjs", "test/meta.test.mjs"]) {
+  const r = spawnSync(process.execPath, ["--no-warnings", f], { stdio: "inherit" });
+  if (r.status !== 0) code = 1;
+}
+process.exit(code);
