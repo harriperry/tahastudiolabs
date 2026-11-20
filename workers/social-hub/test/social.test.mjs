@@ -50,13 +50,13 @@ async function enable(env, admin, clientId) {
   const sm = await env.DB.prepare("SELECT COUNT(*) n FROM social_migrations").first();
   ok(sm.n === MIG_COUNT(), "social migrations apply once and are idempotent");
   const tables = (await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'social_%'").all()).results.map((r) => r.name);
-  ok(["social_accounts", "social_audit", "social_consents", "social_global", "social_jobs", "social_oauth_states", "social_publications", "social_settings", "social_versions"].every((t) => tables.includes(t)), "all social tables exist");
+  ok(["social_accounts", "social_audit", "social_consents", "social_global", "social_jobs", "social_oauth_states", "social_proposals", "social_publications", "social_settings", "social_versions"].every((t) => tables.includes(t)), "all social tables exist");
   const after = (await env.DB.prepare("SELECT COUNT(*) n FROM schema_migrations").first());
   ok(before.n === after.n, "the Vault's own schema_migrations is never written");
   const g = spawnSync("git", ["diff", "--stat", "HEAD", "--", "../brain-vault"], { cwd: new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"), encoding: "utf8" });
   ok(g.status !== 0 || g.stdout.trim() === "", "workers/brain-vault has no changes against HEAD");
 }
-function MIG_COUNT() { return 2; }
+function MIG_COUNT() { return 3; }
 
 /* 2. Session parity and auth */
 {

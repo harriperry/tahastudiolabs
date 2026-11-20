@@ -9,6 +9,7 @@ import { ensureSchema } from "./db.js";
 import { getSwitches, setClientFlags, setGlobalPause } from "./killswitch.js";
 import { completeOAuth, revokeAccount, startOAuth } from "./oauth.js";
 import { parseSignedRequest } from "./connectors/meta.js";
+import { createProposals, decideProposal, expireProposals, listProposals, withdrawProposal } from "./proposals.js";
 import { PANEL_CSS, PANEL_HEADERS, PANEL_HTML, PANEL_JS } from "./panel.js";
 import { cancelJob, createJob, processJob, tick } from "./queue.js";
 import { json, newId, nowIso } from "./util.js";
@@ -103,6 +104,7 @@ export async function handle(request, env) {
     return json({
       role: auth.role,
       versions: versions.results || [],
+      proposals: await listProposals(env, clientId),
       consentVersion: currentVersion(env),
       consented: await hasConsent(env, clientId),
       switches: await getSwitches(env, clientId),
@@ -184,6 +186,32 @@ export async function handle(request, env) {
     return r.error ? json({ error: r.error }, 400) : json({ jobId: r.jobId });
   }
 
+  if (path === "/proposals" && method === "POST") {
+    if (auth.role !== "admin") return json({ error: "forbidden" }, 403);
+    const r = await createProposals(env, { clientId, items: body.items, actor: auth.email });
+    if (r.error) return json({ error: r.error, index: r.index }, r.error === "not_found" ? 404 : r.error === "too_many" ? 409 : 400);
+    return json({ batchId: r.batchId, ids: r.ids, notified: r.notified });
+  }
+
+  if (path === "/proposals/decide" && method === "POST") {
+    if (auth.role !== "client") return json({ error: "forbidden" }, 403);
+    const r = await decideProposal(env, {
+      clientId, proposalId: String(body.proposalId || ""), action: String(body.action || ""), note: body.note,
+      body: body.body, accountId: body.accountId, runAt: body.runAt, actor: auth.email
+    });
+    if (r.error) {
+      const code = r.error === "not_found" ? 404 : r.error === "consent_required" || r.error === "not_pending" || r.error === "expired" ? 409 : 400;
+      return json({ error: r.error }, code);
+    }
+    return json(r);
+  }
+
+  if (path === "/proposals/withdraw" && method === "POST") {
+    if (auth.role !== "admin") return json({ error: "forbidden" }, 403);
+    const ok = await withdrawProposal(env, { clientId, proposalId: String(body.proposalId || ""), actor: auth.email });
+    return ok ? json({ ok: true }) : json({ error: "not_found" }, 404);
+  }
+
   if (path === "/jobs/cancel" && method === "POST") {
     const ok = await cancelJob(env, { clientId, jobId: String(body.jobId || ""), actor: auth.email });
     return ok ? json({ ok: true }) : json({ error: "not_found" }, 404);
@@ -204,6 +232,7 @@ export default {
   async scheduled(event, env, ctx) {
     await ensureSchema(env);
     ctx.waitUntil(tick(env));
+    ctx.waitUntil(expireProposals(env));
   },
   async queue(batch, env) {
     await ensureSchema(env);

@@ -22,3 +22,23 @@ production unless SOCIAL_ALLOW_MOCK is "on".
 ## Not done (needs separate approval)
 Create the `social-publish` queue (Workers Paid), set the SOCIAL_TOKEN_KEY secret, connect a
 Workers Builds project with root /workers/social-hub, deploy, then enable one client.
+
+
+## Phase 3: Growth Department proposals and the client Inbox
+
+The team prepares drafts for a client. The client reviews them in their panel and approves,
+edits then approves, requests changes or rejects. Approval creates an approved version and a
+scheduled job through the existing engine, so consent, the enabled switch, pauses and the daily
+cap all still apply. Nothing publishes without the client's approval.
+
+Routes (all under /api/vault/social):
+- POST /proposals (admin): body { clientId, items: [{ platform, body, mediaUrl?, linkUrl?, accountId?, suggestedRunAt? }] }, up to 20 per batch, all or nothing.
+- POST /proposals/decide (client): body { proposalId, action: approve | changes | reject, note?, body?, accountId?, runAt? }.
+- POST /proposals/withdraw (admin): body { clientId, proposalId }.
+- GET /status now also returns proposals.
+
+Settings: SOCIAL_PROPOSAL_DAYS (default 14, unanswered proposals expire), SOCIAL_MAX_PENDING (default 20 per client), NOTIFY_EMAIL (team address, default the first ADMIN_EMAILS entry), MAIL_FROM (default TAHA Studio Labs <hej@tahastudiolabs.com>).
+
+Secret to add before the notification emails work: RESEND_API_KEY on the social-hub Worker (Cloudflare dashboard, Settings, Variables and Secrets, type Secret). Without it everything still works and the email is simply skipped (audited as proposals_notify_skipped).
+
+Emails never contain post text, are always Swedish and English, and contain no em-dashes.

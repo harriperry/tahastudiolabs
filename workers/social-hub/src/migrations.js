@@ -106,5 +106,34 @@ export const MIGRATIONS = [
       `ALTER TABLE social_accounts ADD COLUMN provider_user_id TEXT`,
       `CREATE INDEX IF NOT EXISTS idx_social_accounts_provider ON social_accounts (provider_user_id)`
     ]
+  },
+  {
+    id: 3,
+    name: "social-proposals",
+    statements: [
+      `CREATE TABLE IF NOT EXISTS social_proposals (
+        id TEXT PRIMARY KEY,
+        client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        batch_id TEXT NOT NULL,
+        platform TEXT NOT NULL,
+        body TEXT NOT NULL,
+        media_url TEXT,
+        link_url TEXT,
+        account_id TEXT,
+        suggested_run_at INTEGER,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','changes_requested','rejected','expired','withdrawn')),
+        proposed_by TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        expires_at INTEGER NOT NULL,
+        decided_at TEXT,
+        decided_by TEXT,
+        decision_note TEXT,
+        edited INTEGER NOT NULL DEFAULT 0,
+        version_id TEXT,
+        job_id TEXT
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_social_proposals_client ON social_proposals (client_id, status)`,
+      `CREATE INDEX IF NOT EXISTS idx_social_proposals_expiry ON social_proposals (status, expires_at)`
+    ]
   }
 ];

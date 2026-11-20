@@ -51,7 +51,12 @@ export const PANEL_JS = `(function () {
       s_scheduled: "Schemalagd", s_publishing: "Publiceras", s_published: "Publicerad", s_failed: "Misslyckades", s_needs_check: "Kontrollera på plattformen", s_cancelled: "Avbruten",
       v_draft: "Utkast", v_approved: "Godkänd", connected: "Kontona är anslutna.", denied: "Anslutningen avbröts eller nekades.", deletion: "Din begäran om radering är mottagen.",
       saved: "Utkastet är sparat.", scheduledOk: "Inlägget är schemalagt.", failedGeneric: "Något gick fel. Försök igen.", adminH: "Administratör", clientId: "Klient-ID",
-      load: "Visa", enable: "Aktivera", disable: "Stäng av", pause: "Pausa klient", resume: "Återuppta klient", pauseAll: "Pausa allt", resumeAll: "Återuppta allt", expired: "Måste anslutas igen"
+      load: "Visa", enable: "Aktivera", disable: "Stäng av", pause: "Pausa klient", resume: "Återuppta klient", pauseAll: "Pausa allt", resumeAll: "Återuppta allt", expired: "Måste anslutas igen",
+      inboxH: "Inlägg att granska", inboxNone: "Inga nya inlägg att granska.", editHint: "Du kan ändra texten innan du godkänner. Ingenting publiceras förrän du godkänner.",
+      approveSchedule: "Godkänn och schemalägg", requestChanges: "Begär ändringar", rejectBtn: "Avvisa", noteLabel: "Vad ska ändras?", noteReq: "Skriv vad som ska ändras.",
+      expiresOn: "Går ut", earlier: "Tidigare förslag", suggestedTime: "Föreslagen tid (valfri)", approvedOk: "Godkänt och schemalagt.", changesOk: "Ändringarna är begärda.", rejectedOk: "Förslaget är avvisat.",
+      p_pending: "Väntar", p_approved: "Godkänd", p_changes_requested: "Ändringar begärda", p_rejected: "Avvisad", p_expired: "Utgången", p_withdrawn: "Tillbakadragen",
+      proposeH: "Skicka till klienten för godkännande", addToBatch: "Lägg till i paketet", sendBatch: "Skicka paketet", batchH: "Paket att skicka", sentOk: "Skickat till klienten.", withdraw: "Dra tillbaka", optional: "Konto (valfritt)", noClient: "Ladda en klient först."
     },
     en: {
       title: "Social media", signin: "Sign in", signinText: "You need to sign in to use this page.",
@@ -64,12 +69,17 @@ export const PANEL_JS = `(function () {
       s_scheduled: "Scheduled", s_publishing: "Publishing", s_published: "Published", s_failed: "Failed", s_needs_check: "Check on the platform", s_cancelled: "Cancelled",
       v_draft: "Draft", v_approved: "Approved", connected: "Your accounts are connected.", denied: "The connection was cancelled or denied.", deletion: "Your deletion request was received.",
       saved: "Draft saved.", scheduledOk: "The post is scheduled.", failedGeneric: "Something went wrong. Please try again.", adminH: "Administrator", clientId: "Client ID",
-      load: "Show", enable: "Enable", disable: "Disable", pause: "Pause client", resume: "Resume client", pauseAll: "Pause everything", resumeAll: "Resume everything", expired: "Needs to be reconnected"
+      load: "Show", enable: "Enable", disable: "Disable", pause: "Pause client", resume: "Resume client", pauseAll: "Pause everything", resumeAll: "Resume everything", expired: "Needs to be reconnected",
+      inboxH: "Posts to review", inboxNone: "No posts to review.", editHint: "You can edit the text before approving. Nothing is published until you approve.",
+      approveSchedule: "Approve and schedule", requestChanges: "Request changes", rejectBtn: "Reject", noteLabel: "What should change?", noteReq: "Please write what should change.",
+      expiresOn: "Expires", earlier: "Earlier proposals", suggestedTime: "Suggested time (optional)", approvedOk: "Approved and scheduled.", changesOk: "Changes requested.", rejectedOk: "Proposal rejected.",
+      p_pending: "Waiting", p_approved: "Approved", p_changes_requested: "Changes requested", p_rejected: "Rejected", p_expired: "Expired", p_withdrawn: "Withdrawn",
+      proposeH: "Send to the client for approval", addToBatch: "Add to the batch", sendBatch: "Send the batch", batchH: "Batch to send", sentOk: "Sent to the client.", withdraw: "Withdraw", optional: "Account (optional)", noClient: "Load a client first."
     }
   };
   var lang = "sv";
   try { lang = localStorage.getItem("social_lang") || (navigator.language || "sv").slice(0, 2) === "en" ? "en" : "sv"; } catch (e) {}
-  var S = { data: null, clientId: "", notice: null };
+  var S = { data: null, clientId: "", notice: null, batch: [] };
   var app = document.getElementById("app");
   function t(k) { return (T[lang] && T[lang][k]) || k; }
   function el(tag, props, kids) {
@@ -121,6 +131,8 @@ export const PANEL_JS = `(function () {
     if (!d.switches.enabled) app.appendChild(el("div", { class: "note", text: t("notEnabled") }));
     else if (d.switches.globalPaused || d.switches.clientPaused) app.appendChild(el("div", { class: "note", text: t("paused") }));
     app.appendChild(accountsCard(d));
+    if (d.role === "client") app.appendChild(inboxCard(d));
+    if (d.role === "admin") { app.appendChild(proposeCard(d)); app.appendChild(proposalHistoryCard(d)); }
     if (d.consented) { app.appendChild(composeCard(d)); app.appendChild(draftsCard(d)); }
     app.appendChild(jobsCard(d));
   }
@@ -146,6 +158,102 @@ export const PANEL_JS = `(function () {
     if (d.consented && d.role === "client") kids.push(el("button", { text: t("connect"), onclick: function () {
       api("POST", "/oauth/start", { platform: "meta" }).then(function (r) { if (r.data && r.data.url) window.location.href = r.data.url; else { S.notice = { ok: false, text: t("failedGeneric") }; render(); } });
     } }));
+    return el("div", { class: "card" }, kids);
+  }
+  function localInput(ms) {
+    var d = new Date(ms - new Date(ms).getTimezoneOffset() * 60000);
+    return d.toISOString().slice(0, 16);
+  }
+  function inboxCard(d) {
+    var list = d.proposals || [];
+    var pending = list.filter(function (p) { return p.status === "pending"; });
+    var kids = [el("h2", { text: t("inboxH") })];
+    if (!pending.length) kids.push(el("p", { class: "muted", text: t("inboxNone") }));
+    else kids.push(el("p", { class: "muted", text: t("editHint") }));
+    pending.forEach(function (p) {
+      var body = el("textarea", { maxlength: "5000" });
+      body.value = p.body;
+      var sel = accountSelect(d, p.platform);
+      if (p.account_id) sel.value = p.account_id;
+      var when = el("input", { type: "datetime-local" });
+      if (p.suggested_run_at) when.value = localInput(p.suggested_run_at);
+      var note = el("input", { placeholder: t("noteLabel"), maxlength: "1000" });
+      var card = el("div", { class: "card" }, [
+        el("div", { class: "muted", text: p.platform + " | " + t("expiresOn") + " " + new Date(p.expires_at).toLocaleDateString() }),
+        p.media_url ? el("div", { class: "muted", text: p.media_url }) : null,
+        p.link_url ? el("div", { class: "muted", text: p.link_url }) : null,
+        body,
+        el("div", { class: "row" }, [sel, when]),
+        el("div", { class: "row" }, [
+          el("button", { text: t("approveSchedule"), onclick: function () {
+            var ms = Date.parse(when.value);
+            if (!sel.value || !isFinite(ms)) { S.notice = { ok: false, text: t("failedGeneric") }; render(); return; }
+            act("POST", "/proposals/decide", { proposalId: p.id, action: "approve", body: body.value, accountId: sel.value, runAt: ms }, "approvedOk");
+          } })
+        ]),
+        el("div", { class: "row" }, [note,
+          el("button", { class: "ghost", text: t("requestChanges"), onclick: function () {
+            if (!note.value.trim()) { S.notice = { ok: false, text: t("noteReq") }; render(); return; }
+            act("POST", "/proposals/decide", { proposalId: p.id, action: "changes", note: note.value }, "changesOk");
+          } }),
+          el("button", { class: "ghost", text: t("rejectBtn"), onclick: function () {
+            act("POST", "/proposals/decide", { proposalId: p.id, action: "reject", note: note.value }, "rejectedOk");
+          } })
+        ])
+      ]);
+      kids.push(card);
+    });
+    var done = list.filter(function (p) { return p.status !== "pending"; }).slice(0, 10);
+    if (done.length) {
+      kids.push(el("h2", { text: t("earlier") }));
+      done.forEach(function (p) {
+        kids.push(el("div", { class: "row" }, [el("span", { class: "badge", text: t("p_" + p.status) }), el("span", { class: "muted", text: p.platform + ": " + p.body.slice(0, 80) })]));
+      });
+    }
+    return el("div", { class: "card" }, kids);
+  }
+  function proposalHistoryCard(d) {
+    var kids = [el("h2", { text: t("earlier") })];
+    (d.proposals || []).forEach(function (p) {
+      var row = [el("span", { class: "badge", text: t("p_" + p.status) }), el("span", { class: "muted", text: p.platform + ": " + p.body.slice(0, 80) + (p.decision_note ? " | " + p.decision_note : "") })];
+      if (p.status === "pending") row.push(el("button", { class: "ghost", text: t("withdraw"), onclick: function () { act("POST", "/proposals/withdraw", withClient({ proposalId: p.id }), "saved"); } }));
+      kids.push(el("div", { class: "row" }, row));
+    });
+    return el("div", { class: "card" }, kids);
+  }
+  function proposeCard(d) {
+    if (!S.clientId) return el("div", { class: "card" }, [el("h2", { text: t("proposeH") }), el("p", { class: "muted", text: t("noClient") })]);
+    var plat = el("select");
+    ["facebook", "instagram"].forEach(function (x) { plat.appendChild(el("option", { value: x, text: x })); });
+    var acc = el("select");
+    acc.appendChild(el("option", { value: "", text: t("optional") }));
+    d.accounts.filter(function (a) { return a.status === "active"; }).forEach(function (a) { acc.appendChild(el("option", { value: a.id, text: a.platform + ": " + a.display_name })); });
+    var body = el("textarea", { maxlength: "5000" }), link = el("input", { placeholder: "https://" }), img = el("input", { placeholder: "https://" }), when = el("input", { type: "datetime-local" });
+    var kids = [el("h2", { text: t("proposeH") }), el("label", { text: t("platform") }), plat, el("label", { text: t("text") }), body,
+      el("label", { text: t("link") }), link, el("label", { text: t("image") }), img, el("label", { text: t("optional") }), acc, el("label", { text: t("suggestedTime") }), when,
+      el("div", { class: "row" }, [el("button", { class: "ghost", text: t("addToBatch"), onclick: function () {
+        if (!body.value.trim()) return;
+        var item = { platform: plat.value, body: body.value };
+        if (link.value.trim()) item.linkUrl = link.value.trim();
+        if (img.value.trim()) item.mediaUrl = img.value.trim();
+        if (acc.value) item.accountId = acc.value;
+        var ms = Date.parse(when.value);
+        if (isFinite(ms)) item.suggestedRunAt = ms;
+        S.batch.push(item);
+        render();
+      } })])];
+    if (S.batch.length) {
+      kids.push(el("h2", { text: t("batchH") + " (" + S.batch.length + ")" }));
+      S.batch.forEach(function (it) { kids.push(el("div", { class: "muted", text: it.platform + ": " + it.body.slice(0, 80) })); });
+      kids.push(el("div", { class: "row" }, [el("button", { text: t("sendBatch"), onclick: function () {
+        var items = S.batch.slice();
+        api("POST", "/proposals", withClient({ items: items })).then(function (r) {
+          if (r.status === 200) { S.batch = []; S.notice = { ok: true, text: t("sentOk") }; }
+          else S.notice = { ok: false, text: t("failedGeneric") + (r.data && r.data.error ? " (" + r.data.error + ")" : "") };
+          return load();
+        });
+      } })]));
+    }
     return el("div", { class: "card" }, kids);
   }
   function accountSelect(d, platform) {

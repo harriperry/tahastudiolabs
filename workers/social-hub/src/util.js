@@ -83,3 +83,23 @@ export function intVar(value, fallback) {
   const n = parseInt(value, 10);
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
+
+/* House rule: no em-dashes or en-dashes in anything we send out. */
+export function noDashes(text) {
+  return String(text).replace(/\u2014/g, ", ").replace(/\u2013/g, "-");
+}
+
+export function escapeHtml(text) {
+  return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/* Returns a normalised https URL, null when empty, or false when invalid. */
+export function httpsUrl(value) {
+  if (value === undefined || value === null || value === "") return null;
+  try {
+    const u = new URL(String(value));
+    return u.protocol === "https:" && String(value).length <= 2000 ? u.toString() : false;
+  } catch (e) {
+    return false;
+  }
+}
