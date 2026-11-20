@@ -103,8 +103,29 @@ export const metaConnect = {
     const pages = await graph(env, "GET", "me/accounts", {
       fields: "id,name,access_token,instagram_business_account{id,username}", limit: 25
     }, long.access_token);
+    /* When specific Pages were granted, me/accounts can come back empty. Ask Meta which assets the
+       grant covers (debug_token granular scopes) and read each Page directly. */
+    let pageList = pages.data || [];
+    if (!pageList.length) {
+      let ids = [];
+      try {
+        const dbg = await graph(env, "GET", "debug_token", { input_token: long.access_token, access_token: env.META_APP_ID + "|" + env.META_APP_SECRET });
+        const wanted = new Set(["pages_show_list", "pages_manage_posts", "pages_read_engagement"]);
+        const set = new Set();
+        for (const g of (dbg.data && dbg.data.granular_scopes) || []) {
+          if (wanted.has(g.scope)) for (const id of g.target_ids || []) set.add(String(id));
+        }
+        ids = [...set].slice(0, 25);
+      } catch (e) {}
+      pageList = [];
+      for (const id of ids) {
+        try {
+          pageList.push(await graph(env, "GET", id, { fields: "id,name,access_token,instagram_business_account{id,username}" }, long.access_token));
+        } catch (e) {}
+      }
+    }
     const accounts = [];
-    for (const pg of pages.data || []) {
+    for (const pg of pageList) {
       if (!pg.id || !pg.access_token) continue;
       accounts.push({ platform: "facebook", externalRef: String(pg.id), displayName: String(pg.name || pg.id), accessToken: pg.access_token });
       const ig = pg.instagram_business_account;

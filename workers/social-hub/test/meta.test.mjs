@@ -81,6 +81,25 @@ const later = Date.now() + 3600000;
   ok(redirect.status === 302, "browser callback redirects to the panel");
 }
 
+/* Connect when me/accounts is empty (specific Pages granted): fall back to granular scopes */
+{
+  const { env, a } = await setup();
+  graph.handler = (r) => {
+    if (r.path === "me/accounts") return { body: { data: [] } };
+    if (r.path === "debug_token") return { body: { data: { granular_scopes: [
+      { scope: "pages_show_list", target_ids: ["p1"] }, { scope: "instagram_basic", target_ids: ["ig1"] } ] } } };
+    if (r.path === "p1") return { body: { id: "p1", name: "My Page", access_token: "page-token-1", instagram_business_account: { id: "ig1", username: "mine" } } };
+    return connectHandler(r);
+  };
+  const s = await call(env, "POST", "/oauth/start", { cookie: a, body: { platform: "meta" } });
+  const state = new URL(s.data.url).searchParams.get("state");
+  const cb = await call(env, "GET", "/oauth/callback/meta?state=" + state + "&code=abc", { cookie: a });
+  const rows = (await env.DB.prepare("SELECT platform, external_ref FROM social_accounts WHERE status = 'active'").all()).results;
+  ok(cb.status === 200 && rows.length === 2 && rows.some((r) => r.platform === "instagram" && r.external_ref === "ig1"), "empty me/accounts falls back to granted Pages and Instagram");
+  const dbg = graph.calls.find((c) => c.path === "debug_token");
+  ok(dbg && dbg.params.access_token === "123|" + SECRET && dbg.params.input_token === "long-user-token", "fallback uses the app token only for debug_token");
+}
+
 /* Facebook publishing */
 {
   const { env, a } = await setup();
