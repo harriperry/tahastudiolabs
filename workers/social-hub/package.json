@@ -1,0 +1,10 @@
+{
+  "name": "social-hub",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "TAHA Social Distribution Engine, Phase 1: separate Worker for social publishing. Shares D1 and R2 with brain-vault. Official platform APIs only.",
+  "scripts": {
+    "test": "node --no-warnings test/run-all.mjs"
+  }
+}
