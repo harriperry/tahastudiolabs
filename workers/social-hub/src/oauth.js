@@ -50,7 +50,7 @@ export async function completeOAuth(env, { state, code, platform, sessionHash, r
     const verifier = await decryptToken(env, row.verifier_enc);
     result = await connector.exchangeCode({ code, verifier, redirectUri, env });
   } catch (e) {
-    await audit(env, { clientId: row.client_id, actor: "client", action: "oauth_exchange_failed", detail: { platform } });
+    await audit(env, { clientId: row.client_id, actor: "client", action: "oauth_exchange_failed", detail: { platform, reason: String((e && e.message) || "unknown").slice(0, 200) } });
     return { error: "exchange_failed" };
   }
   /* A connector returns either one account (mock) or a list (Meta: each Page plus its linked
