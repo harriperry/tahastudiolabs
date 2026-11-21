@@ -20,7 +20,8 @@
     "META_GRAPH_VERSION": "v25.0",
     "SOCIAL_MAX_ATTEMPTS": "3",
     "SOCIAL_STUCK_MINUTES": "10",
-    "ADMIN_EMAILS": "agborkak@gmail.com,hej@tahastudiolabs.com"
+    "ADMIN_EMAILS": "agborkak@gmail.com,hej@tahastudiolabs.com",
+    "SOCIAL_CAPTION_RULES": "on"
   },
   "d1_databases": [
     {

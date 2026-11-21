@@ -57,3 +57,18 @@ Routes (under /api/vault/social):
 - GET /media/<id>.jpg (public, random id): the converted image. Needs no session because Meta must fetch it.
 
 Needs the Images binding (IMAGES, in wrangler.json). Cost: Cloudflare Images transformations are free up to 5,000 unique per month, then $0.50 per 1,000. Without the binding the route answers 503 and never serves an unconverted original.
+
+## Caption rules (Facebook and Instagram)
+
+Every Facebook and Instagram post needs an image, an own genuine caption (at least 30
+characters of real writing before the hashtags, and no obvious placeholder text) and at least 4
+different hashtags that help search (at most 30). A machine can only check the shape, so the
+client still reads and approves every post; the originality check only catches placeholders.
+
+Enforced in three places: when the team sends proposals (the whole batch is refused and nothing
+is stored if one item breaks the rules), when the client approves a proposal (an edit that
+removes the hashtags is refused and the proposal stays pending), and when a draft is saved by
+hand. The refusal is `{ error: "caption_rules", problems: [...] }` with codes image_required,
+caption_too_short, caption_not_original, hashtags_min, hashtags_max. The panel shows the reasons
+in Swedish and English. Switched on with the variable SOCIAL_CAPTION_RULES = "on" (set in
+wrangler.json). The mock platform is not affected.

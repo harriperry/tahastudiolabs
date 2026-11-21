@@ -13,6 +13,7 @@ import { createProposals, decideProposal, expireProposals, listProposals, withdr
 import { PANEL_CSS, PANEL_HEADERS, PANEL_HTML, PANEL_JS } from "./panel.js";
 import { cancelJob, createJob, processJob, tick } from "./queue.js";
 import { serveMedia, storeMedia } from "./media.js";
+import { checkPost } from "./rules.js";
 import { json, newId, nowIso } from "./util.js";
 
 const BASE = "/api/vault/social";
@@ -175,6 +176,8 @@ export async function handle(request, env) {
     const mediaUrl = httpsUrl(body.mediaUrl);
     if (linkUrl === false || mediaUrl === false) return json({ error: "bad_url" }, 400);
     if (platform === "instagram" && !mediaUrl) return json({ error: "media_required" }, 400);
+    const problems = checkPost(env, { platform, body: text, mediaUrl });
+    if (problems.length) return json({ error: "caption_rules", problems }, 400);
     const id = newId("sv");
     await env.DB.prepare(
       "INSERT INTO social_versions (id, client_id, platform, body, status, created_by, created_at, media_url, link_url) VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?)"
@@ -204,7 +207,7 @@ export async function handle(request, env) {
   if (path === "/proposals" && method === "POST") {
     if (auth.role !== "admin") return json({ error: "forbidden" }, 403);
     const r = await createProposals(env, { clientId, items: body.items, actor: auth.email });
-    if (r.error) return json({ error: r.error, index: r.index }, r.error === "not_found" ? 404 : r.error === "too_many" ? 409 : 400);
+    if (r.error) return json({ error: r.error, index: r.index, problems: r.problems }, r.error === "not_found" ? 404 : r.error === "too_many" ? 409 : 400);
     return json({ batchId: r.batchId, ids: r.ids, notified: r.notified });
   }
 
@@ -216,7 +219,7 @@ export async function handle(request, env) {
     });
     if (r.error) {
       const code = r.error === "not_found" ? 404 : r.error === "consent_required" || r.error === "not_pending" || r.error === "expired" ? 409 : 400;
-      return json({ error: r.error }, code);
+      return json({ error: r.error, problems: r.problems }, code);
     }
     return json(r);
   }

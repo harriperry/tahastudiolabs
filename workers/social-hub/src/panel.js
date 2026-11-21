@@ -52,7 +52,7 @@ export const PANEL_JS = `(function () {
       v_draft: "Utkast", v_approved: "Godkänd", connected: "Kontona är anslutna.", denied: "Anslutningen avbröts eller nekades.", deletion: "Din begäran om radering är mottagen.",
       saved: "Utkastet är sparat.", scheduledOk: "Inlägget är schemalagt.", failedGeneric: "Något gick fel. Försök igen.", adminH: "Administratör", clientId: "Klient-ID",
       load: "Visa", enable: "Aktivera", disable: "Stäng av", pause: "Pausa klient", resume: "Återuppta klient", pauseAll: "Pausa allt", resumeAll: "Återuppta allt", expired: "Måste anslutas igen",
-      uploadImage: "Ladda upp bild", uploading: "Laddar upp...", uploadFailed: "Bilden kunde inte laddas upp (JPG, PNG eller WebP, högst 8 MB).", inboxH: "Inlägg att granska", inboxNone: "Inga nya inlägg att granska.", editHint: "Du kan ändra texten innan du godkänner. Ingenting publiceras förrän du godkänner.",
+      ruleHint: "Facebook och Instagram kräver en bild, en egen och genuin text och minst 4 olika hashtags som hjälper sökbarheten.", prob_image_required: "Lägg till en bild.", prob_caption_too_short: "Skriv en längre egen text (minst 30 tecken före hashtags).", prob_caption_not_original: "Texten ser ut som en platshållare. Skriv en egen text.", prob_hashtags_min: "Lägg till minst 4 olika hashtags.", prob_hashtags_max: "Högst 30 hashtags.", uploadImage: "Ladda upp bild", uploading: "Laddar upp...", uploadFailed: "Bilden kunde inte laddas upp (JPG, PNG eller WebP, högst 8 MB).", inboxH: "Inlägg att granska", inboxNone: "Inga nya inlägg att granska.", editHint: "Du kan ändra texten innan du godkänner. Ingenting publiceras förrän du godkänner.",
       approveSchedule: "Godkänn och schemalägg", requestChanges: "Begär ändringar", rejectBtn: "Avvisa", noteLabel: "Vad ska ändras?", noteReq: "Skriv vad som ska ändras.",
       expiresOn: "Går ut", earlier: "Tidigare förslag", suggestedTime: "Föreslagen tid (valfri)", approvedOk: "Godkänt och schemalagt.", changesOk: "Ändringarna är begärda.", rejectedOk: "Förslaget är avvisat.",
       p_pending: "Väntar", p_approved: "Godkänd", p_changes_requested: "Ändringar begärda", p_rejected: "Avvisad", p_expired: "Utgången", p_withdrawn: "Tillbakadragen",
@@ -70,7 +70,7 @@ export const PANEL_JS = `(function () {
       v_draft: "Draft", v_approved: "Approved", connected: "Your accounts are connected.", denied: "The connection was cancelled or denied.", deletion: "Your deletion request was received.",
       saved: "Draft saved.", scheduledOk: "The post is scheduled.", failedGeneric: "Something went wrong. Please try again.", adminH: "Administrator", clientId: "Client ID",
       load: "Show", enable: "Enable", disable: "Disable", pause: "Pause client", resume: "Resume client", pauseAll: "Pause everything", resumeAll: "Resume everything", expired: "Needs to be reconnected",
-      uploadImage: "Upload image", uploading: "Uploading...", uploadFailed: "The image could not be uploaded (JPG, PNG or WebP, 8 MB at most).", inboxH: "Posts to review", inboxNone: "No posts to review.", editHint: "You can edit the text before approving. Nothing is published until you approve.",
+      ruleHint: "Facebook and Instagram need an image, an own genuine caption and at least 4 different hashtags that help search.", prob_image_required: "Add an image.", prob_caption_too_short: "Write a longer caption of your own (at least 30 characters before hashtags).", prob_caption_not_original: "The text looks like a placeholder. Write your own caption.", prob_hashtags_min: "Add at least 4 different hashtags.", prob_hashtags_max: "At most 30 hashtags.", uploadImage: "Upload image", uploading: "Uploading...", uploadFailed: "The image could not be uploaded (JPG, PNG or WebP, 8 MB at most).", inboxH: "Posts to review", inboxNone: "No posts to review.", editHint: "You can edit the text before approving. Nothing is published until you approve.",
       approveSchedule: "Approve and schedule", requestChanges: "Request changes", rejectBtn: "Reject", noteLabel: "What should change?", noteReq: "Please write what should change.",
       expiresOn: "Expires", earlier: "Earlier proposals", suggestedTime: "Suggested time (optional)", approvedOk: "Approved and scheduled.", changesOk: "Changes requested.", rejectedOk: "Proposal rejected.",
       p_pending: "Waiting", p_approved: "Approved", p_changes_requested: "Changes requested", p_rejected: "Rejected", p_expired: "Expired", p_withdrawn: "Withdrawn",
@@ -101,9 +101,13 @@ export const PANEL_JS = `(function () {
     var q = S.clientId ? "?clientId=" + encodeURIComponent(S.clientId) : "";
     return api("GET", "/status" + q).then(function (r) { S.status = r.status; S.data = r.status === 200 ? r.data : null; render(); });
   }
+  function errText(d) {
+    if (d && d.problems && d.problems.length) return t("failedGeneric") + " " + d.problems.map(function (x) { return t("prob_" + x); }).join(" ");
+    return t("failedGeneric") + (d && d.error ? " (" + d.error + ")" : "");
+  }
   function act(method, path, body, okKey) {
     return api(method, path, body).then(function (r) {
-      S.notice = r.status >= 200 && r.status < 300 ? { ok: true, text: t(okKey || "saved") } : { ok: false, text: t("failedGeneric") + (r.data && r.data.error ? " (" + r.data.error + ")" : "") };
+      S.notice = r.status >= 200 && r.status < 300 ? { ok: true, text: t(okKey || "saved") } : { ok: false, text: errText(r.data) };
       return load();
     });
   }
@@ -183,7 +187,7 @@ export const PANEL_JS = `(function () {
     var pending = list.filter(function (p) { return p.status === "pending"; });
     var kids = [el("h2", { text: t("inboxH") })];
     if (!pending.length) kids.push(el("p", { class: "muted", text: t("inboxNone") }));
-    else kids.push(el("p", { class: "muted", text: t("editHint") }));
+    else kids.push(el("p", { class: "muted", text: t("editHint") + " " + t("ruleHint") }));
     pending.forEach(function (p) {
       var body = el("textarea", { maxlength: "5000" });
       body.value = p.body;
@@ -244,7 +248,7 @@ export const PANEL_JS = `(function () {
     acc.appendChild(el("option", { value: "", text: t("optional") }));
     d.accounts.filter(function (a) { return a.status === "active"; }).forEach(function (a) { acc.appendChild(el("option", { value: a.id, text: a.platform + ": " + a.display_name })); });
     var body = el("textarea", { maxlength: "5000" }), link = el("input", { placeholder: "https://" }), img = el("input", { placeholder: "https://" }), when = el("input", { type: "datetime-local" });
-    var kids = [el("h2", { text: t("proposeH") }), el("label", { text: t("platform") }), plat, el("label", { text: t("text") }), body,
+    var kids = [el("h2", { text: t("proposeH") }), el("label", { text: t("platform") }), plat, el("label", { text: t("text") }), body, el("p", { class: "muted", text: t("ruleHint") }),
       el("label", { text: t("link") }), link, el("label", { text: t("image") }), img, uploadControl(img), el("label", { text: t("optional") }), acc, el("label", { text: t("suggestedTime") }), when,
       el("div", { class: "row" }, [el("button", { class: "ghost", text: t("addToBatch"), onclick: function () {
         if (!body.value.trim()) return;
@@ -264,7 +268,7 @@ export const PANEL_JS = `(function () {
         var items = S.batch.slice();
         api("POST", "/proposals", withClient({ items: items })).then(function (r) {
           if (r.status === 200) { S.batch = []; S.notice = { ok: true, text: t("sentOk") }; }
-          else S.notice = { ok: false, text: t("failedGeneric") + (r.data && r.data.error ? " (" + r.data.error + ")" : "") };
+          else S.notice = { ok: false, text: errText(r.data) };
           return load();
         });
       } })]));
@@ -279,7 +283,7 @@ export const PANEL_JS = `(function () {
   function composeCard(d) {
     var sel = accountSelect(d), body = el("textarea", { maxlength: "5000" }), link = el("input", { placeholder: "https://" }), img = el("input", { placeholder: "https://" });
     var byId = {}; d.accounts.forEach(function (a) { byId[a.id] = a; });
-    return el("div", { class: "card" }, [el("h2", { text: t("composeH") }), el("label", { text: t("account") }), sel, el("label", { text: t("text") }), body,
+    return el("div", { class: "card" }, [el("h2", { text: t("composeH") }), el("label", { text: t("account") }), sel, el("label", { text: t("text") }), body, el("p", { class: "muted", text: t("ruleHint") }),
       el("label", { text: t("link") }), link, el("label", { text: t("image") }), img, d.role === "admin" ? uploadControl(img) : null,
       el("div", { class: "row" }, [el("button", { text: t("saveDraft"), onclick: function () {
         var a = byId[sel.value]; if (!a) return;

@@ -13,6 +13,7 @@ import { audit } from "./audit.js";
 import { hasConsent } from "./consent.js";
 import { composeDecisionNotice, composeProposalNotice, sendMail } from "./mail.js";
 import { createJob } from "./queue.js";
+import { checkPost } from "./rules.js";
 import { adminEmails } from "./auth.js";
 import { httpsUrl, intVar, newId, nowIso, nowMs } from "./util.js";
 
@@ -59,6 +60,8 @@ export async function createProposals(env, { clientId, items, actor }) {
     const mediaUrl = httpsUrl(it.mediaUrl);
     if (linkUrl === false || mediaUrl === false) return { error: "bad_url", index: i };
     if (platform === "instagram" && !mediaUrl) return { error: "media_required", index: i };
+    const problems = checkPost(env, { platform, body: text, mediaUrl });
+    if (problems.length) return { error: "caption_rules", index: i, problems };
     let accountId = null;
     if (it.accountId) {
       const acc = await env.DB.prepare("SELECT id, platform, status FROM social_accounts WHERE id = ? AND client_id = ?")
@@ -149,6 +152,8 @@ export async function decideProposal(env, { clientId, proposalId, action, note, 
     if (!text || text.length > MAX_TEXT) return { error: "bad_request" };
     edited = 1;
   }
+  const problems = checkPost(env, { platform: p.platform, body: text, mediaUrl: p.media_url });
+  if (problems.length) return { error: "caption_rules", problems };
   const accId = String(accountId || p.account_id || "");
   const acc = await env.DB.prepare("SELECT id, platform, status FROM social_accounts WHERE id = ? AND client_id = ?").bind(accId, clientId).first();
   if (!acc || acc.status !== "active") return { error: "account_unavailable" };
