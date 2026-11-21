@@ -12,6 +12,7 @@ import { parseSignedRequest } from "./connectors/meta.js";
 import { createProposals, decideProposal, expireProposals, listProposals, withdrawProposal } from "./proposals.js";
 import { PANEL_CSS, PANEL_HEADERS, PANEL_HTML, PANEL_JS } from "./panel.js";
 import { cancelJob, createJob, processJob, tick } from "./queue.js";
+import { serveMedia, storeMedia } from "./media.js";
 import { json, newId, nowIso } from "./util.js";
 
 const BASE = "/api/vault/social";
@@ -49,6 +50,10 @@ export async function handle(request, env) {
     return new Response(panelFiles[path][0], { headers: { ...PANEL_HEADERS, "Content-Type": panelFiles[path][1] } });
   }
 
+  /* Converted images for the platforms. Public by design (Meta must fetch them), protected by a
+     random id and served only through the converter. No session, no database. */
+  if (method === "GET" && path.startsWith("/media/")) return serveMedia(env, path.slice(7));
+
   await ensureSchema(env);
 
   /* Meta calls these without a session; the signed_request proves it is Meta. */
@@ -85,6 +90,16 @@ export async function handle(request, env) {
     if (!exists) return json({ error: "not_found" }, 404);
     await setClientFlags(env, b.clientId, { enabled: b.enabled, paused: b.paused }, auth.email);
     return json({ ok: true });
+  }
+
+  /* Admin only: upload an original image (raw bytes, not JSON). Returns the public converted URL. */
+  if (path === "/media" && method === "POST") {
+    if (auth.role !== "admin") return json({ error: "forbidden" }, 403);
+    const bytes = new Uint8Array(await request.arrayBuffer());
+    const r = await storeMedia(env, bytes, auth.email);
+    if (r.error) return json({ error: r.error }, r.error === "too_large" ? 413 : r.error === "storage_unavailable" ? 503 : 400);
+    await audit(env, { clientId: null, actor: auth.email, action: "media_uploaded", detail: { mediaId: r.id, bytes: r.bytes } });
+    return json({ url: r.url, bytes: r.bytes });
   }
 
   const body = method === "GET" ? {} : await readJson(request);

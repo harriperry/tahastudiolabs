@@ -33,7 +33,7 @@ textarea{min-height:110px;resize:vertical}label{display:block;margin:8px 0 3px;f
 .badge{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;background:#2a2e3a}
 .b-published{background:#1f4d33}.b-failed,.b-needs_check{background:#5a2323}.b-scheduled,.b-publishing{background:#4a3d12}
 .note{border-left:3px solid #e8a317;padding:8px 12px;margin-bottom:14px;background:#1b1e27;border-radius:0 8px 8px 0}
-.err{border-left-color:#e05a5a}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px 4px;border-bottom:1px solid #2a2e3a;font-size:14px;vertical-align:top}
+.prev{display:block;max-width:100%;max-height:320px;border-radius:8px;margin:6px 0}.err{border-left-color:#e05a5a}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px 4px;border-bottom:1px solid #2a2e3a;font-size:14px;vertical-align:top}
 `;
 
 export const PANEL_JS = `(function () {
@@ -52,7 +52,7 @@ export const PANEL_JS = `(function () {
       v_draft: "Utkast", v_approved: "Godkänd", connected: "Kontona är anslutna.", denied: "Anslutningen avbröts eller nekades.", deletion: "Din begäran om radering är mottagen.",
       saved: "Utkastet är sparat.", scheduledOk: "Inlägget är schemalagt.", failedGeneric: "Något gick fel. Försök igen.", adminH: "Administratör", clientId: "Klient-ID",
       load: "Visa", enable: "Aktivera", disable: "Stäng av", pause: "Pausa klient", resume: "Återuppta klient", pauseAll: "Pausa allt", resumeAll: "Återuppta allt", expired: "Måste anslutas igen",
-      inboxH: "Inlägg att granska", inboxNone: "Inga nya inlägg att granska.", editHint: "Du kan ändra texten innan du godkänner. Ingenting publiceras förrän du godkänner.",
+      uploadImage: "Ladda upp bild", uploading: "Laddar upp...", uploadFailed: "Bilden kunde inte laddas upp (JPG, PNG eller WebP, högst 8 MB).", inboxH: "Inlägg att granska", inboxNone: "Inga nya inlägg att granska.", editHint: "Du kan ändra texten innan du godkänner. Ingenting publiceras förrän du godkänner.",
       approveSchedule: "Godkänn och schemalägg", requestChanges: "Begär ändringar", rejectBtn: "Avvisa", noteLabel: "Vad ska ändras?", noteReq: "Skriv vad som ska ändras.",
       expiresOn: "Går ut", earlier: "Tidigare förslag", suggestedTime: "Föreslagen tid (valfri)", approvedOk: "Godkänt och schemalagt.", changesOk: "Ändringarna är begärda.", rejectedOk: "Förslaget är avvisat.",
       p_pending: "Väntar", p_approved: "Godkänd", p_changes_requested: "Ändringar begärda", p_rejected: "Avvisad", p_expired: "Utgången", p_withdrawn: "Tillbakadragen",
@@ -70,7 +70,7 @@ export const PANEL_JS = `(function () {
       v_draft: "Draft", v_approved: "Approved", connected: "Your accounts are connected.", denied: "The connection was cancelled or denied.", deletion: "Your deletion request was received.",
       saved: "Draft saved.", scheduledOk: "The post is scheduled.", failedGeneric: "Something went wrong. Please try again.", adminH: "Administrator", clientId: "Client ID",
       load: "Show", enable: "Enable", disable: "Disable", pause: "Pause client", resume: "Resume client", pauseAll: "Pause everything", resumeAll: "Resume everything", expired: "Needs to be reconnected",
-      inboxH: "Posts to review", inboxNone: "No posts to review.", editHint: "You can edit the text before approving. Nothing is published until you approve.",
+      uploadImage: "Upload image", uploading: "Uploading...", uploadFailed: "The image could not be uploaded (JPG, PNG or WebP, 8 MB at most).", inboxH: "Posts to review", inboxNone: "No posts to review.", editHint: "You can edit the text before approving. Nothing is published until you approve.",
       approveSchedule: "Approve and schedule", requestChanges: "Request changes", rejectBtn: "Reject", noteLabel: "What should change?", noteReq: "Please write what should change.",
       expiresOn: "Expires", earlier: "Earlier proposals", suggestedTime: "Suggested time (optional)", approvedOk: "Approved and scheduled.", changesOk: "Changes requested.", rejectedOk: "Proposal rejected.",
       p_pending: "Waiting", p_approved: "Approved", p_changes_requested: "Changes requested", p_rejected: "Rejected", p_expired: "Expired", p_withdrawn: "Withdrawn",
@@ -160,6 +160,20 @@ export const PANEL_JS = `(function () {
     } }));
     return el("div", { class: "card" }, kids);
   }
+  function uploadControl(img) {
+    var f = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp", "aria-label": t("uploadImage") });
+    var st = el("span", { class: "muted" });
+    f.addEventListener("change", function () {
+      var file = f.files && f.files[0];
+      if (!file) return;
+      st.textContent = t("uploading");
+      fetch(BASE + "/media", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/octet-stream", Accept: "application/json" }, body: file })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, data: d }; }); })
+        .then(function (r) { if (r.status === 200 && r.data.url) { img.value = r.data.url; st.textContent = ""; } else st.textContent = t("uploadFailed"); })
+        .catch(function () { st.textContent = t("uploadFailed"); });
+    });
+    return el("div", { class: "row" }, [f, st]);
+  }
   function localInput(ms) {
     var d = new Date(ms - new Date(ms).getTimezoneOffset() * 60000);
     return d.toISOString().slice(0, 16);
@@ -180,6 +194,7 @@ export const PANEL_JS = `(function () {
       var note = el("input", { placeholder: t("noteLabel"), maxlength: "1000" });
       var card = el("div", { class: "card" }, [
         el("div", { class: "muted", text: p.platform + " | " + t("expiresOn") + " " + new Date(p.expires_at).toLocaleDateString() }),
+        p.media_url && p.media_url.indexOf(location.origin + BASE + "/media/") === 0 ? el("img", { class: "prev", src: p.media_url, alt: "" }) : null,
         p.media_url ? el("div", { class: "muted", text: p.media_url }) : null,
         p.link_url ? el("div", { class: "muted", text: p.link_url }) : null,
         body,
@@ -230,7 +245,7 @@ export const PANEL_JS = `(function () {
     d.accounts.filter(function (a) { return a.status === "active"; }).forEach(function (a) { acc.appendChild(el("option", { value: a.id, text: a.platform + ": " + a.display_name })); });
     var body = el("textarea", { maxlength: "5000" }), link = el("input", { placeholder: "https://" }), img = el("input", { placeholder: "https://" }), when = el("input", { type: "datetime-local" });
     var kids = [el("h2", { text: t("proposeH") }), el("label", { text: t("platform") }), plat, el("label", { text: t("text") }), body,
-      el("label", { text: t("link") }), link, el("label", { text: t("image") }), img, el("label", { text: t("optional") }), acc, el("label", { text: t("suggestedTime") }), when,
+      el("label", { text: t("link") }), link, el("label", { text: t("image") }), img, uploadControl(img), el("label", { text: t("optional") }), acc, el("label", { text: t("suggestedTime") }), when,
       el("div", { class: "row" }, [el("button", { class: "ghost", text: t("addToBatch"), onclick: function () {
         if (!body.value.trim()) return;
         var item = { platform: plat.value, body: body.value };
@@ -265,7 +280,7 @@ export const PANEL_JS = `(function () {
     var sel = accountSelect(d), body = el("textarea", { maxlength: "5000" }), link = el("input", { placeholder: "https://" }), img = el("input", { placeholder: "https://" });
     var byId = {}; d.accounts.forEach(function (a) { byId[a.id] = a; });
     return el("div", { class: "card" }, [el("h2", { text: t("composeH") }), el("label", { text: t("account") }), sel, el("label", { text: t("text") }), body,
-      el("label", { text: t("link") }), link, el("label", { text: t("image") }), img,
+      el("label", { text: t("link") }), link, el("label", { text: t("image") }), img, d.role === "admin" ? uploadControl(img) : null,
       el("div", { class: "row" }, [el("button", { text: t("saveDraft"), onclick: function () {
         var a = byId[sel.value]; if (!a) return;
         var payload = withClient({ platform: a.platform, body: body.value });

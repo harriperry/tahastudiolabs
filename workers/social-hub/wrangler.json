@@ -58,5 +58,8 @@
   },
   "observability": {
     "enabled": true
+  },
+  "images": {
+    "binding": "IMAGES"
   }
 }
